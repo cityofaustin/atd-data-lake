@@ -1,0 +1,18 @@
+ATD DATA LAKE
+Network Modeling Center
+Center for Transportation Research
+Cockrell School of Engineering
+The University of Texas at Austin
+
+Repository: https://github.com/cityofaustin/atd-data-lake
+Documentation: 
+
+Kenneth Perrine
+kperrine@utexas.edu
+
+Copyright (C) 2019, The University of Texas at Austin
+-----
+
+CTR is assiting the City of Austin (CoA) Traffic Division (ATD) in data archiving by developing and implementing a sustainable architecture. Meanwhile CTR continues to assist the CoA ATD team in analyzing the large sets of data expected to be generated from new technologies as well as integrating data from multiple sources. The analysis focus on understanding how collected data may support CoA programs such as the Corridor Bond Office, Vision Zero, and the Smart City Roadmap. At the CoA's request, CTR also proposes data models and processing workflows to facilitate data sharing and use.
+
+CTR researchers have worked with CoA personnel to evaluate commercial cloud solutions and leverage them in sustainably creating a "Data Lake" persistent storage solution. Data sources include Bluetooth-based travel time sensors, radar-based traffic volume detectors, and smart camera systems, with future attention on transit location data and dockless mobility (e.g. scooters). Meanwhile, CTR has provided assistance in scheduling and coordinating discussions with key personnel at other cities who are working on open data projects for their regions. CTR has also helped CoA staff to quickly retrieve data in response to public information requests, and continues to support a related project that involves visualizing data to assess the performance of several urban corridors. CTR staff are assisting CoA personnel in building up their open-source codebase that is instrumental in hosting and archiving open and protected data sources.
