@@ -123,6 +123,7 @@ Indexes:
 ```
 
 These are the functions for the individual fields:
+
 | **Field** | **Description**
 | --- | ---
 | id | Auto-incrementing, unique integer identifier
