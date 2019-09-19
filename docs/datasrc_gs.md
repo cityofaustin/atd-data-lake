@@ -4,7 +4,7 @@
 
 GRIDSMART cameras are fish-eye cameras with image processing capabilities. They return counts and other information. The figure below outlines the system architecture for the GRIDSMART data.
 
-| GRIDSMART System Architecture <br><img src="Figures/new_gs_overview.png">
+| GRIDSMART System Architecture <br><img src="figures/new_gs_overview.png">
 |---
 
 ## Layer 1 Raw
@@ -220,7 +220,7 @@ The "data" object includes the raw data in a JSON serialized format with the sam
 * Daylight Savings Time was ignored.
 * Internal clocks were sometimes drifted ~1/2 hour
 
-| GRIDSMART time adjustment <br><br><img src="Figures/time_offset.png" width="400">|
+| GRIDSMART time adjustment <br><br><img src="figures/time_offset.png" width="400">|
 |---|
 
 Up until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight savings changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (*TODO: Under which tag?*) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the "ready" JSON counts file pertain only to the day that it is filed under within the Data Lake.

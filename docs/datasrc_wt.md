@@ -4,7 +4,7 @@
 
 Data is composed of radar vehicle counts mid-block. The next figure overviews the system architecture for this data type. *Grayed-out items in the diagram depict items that are currently not implemented.*
 
-| Wavetronix System Architecture <br><img src="Figures/new_wt_overview.png">
+| Wavetronix System Architecture <br><img src="figures/new_wt_overview.png">
 |---
 
 ## Layer 1 Raw Data
