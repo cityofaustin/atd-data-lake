@@ -123,16 +123,16 @@ Indexes:
 ```
 
 These are the functions for the individual fields:
-|**Field**|**Description**
-|---|---
-|id|Auto-incrementing, unique integer identifier
-|repository|The identifier for the Data Lake layer that corresponds with the entry. This is currently one of "raw", "rawjson", or "ready".
-|data_type|The identifier for the data type that the entry corresponds with. This is currently one of "bt", "wt", or "gs".
-|identifier|A scheme specific to the data type that identifies the file and what it is. This is often the filename.
-|pointer|The path directly into the respective AWS S3 bucket that references the file that corresponds with the Catalog entry
-|collection_date|The time that was logged for the data collection, usually truncated to the start of the respective day
-|processing_date|The time that the respective file was processed and added to the Data Lake
-|metadata|JSON header data, used to further describe the referred item
+| **Field** | **Description**
+| --- | ---
+| id | Auto-incrementing, unique integer identifier
+| repository | The identifier for the Data Lake layer that corresponds with the entry. This is currently one of "raw", "rawjson", or "ready".
+| data_type | The identifier for the data type that the entry corresponds with. This is currently one of "bt", "wt", or "gs".
+| identifier | A scheme specific to the data type that identifies the file and what it is. This is often the filename.
+| pointer | The path directly into the respective AWS S3 bucket that references the file that corresponds with the Catalog entry
+| collection_date | The time that was logged for the data collection, usually truncated to the start of the respective day
+| processing_date | The time that the respective file was processed and added to the Data Lake
+| metadata | JSON header data, used to further describe the referred item
 
 The `data_lake_catalog_pkey` key is created to prevent duplicate entries. It is also necesary for use within PostgREST to facilitate upserts.
 
@@ -182,5 +182,3 @@ Another demonstration or quasi-use case for data stored within the Data Lake may
 ![](figures/google_data_studio.png)
 
 Since that visit date, the abilities of Amazon Athena have been made known and developed. With Athena, queries can be issued directly on S3 files, and then visualized in Amazon QuickSight. Opportunities may also exist with the open-source Apache Superset, which can tie into a hosted database.
-
-
