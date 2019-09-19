@@ -76,12 +76,12 @@ Inside the Site File, the keys of consequence (and a few others) are the followi
 		"device_net_addr": "172.16.42.27"
 	},
 	"site": {
-        ...
+        //...
 		"CameraDevices": [{
 				"Fisheye": {
-                    ...
+                    //...
 					"CameraMasks": {
-                        ...
+                        //...
 						"ZoneMasks": [{
 								"Vehicle": {
 									"ApproachType": "Northbound",
@@ -94,7 +94,7 @@ Inside the Site File, the keys of consequence (and a few others) are the followi
 									"DelaySeconds": 0,
 									"DelaySecondsPrecise": 0,
                                     "ExtensionSeconds": 0,
-                                    ...
+                                    //...
 									"IncludeInData": true,
 									"Latching": false,
 									"MaxRecall": false,
@@ -104,14 +104,14 @@ Inside the Site File, the keys of consequence (and a few others) are the followi
 											"Interface": 0,
 											"MinimumOccupancy": 1
 										}
-									], ...
+									], //...
 									"ProtectedPhases": [2],
 									"VisibilityDetectionEnabled": true,
-									"Id": "2c6dff02cb0c4da0adc528dd1946df40", ...
+									"Id": "2c6dff02cb0c4da0adc528dd1946df40", //...
 								}
-                            }, ...
+                            }, //...
 						]
-					}, ...
+					}, //...
 					"MACAddress": "00:30:53:26:e6:e1",
 					"Name": "Burnet & Richcreek"
 				}
@@ -130,7 +130,7 @@ Inside the Site File, the keys of consequence (and a few others) are the followi
 			"State": "TX",
 			"Street1": "Burnet",
 			"Street2": "Richcreek"
-		}, ...
+		}, //...
 	},
 	"datetime": {
 		"DateTime": "6/3/2019 2:32:13 AM",
@@ -168,7 +168,7 @@ There's also the unit data file containing the information from Knack, called `u
 			"primary_st_segment_id": "2024176",
 			"cross_st": " REDD ST",
 			"cross_st_segment_id": "2024177"
-        }, ...
+        }, //...
 	]
 }
 ```
@@ -205,7 +205,7 @@ This is a sample of a GRIDSMART JSON file, with one created per "site"."CameraDe
 			"zone_freeflow_speed": 42,
 			"zone_freeflow_speed_cal": 39,
 			"timestamp_adj": "2019-05-31 22:02:11.600000-05:00"
-		}, ...
+		}, //...
 	]
 }
 ```
@@ -255,7 +255,7 @@ The `ready` layer encompasses two types of files: counts and aggregated counts. 
 			"zone_freeflow_speed_cal": 32,
 			"timestamp_adj": "2019-06-01 00:00:13-05:00",
 			"zone": "ae256bab37dc499e88829cfd5a0fde6b"
-		}, ...
+		}, //...
 	],
 	"site": {
 		"header": {
@@ -264,12 +264,13 @@ The `ready` layer encompasses two types of files: counts and aggregated counts. 
 			"collection_date": "2019-06-01 00:00:00-05:00",
 			"device_net_addr": "172.16.42.27"
 		},
-		"site": { ...
+		"site": { //...
 			"CameraDevices": [{
 					"Fisheye": {
 						"CameraMasks": {
 							"ZoneMasks": [{
-									"Vehicle": { ...
+                                    "Vehicle": { //...
+                                    }
 								}, {
 									"Vehicle": {
 										"ApproachType": "Southbound",
@@ -282,13 +283,13 @@ The `ready` layer encompasses two types of files: counts and aggregated counts. 
 										"DelaySeconds": 0,
 										"DelaySecondsPrecise": 0,
 										"ExtensionSeconds": 0,
-										"FlowVector": { ...
+										"FlowVector": { //...
 										},
 										"IncludeInData": true,
 										"Latching": false,
 										"MaxRecall": false,
 										"Name": "",
-										"Outputs": [{ ...
+										"Outputs": [{ //...
 											}
 										],
 										"OutputBIUs": [],
@@ -297,17 +298,17 @@ The `ready` layer encompasses two types of files: counts and aggregated counts. 
 										"ProtectedPhases": [6],
 										"VisibilityDetectionEnabled": true,
 										"Id": "ae256bab37dc499e88829cfd5a0fde6b",
-                                        "Polygon": [ ...
+                                        "Polygon": [ //...
                                         ]
 									}
-								}, ...
-							]
+								}, //...
+                            ]
 						},
 						"CompassHeading": 77,
 						"ExtrinsicCalibration": {
 							"HeightFeet": 26
 						},
-						"IntrinsicCalibration": { ...
+						"IntrinsicCalibration": { //...
 						},
 						"IsConfigured": true,
 						"MACAddress": "00:30:53:26:e6:e1",
@@ -408,11 +409,11 @@ The aggregated data files contain aggregate counts to 15 minutes. The `aws_trans
 			"speed_std": 0.0,
 			"seconds_in_zone_avg": 1.3,
 			"seconds_in_zone_std": 1.084
-		}, ...
+		}, //...
 	],
-	"site": { ...
+	"site": { //...
 	},
-	"device": { ...
+	"device": { //...
 	}
 }
 ```
