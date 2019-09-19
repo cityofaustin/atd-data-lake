@@ -9,51 +9,49 @@ GRIDSMART cameras are fish-eye cameras with image processing capabilities. They 
 
 ## Layer 1 Raw
 
-GRIDSMART counts files are comprised of a ZIPped directory structure. 
-
-*TODO: Do we have any docs for the file structure? Does the API docs go into it?*
+GRIDSMART counts files are comprised of a ZIPped directory structure. (The directory structure is processed in module `support.gs_investigate`) 
 
 The structure of raw GRIDSMART counts files depend on the software version: v8 or v4. The following two tables outline the GRIDSMART raw data structure for v8 and v4. These are drawn from the [GRIDSMART API Reference](https://support.gridsmart.com/support/solutions/articles/27000026973-api-commands).
 
 **GRIDSMART v8 Raw Data Structure**
 | **Field** | **Type** | **Description** |
-|---|---|---|
-|count_version|integer|GRIDSMART camera software version
-|site_version|text|
-|timestamp|timestamp|UTC timestamp of record
-|utc_offset|numeric|Local timezone offset from UTC
-|turn|text|Turn movement of vehicle (S, R, L, U)
-|vehicle_length|numeric|Vehicle length in ft.
-|speed|numeric|Speed at which the vehicle was detected
-|light_state|text|Light state when the vehicle was detected (R for red, Y for yellow, G for green)
-|seconds_in_zone|numeric|Number of seconds the vehicle was detected within the zone
-|vehicles_in_zone|numeric|Number of vehicles in the zone when vehicle was detected
-|light_state_sec|numeric|Number of seconds the light state has been occurring when vehicle was detected
-|sec_since_green|numeric|Seconds since the last green light state when vehicle was detected
-|zone_freeflow_speed|numeric|Free flow speed of zone where vehicle was detected
-|zone_freeflow_speed_cal|numeric|Calibrated free flow speed of zone where vehicle was detected
+| --- | --- | --- |
+| count_version | integer | GRIDSMART camera software version
+| site_version | text |
+| timestamp | timestamp | UTC timestamp of record
+| utc_offset | numeric | Local timezone offset from UTC
+| turn | text | Turn movement of vehicle (S, R, L, U)
+| vehicle_length | numeric | Vehicle length in ft.
+| speed | numeric | Speed at which the vehicle was detected
+| light_state | text | Light state when the vehicle was detected (R for red, Y for yellow, G for green)
+| seconds_in_zone | numeric | Number of seconds the vehicle was detected within the zone
+| vehicles_in_zone | numeric | Number of vehicles in the zone when vehicle was detected
+| light_state_sec | numeric | Number of seconds the light state has been occurring when vehicle was detected
+| sec_since_green | numeric | Seconds since the last green light state when vehicle was detected
+| zone_freeflow_speed | numeric | Free flow speed of zone where vehicle was detected
+| zone_freeflow_speed_cal | numeric | Calibrated free flow speed of zone where vehicle was detected
 
 ---
 
 **GRIDSMART v4 Raw Data Structure**
 | **Field** | **Type** | **Description** |
-|---|---|---|
-|count_version|integer|GRIDSMART camera software version
-|site_version|text|
-|timestamp|timestamp|UTC timestamp of record in local time
-|internal_veh_id|numeric|Local timezone offset from UTC
-|internal_veh_type|text|Turn movement of vehicle (S, R, L, U)
-|vehicle_length|numeric|Vehicle length in ft.
-|speed|numeric|Speed at which the vehicle was detected
-|turn|text|Turn movement of vehicle (S, R, L, U)
-|allowable_turns|text|Allowed turn movements of zone
-|seconds_in_zone|numeric|Number of seconds the vehicle was detected within the zone
-|seconds_since_last_exit|numeric|
-|queue_length|numeric|Number of vehicles in queue
-|light_state_on_exit|text|Light state when the vehicle left the zone (R for red, Y for yellow, G for green)
-|sec_since_green|numeric|Seconds since the last green light state when vehicle was detected
-|internal_frame_count|numeric|
-|day_night|text|Whether record occured at night or during the day
+| --- | --- | --- |
+| count_version | integer | GRIDSMART camera software version
+| site_version | text |
+| timestamp | timestamp | UTC timestamp of record in local time
+| internal_veh_id | numeric | Local timezone offset from UTC
+| internal_veh_type | text | Turn movement of vehicle (S, R, L, U)
+| vehicle_length | numeric | Vehicle length in ft.
+| speed | numeric | Speed at which the vehicle was detected
+| turn | text | Turn movement of vehicle (S, R, L, U)
+| allowable_turns | text | Allowed turn movements of zone
+| seconds_in_zone | numeric | Number of seconds the vehicle was detected within the zone
+| seconds_since_last_exit | numeric |
+| queue_length | numeric | Number of vehicles in queue
+| light_state_on_exit | text | Light state when the vehicle left the zone (R for red, Y for yellow, G for green)
+| sec_since_green | numeric | Seconds since the last green light state when vehicle was detected
+| internal_frame_count | numeric |
+| day_night | text | Whether record occured at night or during the day
 
 The API function called into GRIDSMART looks like this (replacing the IP address with a valid one), and is automated through the `collecting.gs.log_reader` module, called by `support/last_upd_gs`:
 
@@ -220,7 +218,7 @@ The "data" object includes the raw data in a JSON serialized format with the sam
 * Daylight Savings Time was ignored.
 * Internal clocks were sometimes drifted ~1/2 hour
 
-| GRIDSMART time adjustment <br><br><img src="figures/time_offset.png" width="400">|
+| GRIDSMART time adjustment <br><br><img src="figures/time_offset.png" width="400"> |
 |---|
 
 Up until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight savings changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (*TODO: Under which tag?*) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the "ready" JSON counts file pertain only to the day that it is filed under within the Data Lake.

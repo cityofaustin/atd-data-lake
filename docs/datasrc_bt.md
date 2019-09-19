@@ -5,7 +5,7 @@
 Bluetooth data has three data file types: Individual Address Files (IAF), Individual Traffic Match Files (ITMF), and Traffic Match Summary Records (TMSR). Below is the system architecture for all three types of files, shown below.
 
 | Bluetooth System Architecture <br><img src="figures/new_bt_overview.png">
-|---
+| ---
 
 ## IAF: Individual Address Files and Common Functionality
 
@@ -14,12 +14,12 @@ Bluetooth data has three data file types: Individual Address Files (IAF), Indivi
 An Individual Address File data file contains each device detected per day. Each file, named in `Austin_bt_[YYY-MM-DD].txt` format, has the following columns (with no header):
 
 | **Position** | **Field** | **Data Type** | **Description** | **Example** |
-|---|---|---|---|---|
-|1|Host Read Time|Timestamp|Timestamp on the host when address of personal device was received|12/03/2010 12:00:00 AM|
-|2|Field Device IP Address|String|IP address of field device|166.159.23.10|
-|3|Field Device Read Time|Timestamp|Timestamp of the field device when address of personal device was received|12/03/2010 12:00:12 AM|
-|4|Host Reader ID|String|The reader ID of the field device|Woodway_ChimneyRock|
-|5|Personal Device Address|String|Encoded MAC address of the personal device that was read by field device|=MjU6MDA6Rjk6Mjk6NDl|
+| --- | --- | --- | --- | --- |
+| 1 | Host Read Time | Timestamp | Timestamp on the host when address of personal device was received | 12/03/2010 12:00:00 AM |
+| 2 | Field Device IP Address | String | IP address of field device | 166.159.23.10 |
+| 3 | Field Device Read Time | Timestamp | Timestamp of the field device when address of personal device was received | 12/03/2010 12:00:12 AM |
+| 4 | Host Reader ID | String | The reader ID of the field device | Woodway_ChimneyRock |
+| 5 | Personal Device Address | String | Encoded MAC address of the personal device that was read by field device | =MjU6MDA6Rjk6Mjk6NDl |
 
 The code that processes `raw` Blutetooth IAF, as well as ITMF and TMSR is `aws_transport/bt_insert_lake.py`. That code runs on the ATD traffic control network, and looks in a mounted directory full of data files that is maintained by the Bluetooth detector system. On the host system, that share is mounted with this command (and equivalent fstab entry) (fill in username/password, and valid network address for the Samba file share):
 
@@ -58,13 +58,13 @@ The code in `aws_transport/bt_json_standard.py` reads the raw IAF file from the 
 
 The key to CSV column mapping is:
 
-|**Key**|**Column**
-|---|---
-|"host_timestamp"|1
-|"ip_address"|2
-|"field_timestamp"|3
-|"reader_id"|4
-|"dev_addr"|5
+| **Key** | **Column**
+| --- | ---
+| "host_timestamp" | 1
+| "ip_address" | 2
+| "field_timestamp" | 3
+| "reader_id" | 4
+| "dev_addr" | 5
 
 These data files are generally considered sensitive because the hashed MAC addresses provided in "dev_addr" can potentially be un-hashed and can also track repeat visitors to a sensor.
 
@@ -193,17 +193,17 @@ MDA6MDA6MDA6QTA6MEU=,guadalupe_26th,guadalupe_24th,5/31/2019 11:59:31 PM,5/31/20
 
 At the moment, official documentation for the Post Oak Traffic AWAM Bluetooth reader is hosted at https://github.com/cityofaustin/hack-the-traffic/tree/master/docs. Each row represents a pair of readings for a particular mobile device, and has the following columns:
 
-|**Column**|**Element Name**|**Description**
-|---|---|---
-|1|Device Address|Hash of the unique address of the device that was read by the field software.
-|2|Origin Reader Identifier|The unique identifier assigned to origin sensor that recorded a device address match.
-|3|Destination Reader Identifier|The unique identifier assigned to destination sensor that recorded a device address match.
-|4|Start Time|The time the device address was recorded at the origin sensor.
-|5|End Time|The time the device address was recorded at the destination sensor.
-|6|Travel Time Seconds|The travel time in seconds from the origin to the destination sensor.
-|7|Speed Miles Per Hour|The speed in miles per hour between the origin and the destination sensors.
-|8|Match Validity|Indicates whether the sensor server classified the traffic data sample as being valid or invalid based on the filtering algorithm and minimum/maximum allowable speeds applied to the roadway segment. Values are "valid" or "invalid".
-|9|Filter Identifier|The numeric code of the filtering algorithm used in the outlier filter for the roadway segment. See the host documentation section titled "Algorithm Configuration" for more information.
+| **Column** | **Element Name** | **Description**
+| --- | --- | ---
+| 1 | Device Address | Hash of the unique address of the device that was read by the field software.
+| 2 | Origin Reader Identifier | The unique identifier assigned to origin sensor that recorded a device address match.
+| 3 | Destination Reader Identifier | The unique identifier assigned to destination sensor that recorded a device address match.
+| 4 | Start Time | The time the device address was recorded at the origin sensor.
+| 5 | End Time | The time the device address was recorded at the destination sensor.
+| 6 | Travel Time Seconds | The travel time in seconds from the origin to the destination sensor.
+| 7 | Speed Miles Per Hour | The speed in miles per hour between the origin and the destination sensors.
+| 8 | Match Validity | Indicates whether the sensor server classified the traffic data sample as being valid or invalid based on the filtering algorithm and minimum/maximum allowable speeds applied to the roadway segment. Values are "valid" or "invalid".
+| 9 | Filter Identifier | The numeric code of the filtering algorithm used in the outlier filter for the roadway segment. See the host documentation section titled "Algorithm Configuration" for more information.
 
 ### Layer 2 JSON Data
 
@@ -246,17 +246,17 @@ The code in `aws_transport/bt_json_standard.py` reads the raw ITMF file from the
 
 The key to CSV column mapping is:
 
-|**Key**|**Column**
-|---|---
-|"dev_addr"|1
-|"origin_reader_id"|2
-|"dest_reader_id"|3
-|"start_time"|4
-|"end_time"|5
-|"travel_time_secs"|6
-|"speed"|7
-|"match_validity"|8
-|"filter_id"|9
+| **Key** | **Column**
+| --- | ---
+| "dev_addr" | 1
+| "origin_reader_id" | 2
+| "dest_reader_id" | 3
+| "start_time" | 4
+| "end_time" | 5
+| "travel_time_secs" | 6
+| "speed" | 7
+| "match_validity" | 8
+| "filter_id" | 9
 
 ### Layer 3 Ready Data
 
@@ -351,23 +351,23 @@ congress_5th,5th_trinity,5th,Congress,Eastbound,5th,Trinity,Westbound,0.216,6/1/
 
 Each row represents a pair of readings for a particular mobile device, and has the following columns:
 
-|**Column**|**Element Name**|**Description**
-|---|---|---
-|1|Origin Reader Identifier|The identifier assigned on the AWAM field device that uniquely identifies the origin location of the field device.
-|2|Destination Reader Identifier|The identifier assigned on the AWAM field device that uniquely identifies the destination location of the field device.
-|3|Origin Roadway|The name of the roadway being monitored by the AWAM system at the location of the origin field device.
-|4|Origin Cross Street|The name of the closest cross street on the roadway being monitored by the origin field device.
-|5|Origin Direction|The direction of roadway being monitored by the AWAM system at the location of the origin field device. For example, Northbound, Southbound, Eastbound, Westbound.
-|6|Destination Roadway|The name of the roadway being monitored by the AWAM system at the location of the destination field device.
-|7|Destination Cross Street|The name of the closest cross street on the roadway being monitored by the destination field device.
-|8|Destination Direction|The direction of roadway being monitored by the AWAM system at the location of the destination field device. For example, Northbound, Southbound, Eastbound, Westbound.
-|9|Segment Length in Miles|The length in miles of the roadway segment being monitored.
-|10|Date/Time|The time that the roadway segment was updated by the AWAM host. The format of the timestamp is DD/MM/YYYY HH:MI:SS AM/PM
-|11|Average Travel Time in Seconds|The average travel time in seconds for the roadway segment as calculated by the AWAM host.
-|12|Average Speed in Miles Per Hour|The average speed in miles per hour for the roadway segment as calculated by the AWAM host.
-|13|Summary Interval in Minutes|The interval in minutes that the averages are calculated from. For example, a value of 15 indicates the average travel times and speeds for the last 15 minutes.
-|14|Number of Samples|The number of individual traffic data samples included in the travel time and speed averages.
-|15|Standard Deviation|The standard deviation of the speed samples included in the summary.
+| **Column** | **Element Name** | **Description**
+| --- | --- | ---
+| 1 | Origin Reader Identifier | The identifier assigned on the AWAM field device that uniquely identifies the origin location of the field device.
+| 2 | Destination Reader Identifier | The identifier assigned on the AWAM field device that uniquely identifies the destination location of the field device.
+| 3 | Origin Roadway | The name of the roadway being monitored by the AWAM system at the location of the origin field device.
+| 4 | Origin Cross Street | The name of the closest cross street on the roadway being monitored by the origin field device.
+| 5 | Origin Direction | The direction of roadway being monitored by the AWAM system at the location of the origin field device. For example, Northbound, Southbound, Eastbound, Westbound.
+| 6 | Destination Roadway | The name of the roadway being monitored by the AWAM system at the location of the destination field device.
+| 7 | Destination Cross Street | The name of the closest cross street on the roadway being monitored by the destination field device.
+| 8 | Destination Direction | The direction of roadway being monitored by the AWAM system at the location of the destination field device. For example, Northbound, Southbound, Eastbound, Westbound.
+| 9 | Segment Length in Miles | The length in miles of the roadway segment being monitored.
+| 10 | Date/Time | The time that the roadway segment was updated by the AWAM host. The format of the timestamp is DD/MM/YYYY HH:MI:SS AM/PM
+| 11 | Average Travel Time in Seconds | The average travel time in seconds for the roadway segment as calculated by the AWAM host.
+| 12 | Average Speed in Miles Per Hour | The average speed in miles per hour for the roadway segment as calculated by the AWAM host.
+| 13 | Summary Interval in Minutes | The interval in minutes that the averages are calculated from. For example, a value of 15 indicates the average travel times and speeds for the last 15 minutes.
+| 14 | Number of Samples | The number of individual traffic data samples included in the travel time and speed averages.
+| 15 | Standard Deviation | The standard deviation of the speed samples included in the summary.
 
 ### Layer 2 JSON Data
 
@@ -406,23 +406,23 @@ The code in `aws_transport/bt_json_standard.py` reads the raw TMSR file from the
 
 The key to CSV column mapping is:
 
-|**Key**|**Column**
-|---|---
-|"origin_reader_id"|1
-|"dest_reader_id"|2
-|"origin_road"|3
-|"origin_cross_st"|4
-|"origin_dir"|5
-|"dest_road"|6
-|"dest_cross_st"|7
-|"dest_dir"|8
-|"seg_length"|9
-|"timestamp"|10
-|"avg_travel_time"|11
-|"avg_speed"|12
-|"interval"|13
-|"samples"|14
-|"std_dev"|15
+| **Key** | **Column**
+| --- | ---
+| "origin_reader_id" | 1
+| "dest_reader_id" | 2
+| "origin_road" | 3
+| "origin_cross_st" | 4
+| "origin_dir" | 5
+| "dest_road" | 6
+| "dest_cross_st" | 7
+| "dest_dir" | 8
+| "seg_length" | 9
+| "timestamp" | 10
+| "avg_travel_time" | 11
+| "avg_speed" | 12
+| "interval" | 13
+| "samples" | 14
+| "std_dev" | 15
 
 ### Layer 3 Ready Data
 
