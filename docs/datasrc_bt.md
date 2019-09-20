@@ -11,7 +11,7 @@ Bluetooth data has three data file types: Individual Address Files (IAF), Indivi
 
 ### Layer 1 Raw
 
-An Individual Address File data file contains each device detected per day. Each file, named in `Austin_bt_[YYY-MM-DD].txt` format, has the following columns (with no header):
+An Individual Address File data file contains each device detected per day. Each file, named in `Austin_bt_MM-DD-YYYY.txt` format, has the following columns (with no header):
 
 | **Position** | **Field** | **Data Type** | **Description** | **Example** |
 | --- | --- | --- | --- | --- |
@@ -41,17 +41,17 @@ The code in `aws_transport/bt_json_standard.py` reads the raw IAF file from the 
 	},
 	"data": [{
 			"host_timestamp": "2019-06-01 00:00:00-05:00",
-			"ip_address": "172.16.26.23",
+			"ip_address": "00.00.00.00",
 			"field_timestamp": "2019-05-31 23:59:56-05:00",
 			"reader_id": "anderson_mill_bethany",
 			"dev_addr": "MDY6RUY6QUY6QTA6NzM="
 		}, {
 			"host_timestamp": "2019-06-01 00:00:00-05:00",
-			"ip_address": "172.16.183.55",
+			"ip_address": "00.00.00.00",
 			"field_timestamp": "2019-05-31 18:04:12-05:00",
 			"reader_id": "fm973_pearce",
 			"dev_addr": "MUU6QjI6MjE6QjU6NDc="
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -94,7 +94,7 @@ The code that processes `raw` to `rawjson` Blutetooth IAF, as well as ITMF and T
 			"primary_st_segment_id": "2019056",
 			"cross_st": " 2ND ST",
 			"cross_st_segment_id": "2019057"
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -127,7 +127,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves t
 			"ip_address": "00.00.00.00",
 			"reader_id": "anderson_mill_bethany",
 			"device_id": "640bb5b19dfd5b93f8086df5c0581f76"
-		}, //...
+		}, /*...*/
 	],
 	"devices": [{
 			"atd_device_id": 11,
@@ -145,7 +145,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves t
 			"primary_st": " ANDERSON MILL RD",
 			"primary_st_segment_id": "3194314",
 			"device_id": "640bb5b19dfd5b93f8086df5c0581f76"
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -164,7 +164,7 @@ Again, the hashed MAC addresses are output. It may be better for an incrementing
 
 ### Socrata
 
-The code that loads `ready` to Socrata Blutetooth IAF ("Bluetooth Travel Sensors - Individual Address Files (IAFs)") is `aws_transport/bt_extract_soc.py`, which processes all three file types. The respective Socrata identifier is `qnpj-zrb9`.
+The code that loads `ready` to Socrata Blutetooth IAF ("Bluetooth Travel Sensors - Individual Address Files (IAFs)") is `aws_transport/bt_extract_soc.py`, which processes all three file types. The respective Socrata identifier for IAF is `qnpj-zrb9`.
 
 The data stored within the table is documented on the [Socrata page](https://data.austintexas.gov/Transportation-and-Mobility/Bluetooth-Travel-Sensors-Individual-Address-Files-/qnpj-zrb9). Of particular note is:
 
@@ -239,7 +239,7 @@ The code in `aws_transport/bt_json_standard.py` reads the raw ITMF file from the
 			"speed": 10,
 			"match_validity": "invalid",
 			"filter_id": 125
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -284,7 +284,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves r
 			"travel_time_secs": 686,
 			"origin_device_id": "b040f50462dc83984a6868dbe831aa08",
 			"dest_device_id": "545b7c56753af339ca16e388ebd1d9b2"
-		}, //...
+		}, /*...*/
 	],
 	"devices": [
 		{
@@ -319,7 +319,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves r
 			"primary_st": " LAMAR BLVD",
 			"primary_st_segment_id": "2037908",
 			"device_id": "b040f50462dc83984a6868dbe831aa08"
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -399,7 +399,7 @@ The code in `aws_transport/bt_json_standard.py` reads the raw TMSR file from the
 			"interval": 15,
 			"samples": 0,
 			"std_dev": -1.0
-		}, //...
+		}, /*...*/
 	]
 }
 ```
@@ -456,7 +456,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves r
 			"timestamp": "2019-06-01 00:00:00-05:00",
 			"origin_device_id": "413a4aebac055bf58accac113cac2b3a",
 			"dest_device_id": "87175d1aa8cfaa2e679e2393d908407d"
-		}, //...
+		}, /*...*/
 	],
 	"devices": [{
 			"atd_device_id": 138,
@@ -490,7 +490,7 @@ The `aws_transport/bt_ready.py` code reads from the `rawjson` bucket, resolves r
 			"primary_st": " SPRINGDALE RD",
 			"primary_st_segment_id": "2016963",
 			"device_id": "413a4aebac055bf58accac113cac2b3a"
-		}, //...
+		}, /*...*/
 	]
 }
 ```

@@ -14,6 +14,7 @@ GRIDSMART counts files are comprised of a ZIPped directory structure. (The direc
 The structure of raw GRIDSMART counts files depend on the software version: v8 or v4. The following two tables outline the GRIDSMART raw data structure for v8 and v4. These are drawn from the [GRIDSMART API Reference](https://support.gridsmart.com/support/solutions/articles/27000026973-api-commands).
 
 **GRIDSMART v8 Raw Data Structure**
+
 | **Field** | **Type** | **Description** |
 | --- | --- | --- |
 | count_version | integer | GRIDSMART camera software version
@@ -34,6 +35,7 @@ The structure of raw GRIDSMART counts files depend on the software version: v8 o
 ---
 
 **GRIDSMART v4 Raw Data Structure**
+
 | **Field** | **Type** | **Description** |
 | --- | --- | --- |
 | count_version | integer | GRIDSMART camera software version
@@ -221,7 +223,7 @@ The "data" object includes the raw data in a JSON serialized format with the sam
 | GRIDSMART time adjustment <br><br><img src="figures/time_offset.png" width="400"> |
 |---|
 
-Up until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight savings changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (*TODO: Under which tag?*) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the "ready" JSON counts file pertain only to the day that it is filed under within the Data Lake.
+Up until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight savings changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (under the "datetime" key) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the "ready" JSON counts file pertain only to the day that it is filed under within the Data Lake.
 
 Because they were retrieved from devices at Layer 1 `raw`, the Site Data and Unit Data files are copied from Layer 1 `raw` to Layer 2 `rawjson`.
 
@@ -420,7 +422,7 @@ The aggregated data files contain aggregate counts to 15 minutes. The `aws_trans
 
 Vehicle length is classified according to the Counts Data "vehicle_length" value; if the vehicle is greater than or equal to 17 feet, then "heavy_vehicle" is True. This is currently hard-coded in `aws_transport/gs_ready_agg.py` in the `main()` function but is planned to be cleaned up.
 
-There are opportunities to possibly do more calculations within the aggregation. For example, things can possibly done with queue length, vehicles counted at red or greeen lights, and right turn on red.
+There are opportunities to possibly do more calculations within the aggregation. For example, things can be done with queue length, vehicles counted at red or greeen lights, and right turn on red.
 
 The average speed measure still needs to be investigated. There is a difference in how average speed is reported in v4 Counts Files versus v8 files. The v8 speeds go through an improved "mormalization" process. Documentation from GRIDSMART states that speed measures are calibrated over the course of 14 days. *TODO: Verify for v8 Counts that speed comes from the "zone_freeflow_speed_cal" column.*
 
