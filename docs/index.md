@@ -18,3 +18,4 @@ This document serves as a technical summary/report for activities conducted duri
 
 * [Introduction and Functional Overview](intro_function.md)
 * [Technical Architecture](tech_architecture.md)
+* [Delivered Items Log](delivered_items.md)

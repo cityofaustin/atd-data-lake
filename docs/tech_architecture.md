@@ -77,33 +77,35 @@ A PostgREST database acts as an inventory. It contains pointers to the data file
 
 Within the AWS Bucket are three layers: `raw`, `raw-json` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors.
 
-In the `raw-json` layer, the data is accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer and subsequently canonicalizes them to a standardized JSON format.
+In the `raw-json` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer and subsequently canonicalizes them to a standardized JSON format.
 
 The `ready` layer contains merges City-maintained sensor location information (currently located in Knack) to actual data so that a single file or set of files are self-contained. The theory is that no other sources or files are necessary to make sense of the data within the file.
 
 ## Source Code
 
-The code that had been written to perform the data processing activities shown below is currently stored in the `nmc/coa_dev` repository that's located on a private GitLab server hosted by CTR NMC. This and its dependencies are intended to be migrated to the [`cityofaustin/atd-data-lake` repository](https://github.com/cityofaustin/atd-data-lake) hosted on GitLab.
+The code that had been written to perform the data processing activities shown below is currently stored in the `nmc/coa_dev` repository that's located on a private, internal GitLab server hosted by CTR NMC. The code is for Python 3. This and its dependencies are intended to be migrated to the [`cityofaustin/atd-data-lake` repository](https://github.com/cityofaustin/atd-data-lake) hosted on GitHub.
 
-Entry-points referenced in this document abide by the `cityofaustin/atd-data-deploy` interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy). In short, this interface provides a "cron"-driven method for launching ETL activities that also log progress to a database.
+Entry-points referenced in this document abide by the `cityofaustin/atd-data-deploy` interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy). In short, this interface provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database.
+
+Within the `nmc/coa_dev` source code tree, command-line entry points are currently in the `aws_transport` package. The special `_setpath.py` script allows modules within `aws_transport` to be run from that directory. There are a number of system-specific configurations that are globally accessible from within the `aws_transport.support.config` package. This contains further mechanisms for accessing the `aws_transport.support.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a package.
 
 ## Data Source Specifics
 
 ### Bluetooth
 
-[Find further information on Bluetooth in this document.](datasrc_bt.md)
+[Go to further information on Bluetooth.](datasrc_bt.md)
 
 ### GRIDSMRT
 
-[Find further information on GRIDSMART in this document.](datasrc_gs.md)
+[Go to further information on GRIDSMART.](datasrc_gs.md)
 
 ### Wavetronix
 
-[Find further information on Wavetronix in this document.](datasrc_wt.md)
+[Go to further information on Wavetronix.](datasrc_wt.md)
 
 ## Data Lake Catalog
 
-The Data Lake Catalog, accessible through a PostgREST interface, provides a queryable record of all entries that had been added to the Data Lake. Every time a new file is written to a layer of the Data Lake, a new entry is created for the catalog. This is the Catalog's structure:
+The Data Lake Catalog, accessible through a PostgREST interface, provides a queryable record of all entries that had been added to the Data Lake. Every time a new file is written to a layer of the Data Lake, a new entry is created for the catalog. This is the Catalog's PostgreSQL table definition:
 
 ```
  Table "api.data_lake_catalog"
@@ -139,27 +141,27 @@ The `data_lake_catalog_pkey` key is created to prevent duplicate entries. It is 
 
 The `data_lake_catalog_date_idx` index is crucial for quick time-based searches for records.
 
-A change that is planned to happen for the Data Lake Catalog is for the identifier to be split into two parts-- a "base" and "ext" entry. This can assist with searches that are specific to data types. For example, for GRIDSMART records that correspond with a specific intersection, the "rawjson" layer may have one file per detector, and there may be 8 or 16 of them. In this case, the "base" portion can have the intersection name, and the "ext" portion can have the detector identifier. This "base/ext" scheme is intended to circumvent challenging string processing and query hacks that ended up needing to happen in the current code rendition.
+A change that is planned to happen for the Data Lake Catalog is for the identifier to be split into two parts-- a "base" and "ext" entry. This can assist with searches that are specific to data types. For example, for GRIDSMART records that correspond with a specific intersection, the "rawjson" layer may have one file per detector, and there may be 8 or 16 of them. In this case, the "base" portion can have the intersection name, and the "ext" portion can have the detector identifier (e.g. its GUID). This "base/ext" scheme is intended to circumvent unsightly string processing and query hacks that ended up needing to happen in the current code rendition.
 
 ## Other Coding Challenges
 
 ### System Time
 
-The EC2 server is currently on UTC time. Cron jobs must be adjusted accordingly so they run at the desired local time. Default database dumps also don't have time zone defined. These cause confusion.
+The EC2 server is currently running with UTC time. The crontab (schedule that causes automated `cityofaustin/atd-data-deploy` jobs to periodically run) must be adjusted accordingly so they run at the desired local time. Default database dumps also don't have time zone defined. These cause confusion.
 
-Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in UTC. But, the only concern for COA ATD is Central Time Zone.
+Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in UTC. But, the only concern for CoA ATD is Central Time Zone.
 
 For the benefit of "cron" and possibly database extract, the most elegant solution is to set the local time zone. Changing the system time zone requires a reboot, and is to be scheduled soon.
 
 ### Street Naming
 
-It was especially apparent in GRIDSMART street naming that there are inconsistencies when comparing to street names in Knack. Most of the street names are the same, but
+It was especially apparent in GRIDSMART street naming that there are inconsistencies when comparing to street names in Knack. Most of the street names are the same, but there are some cases where synonymous names are used and the formatting is different. For example:
 
 * "Loop 360" $\iff$ "CAPITAL OF TEXAS HIGHWAY"
 * "Loop 1" $\iff$ "Mopac" or "MOPAC EXPY SVRD"
 * "Hancock Mall" $\iff$ "N IH 35 SVRD SB AT 41ST TRN"
 
-Additionally, GPS coordinates in devices are not accurate. For the time being, a string lookup exists that draws from the `support.config.STREET_SYNONYMS` dictionary. There's also `support.config.KNACK_LOOKUPS` for Knack lookups. A more sustainable mechanism would include one or more of the following:
+Additionally, GPS coordinates stored in GRIDSMART devices (the Site Files) are not accurate. For the time being, a string lookup exists that draws from the `support.config.STREET_SYNONYMS` dictionary. There's also `support.config.KNACK_LOOKUPS` for Knack lookups. A more sustainable mechanism would include one or more of the following:
 
 * A practice of using names that are uniformly formatted to those in Knack, Austin Corporate GIS, or SharedStreets; or,
 * Tying an identifier within the GRIDSMART device (the hardware ID) with the Knack table. This second choice has been pursued back in June, 2019 but needs to be revisited.

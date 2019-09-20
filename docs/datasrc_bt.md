@@ -2,7 +2,7 @@
 
 *[(Back to Technical Architecture)](tech_architecture.md)*
 
-Bluetooth data has three data file types: Individual Address Files (IAF), Individual Traffic Match Files (ITMF), and Traffic Match Summary Records (TMSR). Below is the system architecture for all three types of files, shown below.
+Bluetooth data has three data file types: Individual Address Files (IAF), Individual Traffic Match Files (ITMF), and Traffic Match Summary Records (TMSR). Below is the system architecture for all three types of files.
 
 | Bluetooth System Architecture <br><img src="figures/new_bt_overview.png">
 | ---
