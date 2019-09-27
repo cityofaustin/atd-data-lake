@@ -15,9 +15,9 @@ This doucment outlines items that were produced during the course of the project
 
 **9/2019**: Two years of data (from June 1, 2017, to the present) for GRIDSMART aggregations have been loaded into Socrata.
 
-*(Auto-loading GRIDSMART)*
+**9/2019**: Automatic daily loading of aggregations into Socrata
 
-*(Wavetronix)*
+*(Wavetronix to be completed when code streamlining is underway)*
 
 ## Code
 
