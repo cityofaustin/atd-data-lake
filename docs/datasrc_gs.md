@@ -2,7 +2,7 @@
 
 *[(Back to Technical Architecture)](tech_architecture.md)*
 
-GRIDSMART cameras are fish-eye cameras with image processing capabilities. They return counts and other information. The figure below outlines the system architecture for the GRIDSMART data.
+GRIDSMART cameras are fish-eye cameras with image processing capabilities. They return counts and other information. The figure below illustrates the system architecture for the GRIDSMART data.
 
 | GRIDSMART System Architecture <br><img src="figures/new_gs_overview.png">
 |---
@@ -55,19 +55,19 @@ The structure of raw GRIDSMART counts files depend on the software version: v8 o
 | internal_frame_count | numeric |
 | day_night | text | Whether record occured at night or during the day
 
-The API function called into GRIDSMART looks like this (replacing the IP address with a valid one), and is automated through the `collecting.gs.log_reader` module, called by `support/last_upd_gs`:
+The API function for calling into GRIDSMART is represented in the following HTTP request, replacing the IP address with a valid one, and is automated through the `collecting.gs.log_reader` module, called by `support/last_upd_gs`:
 
 ```
 http://00.00.00.00:8902/api/counts/bydate/2018-03-21
 ```
 
-The software that coordinates the efforts of identifying the active GRIDSMART devices, reading their status, and extracting counts data is `aws_transport/gs_insert_lake.py`. When this is run, `support.knack_access.get_device_locations()` queries Knack for unit data. Then, each of those devices are attempted to be accessed in `collecting.gs.log_reader` regardless of whether Knack has labeled them as communicating or not. (The reason why is that Knack seems to only label a couple devices as functional, whereas attempts to query others succeeds quite often).
+The software that coordinates the efforts of identifying the active GRIDSMART devices, reading their status, and extracting counts data is `aws_transport/gs_insert_lake.py`. When it is run, `support.knack_access.get_device_locations()` queries Knack for unit data. Then, each of those devices are accessed in `collecting.gs.log_reader` regardless of whether Knack has labeled them as communicating or not. (Knack seems to only label a couple devices as functional, whereas attempts to query others succeeds quite often).
 
 Counts data returned from each GRIDSMART device is stored in a .ZIP file and named `YYYY-MM-DD_street1_street2.zip`.
 
-Because the `gs_insert_lake.py` code is meant to run on the City of Austin traffic control network, this is the only opportunity to query GRIDSMART devices for other information. Each GRIDSMART device is queried for its site information, which is stored as a "Site File": `street1_street2_site_YYYY-MM-DD.json`. The file stored in the Data Lake is a direct copy of what is returned from the device. Also, because the Site File is read for the day that the code is run regardless of how far into the past counts data are retrieved, Site Files are only stored for the day of retrieval. (Bear in mind, however, that historic site information can be available from the devices via the "history" API key. *TODO: Look into this.*). Along with this, the list of dates that contain valid data is queried so that the software then knows to attempt to request data. The timestamp is also queried here.
+Because the `gs_insert_lake.py` code is meant to run on the City of Austin traffic control network, this is the only opportunity to query GRIDSMART devices for other information. Each GRIDSMART device is queried for its site information, which is stored as a "Site File": `street1_street2_site_YYYY-MM-DD.json`. The file stored in the Data Lake is a direct copy of what is returned from the device. Also, because the site file is read for the day that the code is run regardless of how far into the past counts data are retrieved, Site Files are only stored for the day of retrieval. (Bear in mind, however, that historic site information can be accessed from the devices via the "history" API key. *TODO: Look into this.*). Along with this, the list of dates that contain valid data is queried so that the software then knows to attempt to request data. The timestamp is also queried here.
 
-Inside the Site File, the keys of consequence (and a few others) are the following. Many others that aren't as relevant have been omitted in this documentation:
+Inside the site file, the keys of consequence (and a few others) are as shown below. Many others that aren't as relevant have been omitted in this documentation:
 
 ```json
 {
@@ -147,7 +147,7 @@ Inside the Site File, the keys of consequence (and a few others) are the followi
 }
 ```
 
-There's also the unit data file containing the information from Knack, called `unit_data_YYYY-MM-DD.json`. As with Site Files, Unit Data files are only stored on the days of retrieval. This is an excerpt of Unit Data:
+There is also a unit data file containing the information from Knack, called `unit_data_YYYY-MM-DD.json`. As with site files, unit data files are only stored on the days of retrieval. This is an excerpt of unit data:
 
 ```json
 {
@@ -177,7 +177,7 @@ There's also the unit data file containing the information from Knack, called `u
 
 ## Layer 2 JSON Data
 
-This is a sample of a GRIDSMART JSON file, with one created per "site"."CameraDevices"[0]."Fisheye"."CameraMasks"."ZoneMasks"."Vehicle" as depicted in the Site File.
+This is a sample of a GRIDSMART JSON file, with one created per `"site"."CameraDevices"[0]."Fisheye"."CameraMasks"."ZoneMasks"."Vehicle"` as depicted in the site file.
 
 ```json
 {
@@ -212,24 +212,24 @@ This is a sample of a GRIDSMART JSON file, with one created per "site"."CameraDe
 }
 ```
 
-GRIDSMART JSON files, formatted as `YYYY-MM-DD_street1_street2_GUID.json`, are composed of two objects: a header and data object. The header contains metadata information such as the "data_type", the "zip_name" where the data comes from as well as the "origin_filename" which is the GUID file within the extracted ZIP folder. "target_filename" is the JSON Layer 2 data file name composed of a combination the ZIP name and GUID filename. "collection_date" is the date when the data was retrieved from the camera, and "processing_date" is the timestamp of aggregation. Lastly "version" stands for the software version of the camera and "guid" represents the identifier of the filename.
+GRIDSMART JSON files, formatted as `YYYY-MM-DD_street1_street2_GUID.json`, are composed of two objects: a header and data object. The header contains metadata information such as the `"data_type,"` the `"zip_name"` (where the data comes from), and the `"origin_filename"` (the GUID file within the extracted ZIP folder). `"target_filename"` is the JSON Layer 2 data file name composed of a combination the ZIP name and GUID filename. `"collection_date"` is the date when the data was retrieved from the camera. `"processing_date"` is the timestamp of aggregation. `"version"` stands for the software version of the camera and `"guid"` represents the identifier of the filename.
 
-The "data" object includes the raw data in a JSON serialized format with the same fields plus and additional "timestamp_adj" variable that holds the adjusted timestamp. Challenges were encountered concerning time representation within GRIDSMART data:
+The `"data"` object includes the raw data in a JSON serialized format with the same fields plus and additional `"timestamp_adj"` variable that holds the adjusted timestamp. Challenges encountered concerning time representation within GRIDSMART data include:
 
-* Different API versions assume different rules for time zones
-* Daylight Savings Time was ignored.
-* Internal clocks were sometimes drifted ~1/2 hour
+* different API versions assume different rules for time zones
+* Daylight Saving Time was ignored
+* internal clocks were sometimes off by ~1/2 hour, presumably because of clock drift over time.
 
 | GRIDSMART time adjustment <br><br><img src="figures/time_offset.png" width="400"> |
 |---|
 
-Up until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight savings changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (under the "datetime" key) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the "ready" JSON counts file pertain only to the day that it is filed under within the Data Lake.
+Until July 10, 2019, the GRIDSMART devices were not configured to retrieve central time and corresponding daylight saving changes from a central NTP time server. To compensate, code was written to compare the time reported on each GRIDSMART device with the (assumed accurate) time reported on the server that retrieved the data from each device. The differences were logged in the site files (under the `"datetime"` key) and then used to offset the timestamps to a corrected state. While the same correction code still runs for new data, it is anticipated that the offset for devices that correctly utilize NTP server centralized time will have a very small offset. The idea is to have the `"ready"` JSON counts file pertain only to the day that it is filed  within the Data Lake.
 
-Because they were retrieved from devices at Layer 1 `raw`, the Site Data and Unit Data files are copied from Layer 1 `raw` to Layer 2 `rawjson`.
+Because they were retrieved from devices at Layer 1 `raw`, the site data and unit data files are copied from Layer 1 `raw` to Layer 2 `rawjson`.
 
 ## Layer 3 Ready Counts Data
 
-The `ready` layer encompasses two types of files: counts and aggregated counts. Both of these files have merged unit, site and raw data information into a single file. The `aws_transport/gs_ready.py` reads through each GUID zone file from the `rawjson` bucket, appends all data together from all zones, adds in the site information, and produces a new file for the `ready` bucket named `street1_street2_counts_YYYY-MM-DD.json`. Inside its "counts" section, there is one data entry per vehicle detected. That Counts File looks like this:
+The `ready` layer encompasses two types of files: counts and aggregated counts. Both of these files have merged unit, site, and raw data information into a single file. The `aws_transport/gs_ready.py` reads through each GUID zone file from the `rawjson` bucket, appends  data together from all zones, adds in the site information, and produces a new file for the `ready` bucket named `street1_street2_counts_YYYY-MM-DD.json`. Inside its `"counts"` section, there is one data entry per vehicle detected. That counts file looks like this:
 
 ```json
 {
@@ -379,7 +379,7 @@ The `ready` layer encompasses two types of files: counts and aggregated counts. 
 
 ## Layer 3 Ready Aggregation Data
 
-The aggregated data files contain aggregate counts to 15 minutes. The `aws_transport/gs_ready_agg.py` script reads in the Counts File from the `ready` bucket, performs the aggregation, and writes to a new file in the `ready` bucket named `street1_street2_agg15_YYYY-MM-DD.json`. In creating aggregations, the records within the Counts File that share the same approach, turning movement, and vehicle length classification are grouped in those 15-minute intervals. This is an excerpt from the Aggregation File; the "site" and "device" sections are the same as those in the Counts File:
+The aggregated data files contain aggregate counts to fifteen minutes. The `aws_transport/gs_ready_agg.py` script reads in the counts file from the `ready` bucket, performs the aggregation, and writes to a new file in the `ready` bucket named `street1_street2_agg15_YYYY-MM-DD.json`. In creating aggregations, the records within the counts file that share the same approach, turning movement, and vehicle length classification are grouped in those fifteen-minute intervals. This is an excerpt from the aggregation file; the `"site"` and `"device"` sections are the same as those in the counts file:
 
 ```json
 {
@@ -420,14 +420,14 @@ The aggregated data files contain aggregate counts to 15 minutes. The `aws_trans
 }
 ```
 
-Vehicle length is classified according to the Counts Data "vehicle_length" value; if the vehicle is greater than or equal to 17 feet, then "heavy_vehicle" is True. This is currently hard-coded in `aws_transport/gs_ready_agg.py` in the `main()` function but is planned to be cleaned up.
+Vehicle length is classified according to the counts data `"vehicle_length"` value; if the vehicle is greater than or equal to seventeen feet, then `"heavy_vehicle"` is True. This is currently hard-coded in `aws_transport/gs_ready_agg.py` in the `main()` function but is planned to be cleaned up.
 
-There are opportunities to possibly do more calculations within the aggregation. For example, things can be done with queue length, vehicles counted at red or greeen lights, and right turn on red.
+There are opportunities to  do more calculations within the aggregation. For example, calculations can be done with queue length, vehicles counted at red or greeen lights, and right turn on red.
 
-The average speed measure still needs to be investigated. There is a difference in how average speed is reported in v4 Counts Files versus v8 files. The v8 speeds go through an improved "mormalization" process. Documentation from GRIDSMART states that speed measures are calibrated over the course of 14 days. *TODO: Verify for v8 Counts that speed comes from the "zone_freeflow_speed_cal" column.*
+The average speed measure must still be investigated. There is a difference in how average speed is reported in v4 counts files versus v8 files. The v8 speeds go through an improved "normalization" process. Documentation from GRIDSMART states that speed measures are calibrated over the course of fourteen days. *TODO: Verify for v8 Counts that speed comes from the `"zone_freeflow_speed_cal"` column.*
 
 ## Socrata
 
-The `aws_transport/gs_agg_extract_soc.py` script reads Aggregation Files from the `ready` Layer and writes them to Socrata, under the ["Camera Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Camera-Traffic-Counts/sh59-i6y9) page. The identifier in Socrata for this is "sh59-i6y9". The columns provided for the dataset are very similar to those in the ["Radar Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Radar-Traffic-Counts/i626-g7ub) dataset. The intersection name as given by Knack are provided in the "Intersection Name" column, but the "ATD Device ID" is also given which can be looked up in the ["Traffic Detectors"](https://data.austintexas.gov/Transportation-and-Mobility/Traffic-Detectors/qpuw-8eeb) dataset.
+The `aws_transport/gs_agg_extract_soc.py` script reads aggregation files from the `ready` layer and writes them to Socrata, under the ["Camera Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Camera-Traffic-Counts/sh59-i6y9) page. The identifier in Socrata for this is `"sh59-i6y9"`. The columns provided for the dataset are very similar to those in the ["Radar Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Radar-Traffic-Counts/i626-g7ub) dataset. The intersection name as given by Knack is provided in the "Intersection Name" column, but the "ATD Device ID" is also given and can be looked up in the ["Traffic Detectors"](https://data.austintexas.gov/Transportation-and-Mobility/Traffic-Detectors/qpuw-8eeb) dataset.
 
-The column definitions are found within the "meta"."view"."columns" section of the [Socrata JSON export](defs/socrata-gs.json).
+The column definitions are found within the `"meta"."view"."columns"` section of the [Socrata JSON export](defs/socrata-gs.json).

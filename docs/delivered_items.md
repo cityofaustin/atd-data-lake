@@ -3,17 +3,17 @@
 *[(Back to Docs Catalog)](index.md)*
 
 
-This doucment outlines items that were produced during the course of the project: City of Austin IAC Task #12: Data Archiving and Integration.
+This doucment outlines items that were produced during the course of the project: City of Austin IAC Task 2018-12: Data Archiving and Integration.
 
 ## Final Report
 
-**9/2019**: The Markdown-formatted document accessible from the [Docs Catalog](index.md) serves as the Final Report for the FY19 activities.
+**9/2019**: The Markdown-formatted document accessible from the [Docs Catalog](index.md) serves as the final report for the Task 2018-19 work effort.
 
 ## Data
 
-**7/2019**: Two years of data (from June 1, 2017 to now) for Bluetooth IAF, ITMF, and TMSR have been loaded into Socrata. New days' worth of data auto-update nightly.
+**7/2019**: Two years of data (from June 1, 2017, to the present) for Bluetooth IAF, ITMF, and TMSR have been loaded into Socrata. New days of data auto-update nightly.
 
-**9/2019**: Two years of data (from June 1, 2017 to now) for GRIDSMART aggregations have been loaded into Socrata.
+**9/2019**: Two years of data (from June 1, 2017, to the present) for GRIDSMART aggregations have been loaded into Socrata.
 
 *(Auto-loading GRIDSMART)*
 

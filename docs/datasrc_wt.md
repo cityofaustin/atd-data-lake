@@ -2,14 +2,14 @@
 
 *[(Back to Technical Architecture)](tech_architecture.md)*
 
-Data is composed of radar vehicle counts mid-block. The next figure overviews the system architecture for this data type. *Grayed-out items in the diagram depict items that are currently not implemented.*
+Wavetronix data is composed of radar vehicle counts mid-block. The next figure overviews the system architecture for this data type. *Grayed-out items in the diagram depict items that are currently not implemented.*
 
 | Wavetronix System Architecture <br><img src="figures/new_wt_overview.png">
 |---
 
 ## Layer 1 Raw Data
 
-To get started, Wavetronix data was read from the ["Radar Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Radar-Traffic-Counts/i626-g7ub) Socrata page. Since the end-goal is to eventually get Wavetronix data *out* to Socrata, this is to be replaced with grabbing Socrata data from a more immediate source that's closer to the sensors themselves. Currently, the approach will be to read records from the KITS database.
+To get started, Wavetronix data was read from the ["Radar Traffic Counts"](https://data.austintexas.gov/Transportation-and-Mobility/Radar-Traffic-Counts/i626-g7ub) Socrata page. Since the end-goal is to eventually get Wavetronix data *out* to Socrata, this is to be replaced with grabbing Socrata data from a more immediate source that's closer to the sensors themselves. Currently, the approach is to read records from the KITS database.
 
 The current extractions are CSV files read from Socrata via the API. An excerpt of a CSV file is below:
 
