@@ -12,7 +12,7 @@ Copyright (C) 2019, The University of Texas at Austin
 
 ## Opener
 
-This document serves as a technical summary/report for activities conducted during FY19 by Center for Transportation Research - The University of Texas at Austin for the City of Austin IAC Task 2018-: Data Archiving and Integration.
+This document serves as a technical summary/report for activities conducted during FY19 by Center for Transportation Research - The University of Texas at Austin for the City of Austin IAC Task 2018: Data Archiving and Integration.
 
 ## Catalog
 
