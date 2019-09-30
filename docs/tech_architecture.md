@@ -145,7 +145,7 @@ A change that is planned to happen for the Data Lake Catalog is for the identifi
 
 ### System Time
 
-The EC2 server is had been running with UTC time. The crontab (schedule that causes automated `cityofaustin/atd-data-deploy` jobs to periodically run) had to be adjusted accordingly so they could run at the desired local time. Default database dumps also hadn't time time zone defined. These cause confusion.
+The EC2 server had been running with UTC time. The crontab (schedule that causes automated `cityofaustin/atd-data-deploy` jobs to periodically run) had to be adjusted accordingly so they could run at the desired local time. Default database dumps also hadn't time time zone defined. These cause confusion.
 
 Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in Coordinated Universal Time (UTC). But, CoA ATD preferred to use Central Time.
 
