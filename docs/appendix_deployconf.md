@@ -2,7 +2,16 @@
 
 *[(Back to Docs Catalog)](index.md)*
 
-Deployment of the ETL scripts is coordinated through the [cityofaustin/atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy) "transportation-data-deploy" script. The script runs from within a Docker container built with the [transportation-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) project, and in these examples retrieves transformation code from directories mounted on the host system. This document describes the configurations that are currently running on the two servers that run ETL tasks.
+Deployment of the ETL scripts is coordinated through the [cityofaustin/atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy) "transportation-data-deploy" script. The script runs from within a Docker container built with the [transportation-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) project (with added dependencies as noted below), and in these examples retrieves transformation code from directories mounted on the host system. This document describes the configurations that are currently running on the two servers that run ETL tasks.
+
+## Building the "ctrdocker/tdp" Container
+
+The "ctrdocker/tdp" container is built using the Dockerfile in the "transportation-data-publishing" project. The following two dependencies were added to the `requirements.txt` file:
+
+```
+sodapy
+boto3
+```
 
 ## Script Server: Inside the ATD Network
 
