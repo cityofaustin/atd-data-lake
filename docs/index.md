@@ -27,4 +27,5 @@ For further information about the code repository, see the [README](https://gith
 * [Catalog](appendix_catalog.md)
 * [Accessing S3](appendix_s3.md)
 * [Time Zone](appendix_timezone.md)
+* [Deployment Configuration](appendix_deployconf.md)
 * [Testing](appendix_testing.md)
