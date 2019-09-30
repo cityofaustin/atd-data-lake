@@ -293,14 +293,6 @@ Enable uploading of missing files:
 python gs_json_standard.py -r 2019-03-20 -m 1 -M
 ```
 
-### Bluetooth Enrichment (rawjson → ready)
+### Enrichment (rawjson → ready)
 
-*TODO: Complete this section*. This will be factored into the automated process.
-
-### Wavetronix Enrichment (rawjson → ready)
-
-*TODO: Complete this section*
-
-### GRIDSMART Enrichment (rawjson → ready)
-
-*TODO: Complete this section*
+*TODO: Complete this section for each of the data types*. Follow procedures similar to those printed above for testing the "rawjson" to "ready" transformation. This will be factored into the automated process.
