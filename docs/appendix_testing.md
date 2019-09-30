@@ -2,7 +2,7 @@
 
 *[(Back to Docs Catalog)](index.md)*
 
-This document captures notes on testing the first rendition of codes that write to and read from the Data Catalog. One of the items that will be considered for the FY20 efforts will be to automate the testing efforts. Through automation, many of the tests documented here won't need to be run manually.
+This document captures notes on testing the first rendition of codes that write to and read from the Data Catalog. One of the items that will be considered for the FY20 efforts will be to automate testing. Through automation, many of the tests documented here won't need to be run manually.
 
 ## Testing the Data Lake Codes
 This section describes brief tests for the various codes that comprise the Data Lake transformations.
