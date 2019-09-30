@@ -15,22 +15,22 @@ The structure of raw GRIDSMART counts files depend on the software version: v8 o
 
 **GRIDSMART v8 Raw Data Structure**
 
-| **Field** | **Type** | **Description** |
-| --- | --- | --- |
-| count_version | integer | GRIDSMART camera software version
-| site_version | text |
-| timestamp | timestamp | UTC timestamp of record
-| utc_offset | numeric | Local timezone offset from UTC
-| turn | text | Turn movement of vehicle (S, R, L, U)
-| vehicle_length | numeric | Vehicle length in ft.
-| speed | numeric | Speed at which the vehicle was detected
-| light_state | text | Light state when the vehicle was detected (R for red, Y for yellow, G for green)
-| seconds_in_zone | numeric | Number of seconds the vehicle was detected within the zone
-| vehicles_in_zone | numeric | Number of vehicles in the zone when vehicle was detected
-| light_state_sec | numeric | Number of seconds the light state has been occurring when vehicle was detected
-| sec_since_green | numeric | Seconds since the last green light state when vehicle was detected
-| zone_freeflow_speed | numeric | Free flow speed of zone where vehicle was detected
-| zone_freeflow_speed_cal | numeric | Calibrated free flow speed of zone where vehicle was detected
+| **Field** | **Type** | **Description** | **Example**
+| --- | --- | --- | ---
+| count_version | integer | GRIDSMART camera software version | 8
+| site_version | text | | 23
+| timestamp | timestamp | UTC timestamp of record in HHMMSS.f format | 105452.4
+| utc_offset | numeric | Local timezone offset from UTC | -360
+| turn | text | Turn movement of vehicle (S, R, L, U) | L
+| vehicle_length | numeric | Vehicle length in ft. | 11
+| speed | numeric | Speed at which the vehicle was detected | 13
+| light_state | text | Light state when the vehicle was detected (R for red, Y for yellow, G for green) | R
+| seconds_in_zone | numeric | Number of seconds the vehicle was detected within the zone | 2
+| vehicles_in_zone | numeric | Number of vehicles in the zone when vehicle was detected | 2
+| light_state_sec | numeric | Number of seconds the light state has been occurring when vehicle was detected | 2
+| sec_since_green | numeric | Seconds since the last green light state when vehicle was detected | 0
+| zone_freeflow_speed | numeric | Free flow speed of zone where vehicle was detected | 22
+| zone_freeflow_speed_cal | numeric | Calibrated free flow speed of zone where vehicle was detected | 23
 
 ---
 

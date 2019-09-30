@@ -141,6 +141,8 @@ The `data_lake_catalog_date_idx` index is crucial for quick, time-based searches
 
 A change that is planned to happen for the Data Lake Catalog is for the identifier to be split into two parts-- a "base" and "ext" entry. This can assist with searches that are specific to data types. For example, for GRIDSMART records that correspond with a specific intersection, the "rawjson" layer may have one file per detector and there may be eight or sixteen of them. In this case, the "base" portion can have the intersection name, and the "ext" portion can have the detector identifier (e.g., its GUID). This "base/ext" scheme is intended to circumvent unsightly string processing and query hacks were necessary in the current code rendition.
 
+For further technical details on the Data Lake Catalog, see the [Technical Appendix](appendix_catalog.md).
+
 ## Other Coding Challenges
 
 ### System Time
@@ -150,6 +152,8 @@ The EC2 server had been running with UTC time. The crontab (schedule that causes
 Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in Coordinated Universal Time (UTC). But, CoA ATD preferred to use Central Time.
 
 For the benefit of "cron" and possibly database extract, the most elegant solution is to set the local time zone. Changing the system time zone requires a reboot, which occurred on Sept. 27, 2019.
+
+For the technical procedure for setting system time and restarting services, refer to the [Technical Appendix](appendix_timezone.md).
 
 ### Street Naming
 

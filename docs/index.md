@@ -14,8 +14,17 @@ Copyright (C) 2019, The University of Texas at Austin
 
 This document serves as a technical summary/report for activities conducted during FY19 by Center for Transportation Research - The University of Texas at Austin for the City of Austin IAC Task 2018: Data Archiving and Integration.
 
-## Catalog
+For further information about the code repository, see the [README](https://github.com/cityofaustin/atd-data-lake/).
+
+## Contents
 
 * [Introduction and Functional Overview](intro_function.md)
 * [Technical Architecture](tech_architecture.md)
 * [Delivered Items Log](delivered_items.md)
+
+## Technical Appendices
+
+* [Catalog](appendix_catalog.md)
+* [Accessing S3](appendix_s3.md)
+* [Time Zone](appendix_timezone.md)
+* [Testing](appendix_testing.md)
