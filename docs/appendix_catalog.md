@@ -61,7 +61,7 @@ This section now pertains to creating and accessing the Catalog.
 
 ### Create Catalog
 
-This is what was done to create the catalog table that is accessible through PostgREST:
+This is what will be done to create the catalog table that is accessible through PostgREST (note that this documents the new "base/ext" identifier scheme that isn't quite implemented yet):
 
 ```sql
 CREATE TABLE IF NOT EXISTS api.data_lake_catalog (
