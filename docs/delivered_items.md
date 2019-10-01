@@ -21,7 +21,7 @@ This doucment outlines items that were produced during the course of the project
 
 ## Code
 
-*(cityofaustin/atd-data-lake public code repository)*
+**9/2019**: Current codebase is uploded to the repository.
 
 **9/2019**: Access to the "nmc/coa_dev" internal GitLab repository was shared with a CoA team member.
 
