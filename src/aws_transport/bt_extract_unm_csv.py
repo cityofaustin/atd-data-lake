@@ -20,9 +20,9 @@ from util import date_util
 PROGRAM_DESC = """bt_extract_unm_csv.py writes unmatched Bluetooth records to CSV from the Data Lake "ready" stage."""
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-ready"
+SRC_BUCKET = config.composeBucket("ready")
 
-def dumpUnm(startTime, endTime, devFilter=".*", repo="ready", dataSource="bt", prefix="Austin_bt_"):
+def dumpUnm(startTime, endTime, devFilter=".*", repo="ready", dataSource="bt", prefix="Austin"):
     """
     Performs the extraction and dumping
     """
@@ -41,10 +41,11 @@ def dumpUnm(startTime, endTime, devFilter=".*", repo="ready", dataSource="bt", p
         endDate += datetime.timedelta(days=1)
     
     # First, query the catalog to see what we've got:
-    command = {"select": "collection_date,identifier,pointer",
+    command = {"select": "collection_date,pointer",
                "repository": "eq.%s" % repo,
                "data_source": "eq.%s" % dataSource,
-               "identifier": "like.%s*" % prefix, # TODO: Use exact query when we don't use date.
+               "id_base": "eq.%s" % prefix,
+               "id_ext": "eq.unmatched.json",
                "collection_date": ["gte.%s" % arrow.get(startDate).format(), "lt.%s" % arrow.get(endDate).format()],
                "order": "collection_date"}
     catResults = catalog.select(params=command)
@@ -53,17 +54,7 @@ def dumpUnm(startTime, endTime, devFilter=".*", repo="ready", dataSource="bt", p
     print("time,location,lat,lon,device")
     
     for result in catResults:
-        # TODO: Use the base/ext scheme to do better filtering.
-        if "_bt_summary_15_" in result["identifier"]:
-            continue
-        elif "_btmatch_" in result["identifier"]:
-            continue
-        elif "_bt_" in result["identifier"]:
-            pass
-        else:
-            continue
-
-        # Second, for each entry returned from the catalog, grab the file and convert to in-memory dict:
+        # For each entry returned from the catalog, grab the file and convert to in-memory dict:
         print("Processing for %s..." % str(result["collection_date"]), file=sys.stderr)
         contentObject = s3.Object(SRC_BUCKET, result["pointer"])
         fileContent = contentObject.get()['Body'].read().decode('utf-8')

@@ -26,10 +26,10 @@ PROGRAM_DESC = "Performs JSON enrichment for GRIDSMART data between the 'rawjson
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-rawjson"
+SRC_BUCKET = config.composeBucket("rawjson")
 
 "S3 bucket to target"
-TGT_BUCKET = "atd-data-lake-ready"
+TGT_BUCKET = config.composeBucket("ready")
 
 "The minimum allowable ratio for fuzzy string matching"
 MIN_MATCH_RATIO = 0.7
@@ -38,11 +38,11 @@ MIN_MATCH_RATIO = 0.7
 MAX_DIST = 300
     
 def getCountsFile(ourDate, baseName, guid, s3, catalog):
-    filename = baseName + "_" + guid
-    command = {"select": "collection_date,pointer,identifier,metadata",
+    command = {"select": "id_base,id_ext,collection_date,pointer,metadata",
                "repository": "eq.%s" % "rawjson",
                "data_source": "eq.%s" % "gs",
-               "identifier": "like.*%s" % filename, # TODO: Figure out what we want here as far as base/ext identifier.
+               "id_base": "eq.%s" % baseName,
+               "id_ext": "eq.%s.json" % guid,
                "collection_date": "eq.%s" % str(ourDate),
                "limit": 1}
     catResults = catalog.select(params=command)
@@ -139,32 +139,16 @@ def main():
     lastUpdateWorker = last_upd_cat.LastUpdateCat("rawjson", "ready", "gs", monthsOld)
     bases = {}
     for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=args.missing):
-        if record.identifier.startswith("unit_data"):
+        if record.identifier[1] == "unit_data.json" or record.identifier[1] == "site.json":
             # TODO: Figure out a better way to deal with avoiding unit_data in LastUpdateCat work.
             continue
-        if record.identifier.endswith("_site_%s" % record.fileDate.strftime("%Y-%m-%d")):
-            # TODO: Again, this is terrible. Do something better with the new base/ext catalog identifier scheme.
-            continue
-        # TODO: Figure out something better than this:
-        rootName = "_".join(record.identifier.split("_")[1:-1])
+        rootName = record.identifier[0]
         if rootName not in bases:
             bases[rootName] = {} 
         bases[rootName][record.fileDate] = "/".join(record.s3Path.split("/")[:-1])
 
     count = 0
-    """
-    skipFlag=True
-    """
     for base in sorted(bases.keys()): # TODO: We should probably go from earliest date to latest date rather than per detector. Easier to recover when there's an error.
-        """
-        if skipFlag and "Riverside_Crossing Place" in base:
-          skipFlag=False
-          #print("(Skipping %s)"%base)
-          #continue
-        elif skipFlag:
-          print("(Skipping %s)"%base)
-          continue
-        """
         prevLastDate = None
         siteFileData = None
         unitFileCache = {}
@@ -178,12 +162,12 @@ def main():
             print("- " + str(ourDate) + " -")
             
             # STEP 1: Get the unit file:
-            fileBase = "unit_data_"
             collectDate = ourDate
-            command = {"select": "collection_date,pointer,identifier,metadata",
+            command = {"select": "collection_date,pointer,metadata",
                        "repository": "eq.%s" % "rawjson",
                        "data_source": "eq.%s" % "gs",
-                       "identifier": "like.%s*" % fileBase, # TODO: Use exact query when we don't use date.
+                       "id_base": "eq.%s" % config.UNIT_LOCATION,
+                       "id_ext": "eq.unit_data.json",
                        "collection_date": "gte.%s" % str(collectDate),
                        "order": "collection_date",
                        "limit": 1}
@@ -191,8 +175,7 @@ def main():
             if not catResults:
                 # No record found.
                 # TODO: We could look for the most recent data file up to the date.
-                raise Exception("No applicable raw repo found for file base: %s; Date: %s" %
-                                (fileBase, str(collectDate)))
+                raise Exception("No applicable unit file found for Date: %s" % str(collectDate))
             lastDate = date_util.localize(arrow.get(catResults[0]["collection_date"]).datetime)
             dataPointer = catResults[0]["pointer"]
             
@@ -205,12 +188,12 @@ def main():
                 unitFileData = unitFileCache[lastDate]
             
             # STEP 2: Get the site file:
-            fileBase = base + "_site"
             collectDate = ourDate
-            command = {"select": "collection_date,pointer,identifier,metadata",
+            command = {"select": "collection_date,pointer,metadata",
                        "repository": "eq.%s" % "rawjson",
                        "data_source": "eq.%s" % "gs",
-                       "identifier": "like.%s*" % fileBase, # TODO: Use exact query when we don't use date.
+                       "id_base": "eq.%s" % base,
+                       "id_ext": "eq.site.json",
                        "collection_date": "gte.%s" % str(collectDate),
                        "order": "collection_date",
                        "limit": 1}
@@ -218,8 +201,8 @@ def main():
             if not catResults:
                 # No record found.
                 # TODO: We could look for the most recent data file up to the date.
-                raise Exception("No applicable raw repo found for file base: %s; Date: %s" %
-                                (fileBase, str(collectDate)))
+                raise Exception("No applicable site file found for file base: %s; Date: %s" %
+                                (base, str(collectDate)))
             lastDate = date_util.localize(arrow.get(catResults[0]["collection_date"]).datetime)
             dataPointer = catResults[0]["pointer"]
             
@@ -253,6 +236,8 @@ def main():
                 
                 compareList = []
                 for deviceItem in unitFileData["devices"]:
+                    if str(deviceItem["primary_st"]) == "nan" or str(deviceItem["cross_st"]) == "nan":
+                        continue
                     compareList.append(_CompareEntry((deviceItem["primary_st"].strip() + " " + deviceItem["cross_st"].strip()).lower(), False, deviceItem))
                     compareList.append(_CompareEntry((deviceItem["cross_st"].strip() + " " + deviceItem["primary_st"].strip()).lower(), True, deviceItem))
                 winningEntry, maxRatio = _findFuzzyWinner(compareList, testStr)
@@ -434,7 +419,8 @@ def main():
 
                 # Update the catalog:
                 metadata = {"repository": 'ready', "data_source": 'gs',
-                            "identifier": targetBaseFile, "pointer": targetPath,
+                            "id_base": base, "id_ext": "counts.json",
+                            "pointer": targetPath,
                             "collection_date": header["collection_date"],
                             "processing_date": header["processing_date"], "metadata": {}}
                 catalog.upsert(metadata)

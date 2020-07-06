@@ -21,14 +21,39 @@ DATE_EARLIEST = 12
 # TODO: Consider months instead of years.
 
 "S3 bucket to target"
-BUCKET = "atd-data-lake-raw"
+BUCKET = config.composeBucket("raw")
 
 DIR_DEFS = [date_dirs.DateDirDef(prefix="Austin_bt_", dateFormat="%m-%d-%Y", postfix=".txt"),
             date_dirs.DateDirDef(prefix="Austin_btmatch_", dateFormat="%m-%d-%Y", postfix=".txt"),
             date_dirs.DateDirDef(prefix="Austin_bt_summary_15_", dateFormat="%m-%d-%Y", postfix=".txt")]
 
+class LastUpdateBT(last_upd_fs.LastUpdateFS):
+    """
+    Contains methods for creating list of Bluetooth files.
+    """
+    def __init__(self, srcDir, tgtRepo, dateEarliest=None):
+        super().__init__(srcDir, tgtRepo, "bt", DIR_DEFS, dateEarliest)
+
+    def _getIdentifier(self, filePath, typeIndex, date):
+        """
+        We want our identifiers to be phrased like: Base="Austin"; Ext="unmatched.txt".
+        """
+        prefix = self.pattList[typeIndex].prefix.split("_")[0] # TODO: Returns "Austin"; we probably want something more generalized.
+        postfix = self.pattList[typeIndex].postfix
+        if typeIndex == 0:
+            desc = "unmatched"
+        elif typeIndex == 1:
+            desc = "matched"
+        elif typeIndex == 2:
+            desc = "traf_match_summary"
+        else:
+            raise ValueError("Bad typeIndex")
+        ext = desc + postfix
+        return (prefix, ext, date)
+
 ## Function definitions
 def set_S3_pointer(filename, date, data_source='bt'): ### may have to include bucket!! ###
+    # TODO: Put this in a standardized location so others can access this method.
 
     year = str(date.year)
     month = str(date.month)
@@ -43,13 +68,13 @@ def set_S3_pointer(filename, date, data_source='bt'): ### may have to include bu
                                                             day=s_day,
                                                             data_source=data_source,
                                                             file=filename)
-def bt_metadata(repository, file, pointer, collectionDate):
+def bt_metadata(repository, idBase, idExt, pointer, collectionDate):
 
     processing_date = str(date_util.localize(arrow.now().datetime))
     json_blob = json.dumps({"element": "True"})
 
     metadata = {"repository": repository, "data_source": 'bt',
-               "identifier": file, "pointer": pointer,
+               "id_base": idBase, "id_ext": idExt, "pointer": pointer,
                "collection_date": str(collectionDate),
                "processing_date": processing_date, "metadata": json_blob}
 
@@ -92,22 +117,21 @@ def main():
     # Gather records of prior activity from catalog:
     print("Beginning loop...")
     count = 0
-    lastUpdateWorker = last_upd_fs.LastUpdateFS(args.source_dir, "raw", "bt", DIR_DEFS, monthsOld)
+    lastUpdateWorker = LastUpdateBT(args.source_dir, "raw", monthsOld)
     for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=args.missing):
         filename = os.path.basename(record.filePath)
-        baseFile = filename[:-4] if filename.lower().endswith(".txt") else filename
 
         pointer = set_S3_pointer(filename=filename, date=record.fileDate)
         
         print("%s -> %s:%s%s" % (filename, BUCKET, pointer, "" if not record.missingFlag else " (missing)"))
 
         # Put TXT to S3:
-        with open(record.filePath, 'rb') as wt_file:
+        with open(record.filePath, 'rb') as bt_file:
             s3Object = s3.Object(BUCKET, pointer)
-            s3Object.put(Body=wt_file)
+            s3Object.put(Body=bt_file)
         
         # Update the catalog:
-        bt_metadata_ingest(bt_metadata(repository='raw', file=baseFile,
+        bt_metadata_ingest(bt_metadata(repository='raw', idBase=record.identifier[0], idExt=record.identifier[1],
                                       pointer=pointer, collectionDate=record.fileDate), catalog=catalog)
 
         # Increment count:

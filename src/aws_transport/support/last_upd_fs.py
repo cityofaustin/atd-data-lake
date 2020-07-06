@@ -17,13 +17,15 @@ class _GetToUpdateRet:
     """
     Return object for LastUpdateFS.getToUpdate()
     """
-    def __init__(self, filePath, fileDate, typeIndex, missingFlag):
+    def __init__(self, identifier, filePath, fileDate, typeIndex, missingFlag):
         """
+        @param identifier A tuple containing identifier_base, identifier_ext, and date.
         @param filePath The full path to the file included in the list.
         @param fileDate A datetime object that signifies the date of the file.
         @param typeIndex The index into the pattList array that's passed into LastUpdateFS that corresponds with this file.
         @param missingFlag Signifies if this file had been detected as missing, preceding the lastRunDate.
         """
+        self.identifier = identifier
         self.filePath = filePath
         self.fileDate = fileDate
         self.typeIndex = typeIndex
@@ -57,17 +59,27 @@ class LastUpdateFS:
                 .replace(hour=0, minute=0, second=0, microsecond=0)
                 .shift(months=-dateEarliest).datetime)
         self.dateEarliest = dateEarliest
-        # TODO: Lambda function for building identifiers?
-        
+
+    def _getIdentifier(self, filePath, typeIndex, date):
+        """
+        Returns a tuple containing identifier_base, identifier_ext, and date. The default behavior is to use
+        the prefix as defined in the pattern list for the identifier_base, and then use the postfix as defined in
+        the pattern list minus the initial dot for the identifier_ext.
+        """
+        postfix = self.pattList[typeIndex].postfix
+        if postfix.startswith("."):
+            postfix = postfix[1:]
+        return (self.pattList[typeIndex].prefix, postfix, date)
+    
     def getToUpdate(self, lastRunDate, sameDay=False, detectMissing=True):
         """
-        Returns a list of all files that are needing to be selected and updated, given the lastRunDate,
-        catalog, and earliest processing date. These are returned as a list of _GetToUpdateRet objects.
+        Yields _GetToUpdateRet for each file that is needing to be selected and updated, given the lastRunDate,
+        catalog, and earliest processing date.
         
         @param lastRunDate datetime object that signifies the last run time.
         @param sameDay If true, updates file in target that bears the same date as today.
         @param detectMissing If true, missing files not accounted for in the catalog since the earliest date will be included.
-        @return A list of _GetToUpdateRet objects.
+        @yields _GetToUpdateRet object.
         """
         dateDirArr = [date_dirs.createDateDir(d, self.srcDir) for d in self.pattList]
         ourDatesSet = set()
@@ -81,7 +93,7 @@ class LastUpdateFS:
         # Get the catalog:
         # TODO: Move this direct access to another module to abstract it.
         catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.tgtRepo,
                    "data_source": "eq.%s" % self.datatype,
                    "limit": 100000}
@@ -91,17 +103,14 @@ class LastUpdateFS:
             earliest = lastRunDate
         if earliest:
             command["collection_date"] = "gte.%s" % arrow.get(earliest).format()
+        # TODO: This is where we'd put in the latest limit if specified, preferably using a helper function.
         catResults = catalogConn.select(params=command)
         catResultsSet = set()
         for catResult in catResults:
             ourDate = date_util.localize(arrow.get(catResult["collection_date"]).datetime)
             ourDate = ourDate.replace(hour=0, minute=0, second=0, microsecond=0)
-            catResultsSet.add(ourDate)
-        # TODO: It would be possible to build up finer-grained control over the catalog. Perhaps we could allow a
-        # lambda function to be passed in that builds up an identifier, and we can compare on (collection_date, identifier).
+            catResultsSet.add((catResult["id_base"], catResult["id_ext"], ourDate))
         
-        # Build up the list:
-        ret = []
         today = date_util.localize(arrow.now().datetime).replace(hour=0, minute=0, second=0, microsecond=0)
         for ourDate in ourDates:
             if self.dateEarliest is None or ourDate >= self.dateEarliest:
@@ -110,15 +119,14 @@ class LastUpdateFS:
                 if ourDate < lastRunDate:
                     if not detectMissing:
                         continue
-                    if ourDate in catResultsSet:
-                        # We are already in the catalog.
-                        # TODO: If we were to add a new file, it wouldn't get picked up if we reran this code, until we
-                        # have a better way of building up identifiers.
-                        continue
                 for index in range(len(self.pattList)):
+                    identifier = self._getIdentifier(None, index, ourDate)
+                    if identifier in catResultsSet:
+                        # We are already in the catalog.
+                        continue
+                    
                     # TODO: Is there a better way to deal with this than to downgrade to naive time? Could we get date_dirs to support time zones?
                     myFile = dateDirArr[index].resolveFile(ourDate.replace(tzinfo=None), fullPath=True)
                     if myFile:
-                        ret.append(_GetToUpdateRet(myFile, ourDate, index, ourDate < lastRunDate))
-        return ret
+                        yield _GetToUpdateRet(identifier, myFile, ourDate, index, ourDate < lastRunDate)
     

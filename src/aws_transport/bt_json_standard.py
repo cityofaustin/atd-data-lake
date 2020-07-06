@@ -24,10 +24,10 @@ PROGRAM_DESC = "Performs JSON canonicalization for Bluetooth data between the ra
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-raw"
+SRC_BUCKET = config.composeBucket("raw")
 
 "S3 bucket to target"
-TGT_BUCKET = "atd-data-lake-rawjson"
+TGT_BUCKET = config.composeBucket("rawjson")
 
 "Temporary directory holding-place"
 _TEMP_DIR = None
@@ -38,13 +38,14 @@ _S3 = None
 class BT_JSON_Standard:
     ''' 'Class standardizes bluetooth directory data into json'''
 
-    def __init__(self, identifier, storagePath, collection_date, fileType, catalog):
+    def __init__(self, idBase, storagePath, collection_date, fileType, catalog):
 
-        self.identifier = identifier
+        self.idBase = idBase
         self.srcStoragePath = storagePath
-        self.tgtStoragePath = storagePath[:-4] + ".json" # TODO: Maybe let storagePath just be the S3 path: use identifier.
+        storageBasePath = os.path.dirname(storagePath) # TODO: Phase out.
+        self.tgtStoragePath = storageBasePath + "/" + idBase + "_" + fileType + "_" + collection_date.strftime("%Y-%m-%d") + ".json" 
         # TODO: Provide standardized method to reconstruct the S3 path.
-        self.collection_date = str(collection_date)
+        self.collection_date = collection_date
         self.processing_date = str(date_util.localize(arrow.now().datetime))
         self.fileType = fileType
         self.columns, self.dateColumns = self.set_data_columns()
@@ -73,9 +74,9 @@ class BT_JSON_Standard:
 
         json_header_template = {"data_type": "bluetooth",
                                 "file_type": self.fileType,
-                                "origin_filename": self.identifier + ".txt",
-                                "target_filename": self.identifier + ".json",
-                                "collection_date": self.collection_date,
+                                "origin_filename": self.srcStoragePath.split("/")[-1], # TODO: Need an abstraction of S3 file.
+                                "target_filename": self.idBase + "_" + self.fileType + "_" + self.collection_date.strftime("%Y-%m-%d") + ".json",
+                                "collection_date": str(self.collection_date),
                                 "processing_date": self.processing_date}
         return json_header_template
 
@@ -103,7 +104,7 @@ class BT_JSON_Standard:
         json_data = {'header': self.json_header_template, 'data': None}
         #call bucket
         #print("--0: Pull from bucket...")
-        fullPathR = os.path.join(_TEMP_DIR, self.identifier + ".csv")
+        fullPathR = os.path.join(_TEMP_DIR, self.idBase + "_" + self.fileType + ".csv")
         _S3.Bucket(SRC_BUCKET).download_file(self.srcStoragePath, fullPathR)
         # add data array of objects from rows of dataframe
         #print("--1: Read CSV...")
@@ -121,7 +122,7 @@ class BT_JSON_Standard:
 
         ##write to s3 raw json bucket
         #print("--4: Write out...")
-        fullPathW = os.path.join(_TEMP_DIR, self.identifier + ".json")
+        fullPathW = os.path.join(_TEMP_DIR, self.idBase + "_" + self.fileType + ".json")
         with open(fullPathW, 'w') as bt_json_file:
             bt_json_file.write(dumps(json_data))
 
@@ -138,14 +139,14 @@ class BT_JSON_Standard:
     def to_catalog(self):
 
         catalog = self.catalog
-        identifier = self.identifier
+        idBase = self.idBase
         pointer = self.tgtStoragePath
-        collection_date = self.collection_date
+        collection_date = str(self.collection_date)
         processing_date = self.processing_date
         json_blob = self.json_header_template
 
         metadata = {"repository": 'rawjson', "data_source": 'bt',
-                    "identifier": identifier, "pointer": pointer,
+                    "id_base": idBase, "id_ext": self.fileType + ".json", "pointer": pointer,
                     "collection_date": collection_date,
                     "processing_date": processing_date, "metadata": json_blob}
 
@@ -178,7 +179,7 @@ def main():
         monthsOld = DATE_EARLIEST
     
     # Prepare to make a copy of Knack dependency:
-    call_knack_access.insert_units_to_bucket2("bt", sameDay=args.same_day)
+    call_knack_access.insert_units_to_bucket2(config.UNIT_LOCATION, "bt", sameDay=args.same_day)
     
     # Catalog and AWS connections:
     catalog = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
@@ -193,18 +194,15 @@ def main():
     count = 0
     lastUpdateWorker = last_upd_cat.LastUpdateCat("raw", "rawjson", "bt", monthsOld)
     for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=False):
-        # TODO: We need to distinguish different file types. Use the base/ext thing later on to do this better.
-        fileType = None
-        if "_bt_summary_15_" in record.identifier:
-            fileType = "traf_match_summary"
-        elif "_btmatch_" in record.identifier:
-            fileType = "matched"
-        elif "_bt_" in record.identifier:
-            fileType = "unmatched"
-        else:
-            continue 
+        # Sanity check:
+        if not any(record.identifier[1] in x for x in ["traf_match_summary.txt", "matched.txt", "unmatched.txt"]):
+            print("WARNING: Unsupported file type or extension: %s" % record.identifier[1])
+            continue
+
+        fileType = record.identifier[1].split(".")[0] # Get string up to the file type extension.            
         print("%s: %s -> %s%s" % (record.s3Path, SRC_BUCKET, TGT_BUCKET, "" if not record.missingFlag else " (missing)"))
-        worker = BT_JSON_Standard(record.identifier, record.s3Path, record.fileDate, fileType, catalog)
+        # TODO: Method to reconstruct S3 path from date, base, and ext. Don't pass in s3Path.
+        worker = BT_JSON_Standard(record.identifier[0], record.s3Path, record.fileDate, fileType, catalog)
         worker.jsonize()
         worker.to_catalog()
         

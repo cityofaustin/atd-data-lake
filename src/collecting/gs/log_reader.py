@@ -43,11 +43,16 @@ class LogReader:
         """
         return ourDate in self.avail
     
+    def constructBase(self):
+        "Returns base part of filename, which is streets."
+        
+        return self.device.street1 + "_" + self.device.street2
+    
     def constructFilename(self, ourDate):
         """
         Returns filename based on device streets and given date.
         """
-        return ourDate.strftime("%Y-%m-%d") + "_" + self.device.street1 + "_" + self.device.street2 + ".zip"
+        return ourDate.strftime("%Y-%m-%d") + "_" + self.constructBase() + ".zip"
 
     def getCountsFile(self, ourDate, destDir):
         """

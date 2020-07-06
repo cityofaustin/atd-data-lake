@@ -23,10 +23,11 @@ DATE_EARLIEST = 12
 # TODO: Consider months instead of years.
 
 "S3 bucket to target"
-BUCKET = "atd-data-lake-raw"
+BUCKET = config.composeBucket("raw")
 
 ## Function definitions
 def set_S3_pointer(filename, date, data_source='wt'): ### may have to include bucket!! ###
+    # TODO: Put this in a standardized location so others can access this method.
 
     year = str(date.year)
     month = str(date.month)
@@ -41,14 +42,14 @@ def set_S3_pointer(filename, date, data_source='wt'): ### may have to include bu
                                                             day=s_day,
                                                             data_source=data_source,
                                                             file=filename)
-def wt_metadata(repository, baseFile, pointer, date):
+def wt_metadata(repository, idBase, idExt, pointer, date):
 
     collection_date = str(date)
     processing_date = str(date_util.localize(arrow.now().datetime))
     json_blob = json.dumps({"element": "True"})
 
     metadata = {"repository": repository, "data_source": 'wt',
-               "identifier": baseFile, "pointer": pointer,
+               "id_base": idBase, "id_ext": idExt, "pointer": pointer,
                "collection_date": collection_date,
                "processing_date": processing_date, "metadata": json_blob}
 
@@ -109,7 +110,7 @@ def main():
             s3Object.put(Body=wt_file)
         
         # Update the catalog:
-        wt_metadata_ingest(wt_metadata(repository='raw', baseFile=baseFile,
+        wt_metadata_ingest(wt_metadata(repository='raw', idBase=record.identifier[0], idExt=record.identifier[1],
                                       pointer=pointer, date=record.fileDate), catalog=catalog)
         # Clean up CSV file:
         os.remove(record.filePath)

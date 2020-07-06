@@ -25,10 +25,10 @@ PROGRAM_DESC = "Performs JSON enrichment for Bluetooth data between the 'rawjson
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-rawjson"
+SRC_BUCKET = config.composeBucket("rawjson")
 
 "S3 bucket to target"
-TGT_BUCKET = "atd-data-lake-ready"
+TGT_BUCKET = config.composeBucket("ready")
 
 class BT_Ready:
 
@@ -36,11 +36,11 @@ class BT_Ready:
     and bt device json information
     '''
 
-    def __init__(self, identifier, storagePath, data_json, device_json, fileType, catalog):
+    def __init__(self, idBase, storagePath, data_json, device_json, fileType, catalog):
 
         ##data_json and device_json should be dicts
 
-        self.identifier = identifier
+        self.idBase = idBase
         self.tgtStoragePath = storagePath
         self.processing_date = str(date_util.localize(arrow.now().datetime))
         self.jheader = data_json['header']
@@ -122,7 +122,8 @@ class BT_Ready:
     def to_catalog(self):
 
         metadata = {"repository": 'ready', "data_source": 'bt',
-                    "identifier": self.identifier, "pointer": self.tgtStoragePath,
+                    "id_base": self.idBase, "id_ext": self.fileType + ".json",
+                    "pointer": self.tgtStoragePath,
                     "collection_date": self.jheader["collection_date"],
                     "processing_date": self.processing_date, "metadata": self.edit_header()}
 
@@ -168,23 +169,19 @@ def main():
     count = 0
     lastUpdateWorker = last_upd_cat.LastUpdateCat("rawjson", "ready", "bt", monthsOld)
     for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=args.missing):
-        if record.identifier.startswith("unit_data"):
+        if record.identifier[1] == "unit_data.json":
             # TODO: Figure out a better way to deal with avoiding unit_data in LastUpdateCat work.
             continue
-        # TODO: We need to distinguish different file types. Use the base/ext thing later on to do this better.
-        fileType = None
-        if "_bt_summary_15_" in record.identifier:
-            fileType = "traf_match_summary"
-        elif "_btmatch_" in record.identifier:
-            fileType = "matched"
-        elif "_bt_" in record.identifier:
-            fileType = "unmatched"
-        else:
+        # Sanity check on the extension identifier:
+        if not any(record.identifier[1] in x for x in ["traf_match_summary.json", "matched.json", "unmatched.json"]):
+            print("WARNING: Unsupported file type or extension: %s" % record.identifier[1])
             continue
+        
+        fileType = record.identifier[1].split(".")[0]
         print("%s: %s -> %s%s" % (record.s3Path, SRC_BUCKET, TGT_BUCKET, "" if not record.missingFlag else " (missing)"))
 
         # Retrieve the canonicalized JSON file:
-        fullPathR = os.path.join(tempDir, record.identifier + ".json")
+        fullPathR = os.path.join(tempDir, record.identifier[0] + "_" + fileType + ".json")
         s3.Bucket(SRC_BUCKET).download_file(record.s3Path, fullPathR)
         with open(fullPathR, 'r') as dataJSONFile:
             dataJSON = json.load(dataJSONFile)
@@ -199,12 +196,13 @@ def main():
         deviceJSON = unitData.getUnitData(record.fileDate)
 
         # Perform transformation:
-        worker = BT_Ready(record.identifier, record.s3Path, dataJSON, deviceJSON, fileType, catalog)
+        # TODO: Method to reconstruct S3 path from date, base, and ext. Don't pass in s3Path.
+        worker = BT_Ready(record.identifier[0], record.s3Path, dataJSON, deviceJSON, fileType, catalog)
         del dataJSON
         jsonData = worker.jsonize()
 
         # Write contents to S3:
-        fullPathW = os.path.join(tempDir, record.identifier + ".json")
+        fullPathW = os.path.join(tempDir, record.identifier[0] + "_" + fileType + ".json")
         # TODO: Currently we overwrite the temp canonicalized JSON file. That's okay, but we may want to consider a name change.
         with open(fullPathW, 'w') as bt_json_file:
             json.dump(jsonData, bt_json_file)

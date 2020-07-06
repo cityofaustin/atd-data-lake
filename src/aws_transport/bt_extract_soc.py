@@ -19,7 +19,7 @@ PROGRAM_DESC = "Extracts Bluetooth files from the 'Ready' bucket to Socrata"
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-ready"
+SRC_BUCKET = config.composeBucket("ready")
 
 "S3 object"
 _S3 = None
@@ -41,6 +41,7 @@ def main():
     parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset")
     parser.add_argument("-m", "--months_old", help="process no more than this number of months old, or provide YYYY-MM-DD for absolute date")
     parser.add_argument("-s", "--same_day", action="store_true", default=False, help="retrieves and processes files that are the same day as collection")
+    parser.add_argument("-X", "--no_write", action="store_true", default=False, help="suppress writing to Socrata")
     # TODO: Consider parameters for writing out files?
     args = parser.parse_args()
 
@@ -69,16 +70,14 @@ def main():
     lastUpdateWorker = last_upd_soc.LastUpdateSoc("ready", config.SOC_RESOURCE_BT_IAF, "host_read_time", config.SOC_WRITE_AUTH, "bt", monthsOld)
     for record in lastUpdateWorker.iterToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=False):
         # TODO: We need to distinguish different file types. Use the base/ext thing later on to do this better.
-        fileType = None
+
+        fileType = record.identifier[1].split(".")[0]
         socResource = None
-        if "_bt_summary_15_" in record.identifier:
-            fileType = "traf_match_summary"
+        if fileType == "traf_match_summary":
             socResource = config.SOC_RESOURCE_BT_TMSR
-        elif "_btmatch_" in record.identifier:
-            fileType = "matched"
+        elif fileType == "matched":
             socResource = config.SOC_RESOURCE_BT_ITMF
-        elif "_bt_" in record.identifier:
-            fileType = "unmatched"
+        elif fileType == "unmatched":
             socResource = config.SOC_RESOURCE_BT_IAF
         else:
             continue 
@@ -164,7 +163,13 @@ def main():
             rowCount += 1
             if chunkCount == 0 or rowCount == len(ourData["data"]): 
                 # Push to Socrata
-                s = socratautil.Soda(auth=config.SOC_WRITE_AUTH, records=dataRows, resource=socResource, location_field=None, source="datalake")
+                if not args.no_write:
+                    s = socratautil.Soda(auth=config.SOC_WRITE_AUTH, records=dataRows, resource=socResource, location_field=None, source="datalake")
+                else:
+                    print("Writing to Socrata is suppressed. Would have written %d row(s)" % len(dataRows))
+                    if dataRows:
+                        print("First row: ", end = '')
+                        print(dataRows[0])
                 
                 dataRows = []
                 chunkCount = SOC_CHUNK

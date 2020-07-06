@@ -9,6 +9,7 @@ Kenneth Perrine - 2019-02-15
 
 import datetime
 import numbers
+import os
 
 from pypgrest import Postgrest
 import arrow
@@ -21,12 +22,14 @@ class _GetToUpdateRet:
     """
     Yielded object for LastUpdateWT_Soc.getToUpdate()
     """
-    def __init__(self, filePath, fileDate, missingFlag):
+    def __init__(self, identifier, filePath, fileDate, missingFlag):
         """
+        @param identifier A tuple containing identifier_base and identifier_ext.
         @param filePath The full path to the file included in the list. It's already written.
         @param fileDate A datetime object that signifies the date of the file.
         @param missingFlag Signifies if this file had been detected as missing, preceding the lastRunDate.
         """
+        self.identifier = identifier
         self.filePath = filePath
         self.fileDate = fileDate
         self.missingFlag = missingFlag
@@ -62,6 +65,13 @@ class LastUpdateWT_Soc:
                 .shift(months=-dateEarliest).datetime)
         self.dateEarliest = dateEarliest
         
+    def _getIdentifier(self, filePath, date):
+        """
+        Returns a tuple containing identifier_base, identifier_ext, and date.
+        """
+        base = os.path.basename(filePath).split("_")[0] # TODO: Better method for removing date from filename. Also, we probably want "Austin" and not "wavetronix".
+        return (base, "csv", date)
+
     def iterToUpdate(self, lastRunDate, force=False, detectMissing=True):
         """
         Yields on each data batch that's needing to be selected and updated, given the lastRunDate,
@@ -74,7 +84,7 @@ class LastUpdateWT_Soc:
         """
         # Get the catalog:
         catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.tgtRepo,
                    "data_source": "eq.%s" % self.dataSource,
                    "limit": 100000}
@@ -100,4 +110,4 @@ class LastUpdateWT_Soc:
                 smallSample = socrata_history.getDataAt(ourDate, limit=1)
                 if smallSample:
                     filePath = socrata_history.getDataAt(ourDate, outPath=self.tgtPath)
-                    yield _GetToUpdateRet(filePath, ourDate, ourDate < lastRunDate) 
+                    yield _GetToUpdateRet(self._getIdentifier(filePath, ourDate), filePath, ourDate, ourDate < lastRunDate)

@@ -23,6 +23,7 @@ class _GetToUpdateRet:
     """
     def __init__(self, s3Path, identifier, fileDate, missingFlag):
         """
+        @param identifier A tuple containing identifier_base and identifier_ext.
         @param s3Path The full path to the file (within the srcRepo bucket) as noted in the catalog.
         @param fileDate A datetime object that signifies the date of the file.
         @param missingFlag Signifies if this file had been detected as missing, preceding the lastRunDate.
@@ -75,7 +76,7 @@ class LastUpdateSoc:
         """
         # Get the catalog:
         catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.srcRepo,
                    "data_source": "eq.%s" % self.dataSource,
                    "order": "collection_date",
@@ -123,7 +124,8 @@ class LastUpdateSoc:
                         + self.socDateField + "<" + tomorrow.strftime("%Y-%m-%d")
                     res = requests.get(urlWithDate, auth=self.socAuth)
                     if res.json():
+                        # TODO: We may want to analyze the coverage to see if we are more likely to have the full set in Socrata.
                         continue
                     
                 for item in srcCatResultsDict[ourDate]:
-                    yield _GetToUpdateRet(item["pointer"], item["identifier"], ourDate, ourDate < lastRunDate)
+                    yield _GetToUpdateRet(item["pointer"], (item["id_base"], item["id_ext"], ourDate), ourDate, ourDate < lastRunDate)

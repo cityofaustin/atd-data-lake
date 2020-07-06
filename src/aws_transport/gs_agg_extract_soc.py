@@ -19,7 +19,7 @@ PROGRAM_DESC = "Extracts GRIDSMART aggregate 'ready' data to Socrata"
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-ready"
+SRC_BUCKET = config.composeBucket("ready")
 
 "S3 object"
 _S3 = None
@@ -49,6 +49,7 @@ def main():
     parser.add_argument("-s", "--same_day", action="store_true", default=False, help="retrieves and processes files that are the same day as collection")
     parser.add_argument("-a", "--agg", type=int, default=15, help="aggregation interval, in minutes (default: 15)")
     parser.add_argument("-u", "--no_unassigned", action="store_true", default=False, help="skip 'unassigned' approaches")
+    parser.add_argument("-X", "--no_write", action="store_true", default=False, help="suppress writing to Socrata")
     # TODO: Consider parameters for writing out files?
     args = parser.parse_args()
 
@@ -79,7 +80,7 @@ def main():
     lastUpdateWorker = last_upd_soc.LastUpdateSoc("ready", config.SOC_RESOURCE_GS_AGG, "host_read_time", config.SOC_WRITE_AUTH, "gs", monthsOld, endDate=endDate)
     for record in lastUpdateWorker.iterToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=False):
         # TODO: We need to distinguish different file types. Use the base/ext thing later on to do this better.
-        if ("_agg%d_" % args.agg) not in record.identifier:
+        if record.identifier[1] != "agg%d.json" % args.agg: # TODO: Change LastUpdate to filter there.
             continue
         
         print("%s: %s -> %s%s" % (record.s3Path, SRC_BUCKET, config.SOC_RESOURCE_GS_AGG, "" if not record.missingFlag else " (missing)"))
@@ -167,9 +168,15 @@ def main():
             
             chunkCount -= 1
             rowCount += 1
-            if chunkCount == 0 or rowCount == len(ourData["data"]): 
-                # Push to Socrata
-                s = socratautil.Soda(auth=config.SOC_WRITE_AUTH, records=dataRows, resource=config.SOC_RESOURCE_GS_AGG, location_field=None, source="datalake")
+            if chunkCount == 0 or rowCount == len(ourData["data"]):
+                if not args.no_write:
+                    # Push to Socrata
+                    s = socratautil.Soda(auth=config.SOC_WRITE_AUTH, records=dataRows, resource=config.SOC_RESOURCE_GS_AGG, location_field=None, source="datalake")
+                else:
+                    print("Writing to Socrata is suppressed. Would have written %d row(s)" % len(dataRows))
+                    if dataRows:
+                        print("First row: ", end = '')
+                        print(dataRows[0])
                 
                 dataRows = []
                 chunkCount = SOC_CHUNK

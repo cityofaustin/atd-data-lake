@@ -6,6 +6,7 @@ Kenneth Perrine - 2019-02-08
 """
 
 import numbers
+import os
 
 from pypgrest import Postgrest
 import arrow
@@ -48,14 +49,16 @@ class _GetToUpdateRet:
     """
     Return object for LastUpdateGS.getToUpdate()
     """
-    def __init__(self, device, logReader, fileDate, missingFlag):
+    def __init__(self, identifier, device, logReader, fileDate, missingFlag):
         """
+        @param identifier A tuple containing identifier_base and identifier_ext.
         @param device The GRIDSMART device, represented as collecting.gs.device.Device. Note that this has no date!
         @param logReader The GRIDSMART log reader, represented as collecting.gs.log_reader.LogReader, used to get counts file:
                 (that's through the getCountsFile() method)
         @param fileDate A datetime object that signifies the date of the record.
         @param missingFlag Signifies if this file had been detected as missing, preceding the lastRunDate.
         """
+        self.identifier = identifier
         self.device = device
         self.logReader = logReader
         self.fileDate = fileDate
@@ -81,17 +84,24 @@ class LastUpdateGS:
         self.tgtRepo = tgtRepo
         self.datatype = datatype
                 
-        # Find the earliest date. If it's a number, then it's number of years.
+        # Find the earliest date. If it's a number, then it's number of months.
         if isinstance(dateEarliest, numbers.Number):
             dateEarliest = date_util.localize(arrow.now()
                 .replace(hour=0, minute=0, second=0, microsecond=0)
                 .shift(months=-dateEarliest).datetime)
         self.dateEarliest = dateEarliest
 
+    def _getIdentifier(self, logReader, date):
+        """
+        Returns a tuple containing identifier_base, identifier_ext, and date.
+        """
+        base = logReader.constructBase() # TODO: Prepend that with the location signifier.
+        return (base, "zip", date)
+    
     def getToUpdate(self, lastRunDate, sameDay=False, detectMissing=True):
         """
-        Returns a list of all devices and dates that are needing to be selected and updated, given the lastRunDate,
-        catalog, and earliest processing date. These are returned as a list of _GetToUpdateRet objects.
+        Yields _GetToUpdateRet for each device that is needing to be selected and updated, given the lastRunDate,
+        catalog, and earliest processing date. These are yielded as _GetToUpdateRet objects.
         
         @param lastRunDate datetime object that signifies the last run time.
         @param sameDay If true, updates file in target that bears the same date as today.
@@ -102,7 +112,7 @@ class LastUpdateGS:
         # Get the target catalog:
         # TODO: Move this direct access to another module to abstract it.
         catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.tgtRepo,
                    "data_source": "eq.%s" % self.datatype,
                    "limit": 100000}
@@ -117,9 +127,7 @@ class LastUpdateGS:
         for catResult in catResults:
             ourDate = date_util.localize(arrow.get(catResult["collection_date"]).datetime)
             ourDate = ourDate.replace(hour=0, minute=0, second=0, microsecond=0)
-            catResultsSet.add(ourDate)
-        # TODO: It would be possible to build up finer-grained control over the catalog. Perhaps we could compare
-        # identifiers rather than dates. It could be an option.
+            catResultsSet.add((catResult["id_base"], catResult["id_ext"], ourDate))
         
         ourDatesSet = set()
         for logReader in self.logReaders.values():
@@ -127,24 +135,22 @@ class LastUpdateGS:
         
         ourDates = list(ourDatesSet)
         ourDates.sort()
+        # We're driven according to equipment availability.
         
-        # Build up the list:
-        ret = []
+        # Iterate through records
         today = date_util.localize(arrow.now().datetime).replace(hour=0, minute=0, second=0, microsecond=0)
         for ourDate in ourDates:
             ourDate = date_util.localize(ourDate)
             if self.dateEarliest is None or ourDate >= self.dateEarliest:
                 if not sameDay and ourDate >= today:
                     continue
-                if ourDate < lastRunDate:
-                    if not detectMissing:
-                        continue
-                    if ourDate in catResultsSet:
-                        # We are already in the catalog.
-                        # TODO: If we were to add a new device, it wouldn't get picked up if we reran this code, until we
-                        # have a better way of building up identifiers.
-                        continue
                 for device, logReader in self.logReaders.items():
+                    identifier = self._getIdentifier(logReader, ourDate)
+                    if ourDate < lastRunDate:
+                        if not detectMissing:
+                            continue
+                        if identifier in catResultsSet:
+                            # We are already in the catalog.
+                            continue
                     if logReader.queryDate(ourDate.replace(tzinfo=None)):
-                        ret.append(_GetToUpdateRet(device, logReader, ourDate, ourDate < lastRunDate))
-        return ret
+                        yield _GetToUpdateRet(identifier, device, logReader, ourDate, ourDate < lastRunDate)

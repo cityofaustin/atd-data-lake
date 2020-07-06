@@ -22,10 +22,10 @@ PROGRAM_DESC = "Performs JSON canonicalization for Wavetronix data between the r
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-raw"
+SRC_BUCKET = config.composeBucket("raw")
 
 "S3 bucket to target"
-TGT_BUCKET = "atd-data-lake-rawjson"
+TGT_BUCKET = config.composeBucket("rawjson")
 
 "Temporary directory holding-place"
 _TEMP_DIR = None
@@ -36,9 +36,9 @@ _S3 = None
 class WT_JSON_Standard:
     ''' 'Class standardizes wavetronix directory data into json'''
 
-    def __init__(self, identifier, storagePath, collection_date, catalog):
+    def __init__(self, idBase, storagePath, collection_date, catalog):
 
-        self.identifier = identifier
+        self.idBase = idBase
         self.srcStoragePath = storagePath
         self.tgtStoragePath = storagePath[:-4] + ".json" # TODO: Maybe let storagePath just be the S3 path: use identifier.
         # TODO: Provide standardized method to reconstruct the S3 path.
@@ -60,8 +60,8 @@ class WT_JSON_Standard:
     def _set_json_header_template(self):
 
         json_header_template = {"data_source": "wavetronix",
-                                "origin_filename": self.identifier + ".csv",
-                                "target_filename": self.identifier + ".json",
+                                "origin_filename": self.srcStoragePath.split("/")[-1], # TODO: Want to use file abstraction to support this.
+                                "target_filename": self.tgtStoragePath.split("/")[-1],
                                 "collection_date": self.collection_date,
                                 "processing_date": self.processing_date}
         return json_header_template
@@ -71,14 +71,14 @@ class WT_JSON_Standard:
         #initiate json object
         json_data = {'header': self.json_header_template, 'data': None}
         #call bucket
-        fullPathR = os.path.join(_TEMP_DIR, self.identifier + ".csv")
+        fullPathR = os.path.join(_TEMP_DIR, self.idBase + ".csv")
         _S3.Bucket(SRC_BUCKET).download_file(self.srcStoragePath, fullPathR)
         # add data array of objects from rows of dataframe
         data = pd.read_csv(fullPathR, header=0, names=self.columns)
         json_data['data'] = data.apply(lambda x: x.to_dict(), axis=1).tolist()
 
         ##write to s3 raw json bucket
-        fullPathW = os.path.join(_TEMP_DIR, self.identifier + ".json")
+        fullPathW = os.path.join(_TEMP_DIR, self.idBase + ".json")
         with open(fullPathW, 'w') as wt_json_file:
             wt_json_file.write(dumps(json_data))
 
@@ -93,14 +93,14 @@ class WT_JSON_Standard:
     def to_catalog(self):
 
         catalog = self.catalog
-        identifier = self.identifier
+        idBase = self.idBase
         pointer = self.tgtStoragePath
         collection_date = self.collection_date
         processing_date = self.processing_date
         json_blob = self.json_header_template
 
         metadata = {"repository": 'rawjson', "data_source": 'wt',
-                    "identifier": identifier, "pointer": pointer,
+                    "id_base": idBase, "id_ext": "json", "pointer": pointer,
                     "collection_date": collection_date,
                     "processing_date": processing_date, "metadata": json_blob}
 
@@ -147,7 +147,7 @@ def main():
     lastUpdateWorker = last_upd_cat.LastUpdateCat("raw", "rawjson", "wt", monthsOld)
     for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=args.missing):
         print("%s: %s -> %s%s" % (record.s3Path, SRC_BUCKET, TGT_BUCKET, "" if not record.missingFlag else " (missing)"))
-        worker = WT_JSON_Standard(record.identifier, record.s3Path, record.fileDate, catalog)
+        worker = WT_JSON_Standard(record.identifier[0], record.s3Path, record.fileDate, catalog)
         worker.jsonize()
         worker.to_catalog()
         

@@ -35,7 +35,7 @@ class GSKnackDevices:
         "Constructs device object from GRIDSMART API. Retrieves site file from device."
         
         siteFiles = []
-        ourDevice = device.deviceFromAPI(self.locationEngine.device_ips[index], siteFileRet=siteFiles)
+        ourDevice = device.deviceFromAPI(self.locationEngine.device_ips[index].strip(), siteFileRet=siteFiles)
         # Recall that we can get the log reader by calling log_reader.LogReader(device).
 
         return ourDevice, siteFiles[0], siteFiles[1], siteFiles[2]
@@ -47,7 +47,8 @@ class GSKnackDevices:
         regexp = re.compile(devFilter)
         for index, row in self.locationEngine.device_locations.iterrows():
             #if row["ip_comm_status"] == "ONLINE":
-            if True: # TODO: It seems as though the "ip_comm_status" often says "OFFLINE" when the device is actually responding. 
+            #if True: # TODO: It seems as though the "ip_comm_status" often says "OFFLINE" when the device is actually responding. 
+            if row["device_status"].strip().upper() != "REMOVED" and row["atd_location_id"] and str(row["atd_location_id"]) != 'nan':
                 streetName = row["primary_st"] + "_" + row["cross_st"]
                 if not regexp.search(streetName):
                     continue

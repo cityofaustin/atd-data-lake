@@ -26,7 +26,7 @@ DATE_EARLIEST = 12
 # TODO: Consider months instead of years.
 
 "S3 bucket to target"
-BUCKET = "atd-data-lake-raw"
+BUCKET = config.composeBucket("raw")
 
 "Temporary directory holding-place"
 _TEMP_DIR = None
@@ -50,14 +50,14 @@ def set_S3_pointer(filename, date, data_source='gs'): ### may have to include bu
                                                             day=s_day,
                                                             data_source=data_source,
                                                             file=filename)
-def gs_metadata(repository, file, pointer, date):
+def gs_metadata(repository, idBase, idExt, pointer, date):
 
     collection_date = str(date)
     processing_date = str(date_util.localize(arrow.now().datetime))
     json_blob = json.dumps({"element": "True"}) #maybe add version metadata?
 
     metadata = {"repository": repository, "data_source": 'gs',
-               "identifier": file, "pointer": pointer,
+               "id_base": idBase, "id_ext": idExt, "pointer": pointer,
                "collection_date": collection_date,
                "processing_date": processing_date, "metadata": json_blob}
 
@@ -67,7 +67,7 @@ def gs_metadata_ingest(metadata, catalog):
 
     catalog.upsert(metadata)
     
-def insertUnitData(catalog, unitData, sameDay=False):
+def insertUnitData(areaBase, catalog, unitData, sameDay=False):
     "Handles S3 upload and catalog insert for unit data."
 
     # TODO: A great deal of this can be handled with shared utility functions.
@@ -76,21 +76,21 @@ def insertUnitData(catalog, unitData, sameDay=False):
     ourDay = today if sameDay else today - datetime.timedelta(days=1)
     
     # Get filename and target path: 
-    identifier = "unit_data_{}".format(ourDay.strftime("%Y-%m-%d")) # TODO: We may phase out the use of a date in the identifier.
-    tgtStorage_path = set_S3_pointer(filename=identifier + ".json",
+    baseName = "{}_unit_data_{}".format(areaBase, ourDay.strftime("%Y-%m-%d")) # TODO: We may phase out the use of a date in the identifier.
+    tgtStorage_path = set_S3_pointer(filename=baseName + ".json",
                                          date=ourDay, data_source="gs")
     print("%s:%s" % (BUCKET, tgtStorage_path))
     
     # Arrange the JSON:
     json_header_template = {"data_type": "gs_unit_data",
-                            "target_filename": identifier + ".json",
+                            "target_filename": baseName + ".json",
                             "collection_date": str(ourDay)}
     json_data = {'header': json_header_template,
                  'devices': unitData}
     
     # Write to S3:
     # TODO: Again, create shared utility functions. There is a way to do this in-memory, too.
-    fullPathW = os.path.join(_TEMP_DIR, identifier + ".json")
+    fullPathW = os.path.join(_TEMP_DIR, baseName + ".json")
     with open(fullPathW, 'w') as json_file:
         json_file.write(json.dumps(json_data))
 
@@ -105,12 +105,12 @@ def insertUnitData(catalog, unitData, sameDay=False):
     # TODO: Have mercy! Use library functions!
     processing_date = str(date_util.localize(arrow.now().datetime))
     metadata = {"repository": 'raw', "data_source": 'gs',
-                "identifier": identifier, "pointer": tgtStorage_path,
+                "id_base": areaBase, "id_ext": "unit_data.json", "pointer": tgtStorage_path,
                 "collection_date": str(ourDay),
                 "processing_date": processing_date, "metadata": json_header_template}
     catalog.upsert(metadata)
 
-def insertSiteFile(catalog, baseName, fileContents, device, sameDay=False):
+def insertSiteFile(catalog, baseFile, fileContents, device, sameDay=False):
     "Handles S3 upload and catalog insert for site file."
 
     # TODO: A great deal of this can be handled with shared utility functions.
@@ -119,8 +119,7 @@ def insertSiteFile(catalog, baseName, fileContents, device, sameDay=False):
     ourDay = today if sameDay else today - datetime.timedelta(days=1)
     
     # Get filename and target path: 
-    # TODO: With addition of base/ext identifiers, take out this monkey business.
-    siteFilename = baseName[11:] + "_site_{}".format(ourDay.strftime("%Y-%m-%d")) # TODO: We may phase out the use of a date in the identifier.
+    siteFilename = "{}_site_{}".format(baseFile, ourDay.strftime("%Y-%m-%d"))
     tgtStorage_path = set_S3_pointer(filename=siteFilename + ".json",
                                          date=ourDay, data_source="gs")
     print("%s:%s" % (BUCKET, tgtStorage_path))
@@ -153,7 +152,7 @@ def insertSiteFile(catalog, baseName, fileContents, device, sameDay=False):
     # TODO: Fix the identifier to the newer standard: no date, base/ext
     processing_date = str(date_util.localize(arrow.now().datetime))
     metadata = {"repository": 'raw', "data_source": 'gs',
-                "identifier": siteFilename, "pointer": tgtStorage_path,
+                "id_base": baseFile, "id_ext": "site.json", "pointer": tgtStorage_path,
                 "collection_date": str(ourDay),
                 "processing_date": processing_date, "metadata": json_header_template}
     catalog.upsert(metadata)
@@ -198,7 +197,7 @@ def main():
     
     # Upload the Knack data:
     print("Uploading unit data...")
-    insertUnitData(catalog, knackJSON, args.same_day)
+    insertUnitData(config.UNIT_LOCATION, catalog, knackJSON, args.same_day)
     
     # Gather records of prior activity from catalog:
     print("Beginning loop...")
@@ -211,12 +210,11 @@ def main():
             print("ERROR: A problem was encountered in accessing.") 
             print(exc)
             continue
-        filename = os.path.basename(filePath)
-        baseFile = filename[:-4] if filename.lower().endswith(".zip") else filename
+        baseFile = record.logReader.constructBase()
         
-        pointer = set_S3_pointer(filename=filename, date=record.fileDate)
+        pointer = set_S3_pointer(filename=baseFile + "_" + record.fileDate.strftime("%Y-%m-%d") + ".zip", date=record.fileDate)
         
-        print("%s -> %s:%s%s" % (filename, BUCKET, pointer, "" if not record.missingFlag else " (missing)"))
+        print("%s -> %s:%s%s" % (baseFile + ".zip", BUCKET, pointer, "" if not record.missingFlag else " (missing)"))
 
         # Put ZIP to S3:
         with open(filePath, 'rb') as wt_file:
@@ -224,7 +222,7 @@ def main():
             s3Object.put(Body=wt_file)
                 
         # Update the catalog:
-        gs_metadata_ingest(gs_metadata(repository='raw', file=baseFile,
+        gs_metadata_ingest(gs_metadata(repository='raw', idBase=record.identifier[0], idExt=record.identifier[1],
                                       pointer=pointer, date=record.fileDate), catalog=catalog)
         # Clean up ZIP file:
         os.remove(filePath)

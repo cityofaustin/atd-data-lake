@@ -54,10 +54,11 @@ class UnitData:
         command = {"select": "collection_date,pointer",
                    "repository": "eq.%s" % self.repo,
                    "data_source": "eq.%s" % self.dataSource,
-                   "identifier": "like.unit_data*", # TODO: Use exact query when we don't use date.
+                   "id_ext": "eq.unit_data.json",
                    "collection_date": "gte.%s" % arrow.get(date).format(),
                    "order": "collection_date",
                    "limit": 1}
+        # TODO: Limit the query to the base "Austin" or other given.
         catResults = self.catalog.select(params=command)
         if not catResults:
             # No record found.

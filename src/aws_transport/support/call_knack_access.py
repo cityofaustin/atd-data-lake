@@ -13,7 +13,7 @@ from util import date_util
 from aws_transport.support.knack_access import get_device_locations
 
 "S3 bucket to target"
-TGT_BUCKET = "atd-data-lake-rawjson"
+TGT_BUCKET = config.composeBucket("rawjson")
 
 "Temporary directory holding-place"
 _TEMP_DIR = None
@@ -25,14 +25,15 @@ class unitLocations_toBucket2:
     ''' 'Class calls knack_access and places location information in Austin's Data Lake bucket 2
         (Change tgtBucket and tgtRepo for other locations) '''
 
-    def __init__(self, unit_type, identifier, tgtDate, tgtStoragePath, catalog):
+    def __init__(self, unit_type, baseName, tgtDate, tgtStoragePath, areaBase, catalog):
 
         self.unit_type = unit_type
-        self.identifier = identifier #format is unit_locations_YYYY-mm-dd
-        self.tgtStoragePath = tgtStoragePath # TODO: Maybe let storagePath just be the S3 path: use identifier.
+        self.baseName = baseName #format is unit_locations_YYYY-mm-dd
+        self.tgtStoragePath = tgtStoragePath # TODO: Maybe let storagePath just be the S3 path: use baseName.
         # TODO: Provide standardized method to reconstruct the S3 path.
         self.collection_date = str(tgtDate) #str(date_util.localize(arrow.now().datetime))
         self.header = self.set_json_header()
+        self.areaBase = areaBase
         self.catalog = catalog
         
         self.tgtBucket = TGT_BUCKET
@@ -41,14 +42,13 @@ class unitLocations_toBucket2:
     def set_json_header(self):
 
         json_header_template = {"data_type": "{}_unit_data".format(self.unit_type),
-                                "target_filename": self.identifier + ".json",
+                                "target_filename": self.baseName + ".json",
                                 "collection_date": self.collection_date}
         return json_header_template
 
     def to_catalog(self):
 
         catalog = self.catalog
-        identifier = self.identifier
         pointer = self.tgtStoragePath
         collection_date = self.collection_date
         processing_date = str(date_util.localize(arrow.now().datetime))
@@ -56,7 +56,7 @@ class unitLocations_toBucket2:
         unit_type = self.unit_type
 
         metadata = {"repository": self.tgtRepo, "data_source": unit_type,
-                    "identifier": identifier, "pointer": pointer,
+                    "id_base": self.areaBase, "id_ext": "unit_data.json", "pointer": pointer,
                     "collection_date": collection_date,
                     "processing_date": processing_date, "metadata": header}
 
@@ -72,7 +72,7 @@ class unitLocations_toBucket2:
                                                           api_key=config.KNACK_API_KEY).create_json()
                         }
         ##write to s3 raw json bucket
-        fullPathW = os.path.join(_TEMP_DIR, self.identifier + ".json")
+        fullPathW = os.path.join(_TEMP_DIR, self.baseName + ".json")
         with open(fullPathW, 'w') as json_file:
             json_file.write(dumps(json_data))
 
@@ -100,7 +100,7 @@ def set_S3_pointer(filename, date, data_source='bt'): ### may have to include bu
                                                             data_source=data_source,
                                                             file=filename)
 
-def insert_units_to_bucket2(utype, sameDay=False):
+def insert_units_to_bucket2(areaBase, utype, sameDay=False):
     "Main entry-point that calls class"
 
     global _TEMP_DIR
@@ -116,13 +116,13 @@ def insert_units_to_bucket2(utype, sameDay=False):
 
     today = date_util.localize(arrow.now().datetime).replace(hour=0, minute=0, second=0, microsecond=0)
     ourDay = today if sameDay else today - datetime.timedelta(days=1) 
-    identifier = "unit_data_{}".format(ourDay.strftime("%Y-%m-%d")) # TODO: We may phase out the use of a date in the identifier.
-    tgtStorage_path = set_S3_pointer(filename=identifier + ".json",
+    baseName = "{}_unit_data_{}".format(areaBase, ourDay.strftime("%Y-%m-%d"))
+    tgtStorage_path = set_S3_pointer(filename=baseName + ".json",
                                          date=ourDay, data_source=utype)
     print("%s:%s" % (TGT_BUCKET, tgtStorage_path))
-    worker = unitLocations_toBucket2(unit_type=utype, identifier=identifier,
+    worker = unitLocations_toBucket2(unit_type=utype, baseName=baseName,
                                          tgtDate=ourDay, tgtStoragePath=tgtStorage_path,
-                                         catalog=catalog)
+                                         areaBase=areaBase, catalog=catalog)
     worker.upload_unit_locations()
     worker.to_catalog()
 

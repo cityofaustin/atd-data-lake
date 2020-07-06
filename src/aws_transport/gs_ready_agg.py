@@ -25,7 +25,7 @@ PROGRAM_DESC = "Aggregates 'ready' Data Lake bucket GRIDSMART counts"
 DATE_EARLIEST = 12
 
 "S3 bucket as source"
-SRC_BUCKET = "atd-data-lake-ready"
+SRC_BUCKET = config.composeBucket("ready")
     
 def set_S3_pointer(filename, date, data_source='gs'):
 
@@ -98,10 +98,10 @@ def main():
         endDate = today.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # First, query the catalog to see what we've got:
-    command = {"select": "collection_date,identifier,pointer",
+    command = {"select": "collection_date,id_base,pointer",
                "repository": "eq.%s" % "ready",
                "data_source": "eq.%s" % "gs",
-               "identifier": "like.*%s*" % "_counts_", # TODO: Use the base/ext scheme
+               "id_ext": "eq.counts.json",
                "collection_date": ["gte.%s" % arrow.get(startDate).format(), "lte.%s" % arrow.get(endDate).format()],
                "limit": 1000000,
                "order": "collection_date"}
@@ -109,10 +109,10 @@ def main():
 
     count = 0    
     for result in catResults:
-        print("Processing: %s" % result["identifier"])
+        print("Processing: %s" % result["id_base"])
         
         # For each entry returned from the catalog, grab the file:
-        fullPathR = os.path.join(tempDir, result["identifier"] + ".json")
+        fullPathR = os.path.join(tempDir, result["id_base"] + "_counts.json")
         s3.Bucket(SRC_BUCKET).download_file(result["pointer"], fullPathR)
         with open(fullPathR, 'r') as dataJSONFile:
             dataJSON = json.load(dataJSONFile)
@@ -166,9 +166,8 @@ def main():
                            "device": dataJSON["device"]}
         
         # Write aggregation to S3, write to the catalog:
-        base = result["identifier"].split("_counts_")[0]
         ourDate = date_util.localize(arrow.get(result["collection_date"]).datetime)
-        targetBaseFile = base + ("_agg%d_" % args.agg) + ourDate.strftime("%Y-%m-%d")
+        targetBaseFile = result["id_base"] + ("_agg%d_" % args.agg) + ourDate.strftime("%Y-%m-%d")
         targetPath = set_S3_pointer(targetBaseFile + ".json", ourDate)
                 
         print("%s: %s" % (SRC_BUCKET, targetPath))
@@ -185,7 +184,8 @@ def main():
 
         # Update the catalog:
         metadata = {"repository": 'ready', "data_source": 'gs',
-                    "identifier": targetBaseFile, "pointer": targetPath,
+                    "id_base": result["id_base"], "id_ext": "agg%d.json" % args.agg,
+                    "pointer": targetPath,
                     "collection_date": header["collection_date"],
                     "processing_date": header["processing_date"],
                     "metadata": {"artifact_type": "aggregation",

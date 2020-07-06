@@ -15,8 +15,9 @@ class _GetToUpdateRet:
     """
     Return object for LastUpdateCat.getToUpdate()
     """
-    def __init__(self, s3Path, identifier, fileDate, missingFlag):
+    def __init__(self, identifier, s3Path, fileDate, missingFlag):
         """
+        @param identifier A tuple containing identifier_base, identifier_ext, and date.
         @param s3Path The full path to the file (within the srcRepo bucket) as noted in the catalog.
         @param fileDate A datetime object that signifies the date of the file.
         @param missingFlag Signifies if this file had been detected as missing, preceding the lastRunDate.
@@ -54,6 +55,14 @@ class LastUpdateCat:
                 .shift(months=-dateEarliest).datetime)
         self.dateEarliest = dateEarliest
 
+    def _getIdentifier(self, idBase, idExt, date):
+        """
+        Returns a tuple containing identifier_base, identifier_ext, and date. The default behavior is to use
+        the prefix as defined in the pattern list for the identifier_base, and then use the postfix as defined in
+        the pattern list minus the initial dot for the identifier_ext.
+        """
+        return (idBase, idExt, date)
+
     def getToUpdate(self, lastRunDate, sameDay=False, detectMissing=True):
         """
         Returns a list of all files that are needing to be selected and updated, given the lastRunDate,
@@ -68,7 +77,7 @@ class LastUpdateCat:
         # Get the source catalog:
         # TODO: Move this direct access to another module to abstract it.
         catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.srcRepo,
                    "data_source": "eq.%s" % self.datatype,
                    "order": "collection_date", # TODO: Consider backward.
@@ -85,9 +94,7 @@ class LastUpdateCat:
             ourDate = date_util.localize(arrow.get(catResult["collection_date"]).datetime)
             if ourDate not in srcCatResultsDict:
                 srcCatResultsDict[ourDate] = []
-            srcCatResultsDict[ourDate].append(catResult)
-        # TODO: It would be possible to build up finer-grained control over the catalog. Perhaps we could compare
-        # identifiers rather than dates. It could be an option.
+            srcCatResultsDict[ourDate].append((self._getIdentifier(catResult["id_base"], catResult["id_ext"], ourDate), catResult))
         
         srcCatList = list(srcCatResultsDict.keys())
         srcCatList.sort()
@@ -95,22 +102,21 @@ class LastUpdateCat:
         # Get the target catalog:
         # TODO: Will the target catalog ever be on a different server than the source catalog?
         # TODO: Again, move this direct access to another module to abstract it.
-        command = {"select": "identifier,collection_date,pointer",
+        command = {"select": "id_base,id_ext,collection_date,pointer",
                    "repository": "eq.%s" % self.tgtRepo,
                    "data_source": "eq.%s" % self.datatype,
-                   "order": ["collection_date", "identifier"],
-                   "limit": 1000000} # TODO: We need a better way. Smaller chunks; query when needed.
+                   "order": ["collection_date", "id_base", "id_ext"],
+                   "limit": 1000000}
         if earliest:
             command["collection_date"] = "gte.%s" % arrow.get(earliest).format()
 
         tgtCatResults = catalogConn.select(params=command)
         tgtCatResultsSet = set()
         for catResult in tgtCatResults:
-            tgtCatResultsSet.add(date_util.localize(arrow.get(catResult["collection_date"]).datetime))
-        # TODO: Again, figure out what to key off of.
+            ourDate = date_util.localize(arrow.get(catResult["collection_date"]).datetime)
+            tgtCatResultsSet.add(self._getIdentifier(catResult["id_base"], catResult["id_ext"], ourDate))
         
-        # Build up the list:
-        ret = []
+        # Set up yielding:
         today = date_util.localize(arrow.now().datetime).replace(hour=0, minute=0, second=0, microsecond=0)
         for ourDate in srcCatList:
             if self.dateEarliest is None or ourDate >= self.dateEarliest:
@@ -125,5 +131,4 @@ class LastUpdateCat:
                         # have a better way of building up identifiers.
                         continue
                 for item in srcCatResultsDict[ourDate]:
-                    ret.append(_GetToUpdateRet(item["pointer"], item["identifier"], ourDate, ourDate < lastRunDate))
-        return ret
+                    yield _GetToUpdateRet(item[0], item[1]["pointer"], ourDate, ourDate < lastRunDate)
