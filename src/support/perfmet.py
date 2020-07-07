@@ -7,7 +7,6 @@ import collections
 import datetime
 
 from util import date_util
-from aws_transport.support import perfmet_db
 
 SensorObs = collections.namedtuple("SensorObs", "observation expected collectionDate minTimestamp maxTimestamp")
 
@@ -15,20 +14,18 @@ class PerfMet:
     """
     PerfMet class handles the collection and recording of performance metrics.
     """
-    def __init__(self, dataSource, stage, needObs=False):
+    def __init__(self, app, purpose):
         """
         Initializes variables to help with the performance metrics recording.
         """
-        self.dataSource = dataSource
-        self.stage = stage
+        self.dbConn, self.stage = app.getPerfmetResource(purpose)
+        self.dataSource = app.dataSource
         self.processingTime = date_util.getNow()
         self.processingTotal = None
         self.records = None
         self.collectTimeStart = None
         self.collectTimeEnd = None
-        self.dbConn = perfmet_db.PerfMetDB(needObs)
         self.observations = {} # (sensorName, dataType) -> observation
-        # TODO: Do we want to write an opener to the database?
         
     def logJob(self, records):
         """
