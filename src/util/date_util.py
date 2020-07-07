@@ -1,5 +1,7 @@
 """
 date_util.py: Utilities for dealing with dates
+
+Kenneth Perrine - The University of Texas at Austin
 """
 
 import arrow
@@ -63,6 +65,8 @@ def localize(dateTime):
     Translates the given dateTime to local time. If no time zone information is given, then local time zone will be applied.
     """
     # Try to convert the time to naive because pytz can't localize a datetime that has another time zone.
+    if not dateTime:
+        return dateTime
     if dateTime.tzinfo is None or dateTime.tzinfo.utcoffset(dateTime) is None:
         return LOCAL_TIMEZONE.localize(dateTime)
     else:    
@@ -81,3 +85,18 @@ def setLocalTimezone(timeZoneString):
     global LOCAL_TIMEZONE
     if timeZoneString:
         LOCAL_TIMEZONE = pytz.timezone(timeZoneString)
+
+def roundDay(timestampIn):
+    """
+    Returns a version of the timestamp where time is zeroed to midnight.
+    """
+    return timestampIn.replace(hour=0, minute=0, second=0, microsecond=0)
+
+def getNow(dayOnly=False):
+    """
+    Returns the local current time. If dayOnly is true, rounds the timestamp to the start of the day.
+    """
+    now = localize(arrow.now().datetime)
+    if dayOnly:
+        now = roundDay(now)
+    return now
