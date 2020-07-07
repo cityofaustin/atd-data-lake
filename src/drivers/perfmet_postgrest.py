@@ -1,5 +1,5 @@
 """
-perfmet_db.py: Database operations for performance metrics
+perfmet_postgrest.py: Database operations for performance metrics implemented in PostgREST
 
 @author Kenneth Perrine
 """
@@ -8,20 +8,24 @@ import datetime
 from pypgrest import Postgrest
 
 from util import date_util
-from aws_transport.support import config
 
 class PerfMetDB:
     """
     Represents a connection to the PostgREST instance of the performance metrics tables.
     """
-    def __init__(self, needsObs=False):
+    def __init__(self, accessPointJob, accessPointObs, apiKey, needsObs=False):
         """
         Initializes the connection to the PostgREST instance.
+        
+        @param accessPointJob: the PostgREST "etl_perfmet_job" table endpoint
+        @param accessPointObs: the PostgREST "etl_perfmet_obs" table endpoint
+        @param apiKey: the PostgREST API key needed to write to the endpoints
+        @param needsObs: set this to True to enable the writing of observations.
         """
-        self.jobDB = Postgrest(config.PERFMET_JOB_URL, auth=config.CATALOG_KEY)
+        self.jobDB = Postgrest(accessPointJob, auth=apiKey)
         self.obsDB = None
         if needsObs:
-            self.obsDB = Postgrest(config.PERFMET_OBS_URL, auth=config.CATALOG_KEY)
+            self.obsDB = Postgrest(accessPointObs, auth=apiKey)
             
     def writeJob(self, perfMet):
         """
