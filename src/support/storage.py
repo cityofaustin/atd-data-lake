@@ -22,15 +22,16 @@ class Storage:
         self.tempDir = app.tempDir
         self.simulationMode = app.simulationMode
         self.writeFilePath = app.writeFilePath
-           
-    def makePath(self, base, ext, collectionDate):
+    
+    def makePath(self, base, ext, collectionDate, filenamePart=None):
         """
         Builds a storage platform-specific path using the given base, ext, and collectionDate. Used for providing parameters
         for writing a file.
         """
         if isinstance(collectionDate, str):
             collectionDate = arrow.get(collectionDate)
-        filenamePart = base + "_" + collectionDate.strftime("%Y-%m-%d") + "." + ext 
+        if not filenamePart:
+            filenamePart = base + "_" + collectionDate.strftime("%Y-%m-%d") + "." + ext 
         return self.storageConn.makePath(base, ext, collectionDate, filenamePart)
     
     def retrieveFilePath(self, path, destPath=None, inferFilename=False):

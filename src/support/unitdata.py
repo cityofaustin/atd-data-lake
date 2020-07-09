@@ -14,7 +14,7 @@ class UnitDataStorage:
     """
     This handles the storage and retrieval of unit data from a Storage object.
     """
-    def __init__(self, storageObject, referenceDate=None):
+    def __init__(self, storageObject, areaBase, referenceDate=None):
         """
         Initializes the object.
         
@@ -22,8 +22,8 @@ class UnitDataStorage:
           from or store to.
         """
         self.storageObject = storageObject
-        self.referenceDate = referenceDate
-        if 
+        self.areaBase = areaBase
+        self.referenceDate = referenceDate if referenceDate else date_util.localize(arrow.now().datetime)
     
     def retrieve(self):
         """
@@ -31,18 +31,26 @@ class UnitDataStorage:
         
         @return Path to the written unit data file if writeFile is true; otherwise, the in-memory dictionary.
         """
-        
-        buffer = self.storageObject.retrieveBuffer(path)
-        return json.loads(buffer)
-        # TODO: Re-make the header, or check the integrity of the existing header.
+        # Step 1: Recent Unit Data
+        unitDataCat = self.storageObject.catalog.queryLatest(self.storage.repository, self.areaBase, "unit_data.json")
+        if unitDataCat:
+            # Step 2: Retrieve actual unit data:
+            buffer = self.storageObject.retrieveBuffer(unitDataCat["path"])
+            return json.loads(buffer)
+            # TODO: Re-make the header, or check the integrity of the existing header.
+        return None
 
     def store(self, unitData):
         """
-        This stores a unit data JSON files for this data type.
+        This stores a unit data JSON file for this data type.
         
         @param unitData: Dictionary object of unit data contents 
         """
-        
+        unitDataCat = self.storageObject.createCatalogElement(self.areaBase, "unit_data.json",
+            unitData["header"]["collection_date"], processingDate=unitData["header"]["collection_date"],
+            metadata=unitData["header"])
+        # TODO: If unit data gets big, we'll need to see if it is better to write to a file and write that out.
+        self.storageObject.writeBuffer(json.dumps(unitDataCat), unitDataCat)
         
 def makeHeader(areaBase, device, sameDay=False):
     """

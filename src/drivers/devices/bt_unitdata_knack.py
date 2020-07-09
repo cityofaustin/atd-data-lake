@@ -9,12 +9,12 @@ class BTUnitDataKnack(UnitDataCommonKnack):
     """
     Handles Bluetooth-specific location information access from Knack.
     """
-    def __init__(self, appID, apiKey):
+    def __init__(self, appID, apiKey, areaBase):
         """
         Initializes the object.
         
         @param appID is the Knack app ID to use for Knack access
         @param apiKey is the Knack API key used for Knack access
         """
-        super().__init__("BLUETOOTH", appID, apiKey)
+        super().__init__("bt", "BLUETOOTH", appID, apiKey, areaBase)
         

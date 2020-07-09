@@ -28,7 +28,7 @@ class StorageS3:
         self.S3 = _AWS_SESSION.resource('s3')
         self.repository = repository
         
-    def makePath(self, base, ext, dataSource, collectionDate, filename=None):
+    def makePath(self, dataSource, collectionDate, filename=None):
         """
         Builds a storage path for the S3 bucket using the given base, ext, and collectionDate.
         

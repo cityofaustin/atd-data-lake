@@ -26,14 +26,14 @@ class GSUnitDataKnack(UnitDataCommonKnack):
     """
     Handles GRIDSMART-specific location information access from Knack.
     """
-    def __init__(self, appID, apiKey):
+    def __init__(self, appID, apiKey, areaBase):
         """
         Initializes the object.
         
         @param appID is the Knack app ID to use for Knack access
         @param apiKey is the Knack API key used for Knack access
         """
-        super().__init__("GRIDSMART", appID, apiKey)
+        super().__init__("gs", "GRIDSMART", appID, apiKey, areaBase)
         
     def getDevices(self):
         """
