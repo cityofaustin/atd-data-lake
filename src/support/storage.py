@@ -12,16 +12,25 @@ class Storage:
     Facilitates the storage or retrieval of files within a cloud service or local volume
     """
     
-    def __init__(self, app, purpose):
+    def __init__(self, storageConn, repository, dataSource, catalogResource=None, tempDir=None, simulationMode=False, writeFilePath=None):
         """
         Initializes storage connection using the application object
+        
+        @param storageConn: Implements the actual storage operations (a "driver")
+        @param repository: The repository or bucket name that will be accessed
+        @param dataSource: The dataSource abbreviation that is to be accessed
+        @param catalogResource: A Catalog object
+        @param tempDir: An already-established temporary directory
+        @param simulationMode: If True, prevents writing of files to storage obects or catalog
+        @param writeFilePath: If not None, causes a file to be written in the given path when storage is attempted
         """
-        self.storageConn, self.repository = app.getStorageResource(purpose)
-        self.dataSource = app.dataSource
-        self.catalog = app.getCatalogResource()
-        self.tempDir = app.tempDir
-        self.simulationMode = app.simulationMode
-        self.writeFilePath = app.writeFilePath
+        self.storageConn = storageConn
+        self.repository = repository
+        self.dataSource = dataSource
+        self.catalog = catalogResource
+        self.tempDir = tempDir
+        self.simulationMode = simulationMode
+        self.writeFilePath = writeFilePath
     
     def makePath(self, base, ext, collectionDate, filenamePart=None):
         """

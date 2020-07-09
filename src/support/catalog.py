@@ -8,12 +8,15 @@ class Catalog:
     """
     Accessors for the Data Lake Catalog.
     """
-    def __init__(self, app):
+    def __init__(self, catalogConn, dataSource):
         """
         Initializes catalog connection using the application object
+        
+        @param catalogConn: An object that establishes the connection to the catalog, a "driver"
+        @param dataSource: The code that represents the data source that is being referred
         """
-        self.dbConn = app.getCatalogConn()
-        self.dataSource = app.dataSource
+        self.dbConn = catalogConn
+        self.dataSource = dataSource
         self.upsertCache = []
         
     def getQueryList(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, limit=None, reverse=False):
