@@ -12,7 +12,7 @@ from support import config
 from util import date_util
 
 "Number of months to go back for filing records"
-DATE_EARLIEST = 12
+DATE_EARLIEST = 365
 
 class App:
     """
