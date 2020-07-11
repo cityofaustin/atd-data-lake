@@ -67,7 +67,7 @@ class Catalog:
         results = self.getQueryList(stage, base, ext, earlyDate, lateDate, limit=1, reverse=True)
         return results[0] if results else None
         
-    def buildCatalogElement(self, stage, base, ext, collectionDate, processingDate, path, metadata=None):
+    def buildCatalogElement(self, stage, base, ext, collectionDate, processingDate, path, collectionEnd=None, metadata=None):
         """
         Builds up a catalog object element from parameters.
         """
@@ -77,6 +77,8 @@ class Catalog:
                    "id_ext": ext,
                    "pointer": path,
                    "collection_date": str(collectionDate)}
+        if collectionEnd:
+            element["collection_end"] = str(collectionEnd)
         if processingDate:
             element["processing_date"] = str(processingDate)
         if metadata:
@@ -89,11 +91,11 @@ class Catalog:
         """
         self.upsertCache.append(catalogElement)
     
-    def stageUpsertParams(self, stage, base, ext, collectionDate, processingDate, path, metadata=None):
+    def stageUpsertParams(self, stage, base, ext, collectionDate, processingDate, path, collectionEnd=None, metadata=None):
         """
         Queues a the given item for upsert to the catalog.
         """
-        self.stageUpsert(self.buildCatalogElement(stage, base, ext, collectionDate, processingDate, path, metadata))
+        self.stageUpsert(self.buildCatalogElement(stage, base, ext, collectionDate, processingDate, path, collectionEnd, metadata))
 
     def upsert(self, catalogElement):
         """
@@ -101,11 +103,11 @@ class Catalog:
         """
         self.dbConn.upsert(catalogElement)
     
-    def upsertParams(self, stage, base, ext, collectionDate, processingDate, path, metadata=None):
+    def upsertParams(self, stage, base, ext, collectionDate, processingDate, path, collectionEnd=None, metadata=None):
         """
         Performs an immediate upsert to the catalog.
         """
-        self.upsert(self.buildUpsertElement(stage, base, ext, collectionDate, processingDate, path, metadata))
+        self.upsert(self.buildCatalogElement(stage, base, ext, collectionDate, processingDate, path, collectionEnd, metadata))
     
     def commitUpsert(self):
         """

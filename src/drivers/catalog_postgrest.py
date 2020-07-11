@@ -29,8 +29,11 @@ class CatalogPostgREST:
         @param start sets the start frome wnen doing a multi-chunk query.
         @param reverse will allow the results to be sorted in descending order.
         """
+        # TODO: Do we need a query that will return a catalog entry that contains a given collection date (between collection_date
+        # and collection_end)?
+        
         # Specify query plus required parameters and sorting/pagination parameters:
-        command = {"select": "collection_date,processing_date,pointer,id_base,id_ext,metadata",
+        command = {"select": "collection_date,collection_end,processing_date,pointer,id_base,id_ext,metadata",
             "repository": "eq.%s" % stage,
             "data_source": "eq.%s" % dataSource,
             "order": ("collection_date.asc" if not reverse else "collection_date.desc") + ",id_base.asc,id_ext.asc",
@@ -70,7 +73,8 @@ class CatalogPostgREST:
     def upsert(self, upsertDataList):
         """
         Performs an upsert operation on the given list of dictionary objects. Each dictionary object shall contain
-        "repository", "data_source", "id_base", "id_ext", "pointer", "collection_date", "processing_date", and optionally "metadata".
+        "repository", "data_source", "id_base", "id_ext", "pointer", "collection_date", "collection_end" (optional),
+        "processing_date", and optionally "metadata".
         """
         self.catalogDB.upsert(upsertDataList)
         
