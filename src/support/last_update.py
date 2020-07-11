@@ -33,6 +33,7 @@ class LastUpdate:
         """
         self.startDate = startDate
         self.endDate = endDate
+        return self
 
     def compare(self, lastRunDate=None):
         """
@@ -46,82 +47,47 @@ class LastUpdate:
             earliest = lastRunDate
         self.source.prepare(earliest, self.endDate)
         self.target.prepare(earliest, self.endDate)
-        
-        
-        
-        
-        priorLastUpdate = False
-        if not self.lastRunDate or ourDate < self.lastRunDate:
-            priorLastUpdate = True
-        
-        
-        
-        catalogConn = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        command = {"select": "id_base,id_ext,collection_date,pointer",
-                   "repository": "eq.%s" % self.tgtRepo,
-                   "data_source": "eq.%s" % self.datatype,
-                   "limit": 100000}
-        earliest = self.dateEarliest
-        if not detectMissing:
-            earliest = lastRunDate
-        if earliest:
-            command["collection_date"] = "gte.%s" % arrow.get(earliest).format()
-
-        catResults = catalogConn.select(params=command)
-        catResultsSet = set()
-        for catResult in catResults:
-            ourDate = date_util.localize(arrow.get(catResult["collection_date"]).datetime)
-            ourDate = ourDate.replace(hour=0, minute=0, second=0, microsecond=0)
-            catResultsSet.add((catResult["id_base"], catResult["id_ext"], ourDate))
-        
-        ourDatesSet = set()
-        for logReader in self.logReaders.values():
-            ourDatesSet |= logReader.avail
-        
-        ourDates = list(ourDatesSet)
-        ourDates.sort()
-        # We're driven according to equipment availability.
-        
-        # Iterate through records
-        today = date_util.localize(arrow.now().datetime).replace(hour=0, minute=0, second=0, microsecond=0)
-        for ourDate in ourDates:
-            ourDate = date_util.localize(ourDate)
-            if self.dateEarliest is None or ourDate >= self.dateEarliest:
-                if not sameDay and ourDate >= today:
-                    continue
-                for device, logReader in self.logReaders.items():
-                    identifier = self._getIdentifier(logReader, ourDate)
-                    if ourDate < lastRunDate:
-                        if not detectMissing:
-                            continue
-                        if identifier in catResultsSet:
-                            # We are already in the catalog.
-                            continue
-                    if logReader.queryDate(ourDate.replace(tzinfo=None)):
-                        yield _GetToUpdateRet(identifier, device, logReader, ourDate, ourDate < lastRunDate)
-
-
-
-
+        sourceGen = self.source.runQuery()
+        sourceItem = None
+        targetGen = self.target.runQuery()
+        targetItem = None
+        while sourceGen and targetGen:
+            if targetGen:
+                try:
+                    targetItem = next(targetGen)
+                except StopIteration:
+                    targetGen = None
+                    targetItem = None
+            while sourceGen and (not targetItem or sourceItem.date < targetItem.date):
+                # TODO: We'll need to adjust this if we get to the point of querying consolidations.
+                #   or sourceItem.endDate
+                if sourceItem and (not targetItem or sourceItem.base != targetItem.base or sourceItem.ext != targetItem.ext):
+                    yield _LastUpdateItem((sourceItem.base, sourceItem.ext, sourceItem.date),
+                                          priorLastUpdate=not self.lastRunDate or sourceItem.date < self.lastRunDate,
+                                          payload=self.source.getPayload(sourceItem),
+                                          label=sourceItem.label)
+                try:
+                    sourceItem = next(sourceGen)
+                except StopIteration:
+                    sourceGen = None
+                    sourceItem = None
 
 class _LastUpdateItem:
     """
     Returned from LastUpdate.compare(). Identifies items that need updating.
     """
-    def __init__(self, identifier, priorLastUpdate=False, srcPayload=None, tgtPayload=None, label=None):
+    def __init__(self, identifier, priorLastUpdate=False, payload=None, label=None):
         """
         Initializes contents.
         
         @param identifer: A tuple of (base, ext, date)
         @param priorLastUpdate: Set to True if this had been identified outside of the lastUpdate lower bound
-        @param srcPayload: Additional identifier or object-specific material that is supplied by the source accessor
-        @param tgtPayload: Additional identifier or object-specific material that is supplied by the target accessor
+        @param payload: Additional identifier or object-specific material that is supplied by the source accessor
         @param label: A descriptive label for this item
         """
         self.identifier = identifier
         self.priorLastUpdate = priorLastUpdate
-        self.srcPayload = srcPayload
-        self.tgtPayload = tgtPayload
+        self.payload = payload
         self.label = label
         
     def __str__(self):
@@ -131,6 +97,8 @@ class _LastUpdateItem:
         if self.label:
             return self.label
         return "Base: %s; Ext: %s; Date: %s" % (str(self.identifier[0]), str(self.identifier[1]), str(self.identifier[2]))
+    
+    # TODO: Would we ever need this for items that do exist in the target?
 
 class LastUpdCatProv:
     """
@@ -169,6 +137,12 @@ class LastUpdCatProv:
                                          exactEarlyDate=self.startDate == self.endDate):
             yield _LastUpdProvItem(result["id_base"], result["id_ext"], result["collection_date"], payload=result,
                                    label=result["path"])
+        
+    def getPayload(self, lastUpdItem):
+        """
+        Optionally returns a payload associated with the lastUpdItem. This can be where an expensive query takes place.
+        """
+        return lastUpdItem.payload
 
 class LastUpdStorageProv(LastUpdCatProv):
     """

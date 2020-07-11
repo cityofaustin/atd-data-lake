@@ -4,6 +4,10 @@ catalog.py: Interface for accessing the Data Lake Catalog
 Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
 """
+import arrow
+
+from util import date_util
+
 class Catalog:
     """
     Accessors for the Data Lake Catalog.
@@ -45,6 +49,12 @@ class Catalog:
                 exactEarlyDate=exactEarlyDate, limit=self.dbConn.PREFERRED_CHUNK_SIZE, start=offset, reverse=reverse)
             if results:
                 for item in results:
+                    if item["collection_date"]:
+                        item["collection_date"] = date_util.localize(arrow.get(item["collection_date"]).datetime)
+                    if item["collection_end"]:
+                        item["collection_end"] = date_util.localize(arrow.get(item["collection_end"]).datetime)
+                    if item["processing_date"]:
+                        item["processing_date"] = date_util.localize(arrow.get(item["processing_date"]).datetime)
                     yield item
             if not results or len(results) < self.dbConn.PREFERRED_CHUNK_SIZE:
                 break
