@@ -65,21 +65,28 @@ class App:
         
         # Last run date:
         if args.last_run_date:
-            self.lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=True)
+            try:
+                lastRunDate = int(args.last_run_date)
+                self.lastRunDate = date_util.localize(arrow.now()
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .shift(days=-lastRunDate).datetime)
+            except ValueError:
+                self.lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=self.parseDateOnly)
             print("Last run date: %s" % str(self.lastRunDate))
         else:
             self.lastRunDate = None
     
         # Start date, or number of days back:
-        if not args.start_date:
-            args.start_date = DATE_EARLIEST
-        try:
-            dateEarliest = int(args.start_date)
-            self.startDate = date_util.localize(arrow.now()
-                .replace(hour=0, minute=0, second=0, microsecond=0)
-                .shift(days=-dateEarliest).datetime)
-        except ValueError:
-            self.startDate = date_util.parseDate(args.start_date, dateOnly=self.parseDateOnly)
+        if args.start_date:
+            try:
+                dateEarliest = int(args.start_date)
+                self.startDate = date_util.localize(arrow.now()
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .shift(days=-dateEarliest).datetime)
+            except ValueError:
+                self.startDate = date_util.parseDate(args.start_date, dateOnly=self.parseDateOnly)
+        else:
+            self.dateEarliest = None
 
         # End date:
         if args.end_date:

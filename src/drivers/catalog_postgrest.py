@@ -33,19 +33,19 @@ class CatalogPostgREST:
         command = {"select": "collection_date,processing_date,pointer,id_base,id_ext,metadata",
             "repository": "eq.%s" % stage,
             "data_source": "eq.%s" % dataSource,
-            "order": "collection_date.asc" if not reverse else "collection_date.desc",
+            "order": ("collection_date.asc" if not reverse else "collection_date.desc") + ",id_base.asc,id_ext.asc",
             "limit": 1 if limit is None else limit,
             "offset": 0 if start is None else start}
         
         # Allow base and ext identifiers to be omitted, or to be a "match first part of string" query:
         if base is not None:
-            if base.endswith("%%"):
-                command["id_base"] = "like.%s*" % base
+            if base.contains("%%"):
+                command["id_base"] = "like.%s" % base.replace("%%", "*")
             else:
                 command["id_base"] = "eq.%s" % base
         if ext is not None:
-            if ext.endswith("%%"):
-                command["id_ext"] = "like.%s*" % ext
+            if ext.contains("%%"):
+                command["id_ext"] = "like.%s" % ext.replace("%%", "*")
             else:
                 command["id_ext"] = "eq.%s" % ext
                 
