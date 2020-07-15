@@ -11,12 +11,14 @@ from drivers.devices import gs_log_reader
 from support import unitdata
 
 "Return type for the getDevicesLogreaders() function:"
-_GSDeviceLogreader = collections.namedtuple("_GSDeviceLogreader", "device logReader site timeFile hwInfo streetNames json")
+_GSDeviceLogreader = collections.namedtuple("_GSDeviceLogreader", "device logReader site timeFile hwInfo streetNames")
 
 def getDevicesLogreaders(gsUnitData, devFilter=".*"):
     """
     Attempts to retrieve all devices and log readers using the gs_intersections table. Devices that can't be contacted
-    are not added to the list, and aren't addressed in the LastUpdateGS material below.
+    are not added to the list.
+    
+    @return List of _GSDeviceLogreader objects and JSON rendition of location data that becomes unit file contents.
     """
     # Get the devices:
     devices, deviceLocations = retrieveDevices(gsUnitData, devFilter)
@@ -35,8 +37,7 @@ def getDevicesLogreaders(gsUnitData, devFilter=".*"):
                                           site=deviceContainer.site,
                                           timeFile=deviceContainer.timeFile,
                                           hwInfo=deviceContainer.hwInfo,
-                                          streetNames=deviceContainer.streetNames,
-                                          json=unitdata.createDict(deviceLocations)))
+                                          streetNames=deviceContainer.streetNames))
             count += 1
             print("OK")
         except Exception as exc:
@@ -44,7 +45,7 @@ def getDevicesLogreaders(gsUnitData, devFilter=".*"):
             print(exc)
             errs += 1
     print("Result: Sucesses: %d; Failures: %d" % (count, errs))
-    return ret
+    return ret, deviceLocations
 
 def _retrieveDevice(deviceIP):
     "Constructs device object from GRIDSMART API. Retrieves site file and other information from device."
@@ -56,11 +57,13 @@ def _retrieveDevice(deviceIP):
     return ourDevice, siteFiles[0], siteFiles[1], siteFiles[2]
 
 "Return type for the retrieveDevices() function:"
-_GSDevice = collections.namedtuple("_GSDevice", "device site timeFile hwInfo streetNames json")
+_GSDevice = collections.namedtuple("_GSDevice", "device site timeFile hwInfo streetNames")
 
 def retrieveDevices(self, gsUnitData, devFilter=".*"):
     """
     Takes list of addresses from Knack and gathers site files to build a list of _GSDevice objects.
+    
+    @return List of _GSDevice objects and JSON rendition of location data that becomes unit file contents.
     """
     ret = []
     regexp = re.compile(devFilter)
@@ -86,4 +89,4 @@ def retrieveDevices(self, gsUnitData, devFilter=".*"):
             except Exception:
                 print("ERROR: A problem was encountered in accessing Device %s." % deviceIPs[index])
                 continue
-    return ret, deviceLocations
+    return ret, unitdata.createDict(deviceLocations)

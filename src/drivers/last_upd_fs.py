@@ -44,7 +44,7 @@ class LastUpdFileProv(LastUpdProv):
             for ourDate in ourDates:
                 ourDate = date_util.localOverwrite(ourDate) if not self.assumeUTC else date_util.localize(ourDate)
                 if (not startDate or ourDate >= startDate) \
-                        and (not endDate or ourDate < endDate or startDate == endDate):
+                        and (not endDate or ourDate < endDate or startDate == endDate and startDate == ourDate):
                     ourDatesSet.add(ourDate)
         self.dateList = list(ourDatesSet)
         self.dateList.sort()
