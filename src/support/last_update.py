@@ -5,11 +5,15 @@ and target listing objects.
 @author Kenneth Perrine
 """
 from collections import namedtuple
+import datetime
 
 class LastUpdate:
     """
     Performs the comparison between source and target LastUpdate providers.
     """
+    # Caveat: While this will allow for targets that have bigger time intervals than sources, the source
+    # time intervals must be evenly divisible. It would be possible to allow for partial updates in cases
+    # where intervals aren't evenly divisible.
     def __init__(self, source, target):
         """
         Initializes the object
@@ -35,6 +39,29 @@ class LastUpdate:
         self.endDate = endDate
         return self
 
+    class _CompareTarget:
+        """
+        Used in compare() to keep track of targets
+        """
+        def __init__(self):
+            self.items = []
+            self.curIndex = 0
+            
+        def advanceDate(self, cmpDate):
+            "Moves the index up to the given date."
+            while self.curIndex < len(self.items) and self.items[self.curIndex].date < cmpDate:
+                self.curIndex += 1
+                
+        def isWithin(self, cmpDate, cmpDateEnd):
+            "Checks to see if the given date range overlaps the current position."
+            if self.curIndex < len(self.items):
+                endDate = self.items[self.curIndex].dateEnd
+                if not endDate:
+                    endDate = self.items[self.curIndex].date + datetime.timedelta(day=1) 
+                if not (cmpDateEnd < self.items[self.curIndex].date or cmpDate > cmpDateEnd):
+                    return True
+            return False
+        
     def compare(self, lastRunDate=None):
         """
         Iterates through the source and target, and generates identifiers for those that need updating
@@ -47,30 +74,25 @@ class LastUpdate:
             earliest = lastRunDate
         self.source.prepare(earliest, self.endDate)
         self.target.prepare(earliest, self.endDate)
-        sourceGen = self.source.runQuery()
-        sourceItem = None
-        targetGen = self.target.runQuery()
-        targetItem = None
-        while sourceGen and targetGen:
-            if targetGen:
-                try:
-                    targetItem = next(targetGen)
-                except StopIteration:
-                    targetGen = None
-                    targetItem = None
-            while sourceGen and (not targetItem or sourceItem.date < targetItem.date):
-                # TODO: We'll need to adjust this if we get to the point of querying consolidations.
-                #   or sourceItem.endDate
-                if sourceItem and (not targetItem or sourceItem.base != targetItem.base or sourceItem.ext != targetItem.ext):
-                    yield _LastUpdateItem((sourceItem.base, sourceItem.ext, sourceItem.date),
-                                          priorLastUpdate=not self.lastRunDate or sourceItem.date < self.lastRunDate,
-                                          payload=self.source.getPayload(sourceItem),
-                                          label=sourceItem.label)
-                try:
-                    sourceItem = next(sourceGen)
-                except StopIteration:
-                    sourceGen = None
-                    sourceItem = None
+        compareTargets = {}
+        for target in self.target.runQuery():
+            key = (target.base, target.ext)
+            if key not in compareTargets:
+                compareTargets[key] = self._CompareTarget()
+            compareTargets[key].items.append(target)
+        for sourceItem in self.source.runQuery():
+            skipFlag = False
+            key = (sourceItem.base, sourceItem.ext)
+            if key in compareTargets:
+                compareTarget = compareTargets[key]
+                compareTarget.advanceDate(sourceItem.date)
+                if compareTarget.isWithin(sourceItem.date, sourceItem.dateEnd):
+                    skipFlag = True
+            if not skipFlag:
+                yield _LastUpdateItem((sourceItem.base, sourceItem.ext, sourceItem.date),
+                                      priorLastUpdate=not self.lastRunDate or sourceItem.date < self.lastRunDate,
+                                      payload=self.source.getPayload(sourceItem),
+                                      label=sourceItem.label)
 
 class _LastUpdateItem:
     """
@@ -135,8 +157,8 @@ class LastUpdCatProv:
             lateDate = None
         for result in self.catalog.query(self.repository, self.baseFilter, self.extFilter, self.startDate, lateDate,
                                          exactEarlyDate=self.startDate == self.endDate):
-            yield _LastUpdProvItem(result["id_base"], result["id_ext"], result["collection_date"], payload=result,
-                                   label=result["path"])
+            yield _LastUpdProvItem(result["id_base"], result["id_ext"], result["collection_date"], result["collection_end"],
+                                   payload=result, label=result["path"])
         
     def getPayload(self, lastUpdItem):
         """
@@ -155,7 +177,7 @@ class LastUpdStorageProv(LastUpdCatProv):
         super().__init__(storage.catalog, storage.repository, baseFilter, extFilter)
 
 "_LastUpdProvItem represents a result from a LastUpdProvider object."
-_LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date payload label")
+_LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date dateEnd payload label")
 
 # TODO: It would also be possible to create a provider that generates dates at specified intervals
 # for querying a data source that doesn't easily provide its date coverage.
