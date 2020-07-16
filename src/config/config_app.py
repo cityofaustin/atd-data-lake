@@ -43,6 +43,7 @@ KNACK_PERFMET_ID = getattr(config_secret, "KNACK_PERFMET_ID", default="")
 AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", default="")
 AWS_SECRET_KEY = getattr(config_secret, "AWS_SECRET_KEY", default="")
 
+SOC_HOST = "data.austintexas.gov"
 SOC_APP_TOKEN = getattr(config_secret, "SOC_APP_TOKEN", default="")
 SOC_WRITE_AUTH = getattr(config_secret, "SOC_WRITE_AUTH", default=())
 "SOC_WRITE_AUTH is a tuple of username and password"
