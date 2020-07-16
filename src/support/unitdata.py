@@ -87,6 +87,3 @@ def createDict(deviceLocations):
     except Exception as e:
         print(e)
         return None
-
-        
-app.getUnitDataAccessor(purpose)

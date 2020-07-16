@@ -14,12 +14,13 @@ class PerfMet:
     """
     PerfMet class handles the collection and recording of performance metrics.
     """
-    def __init__(self, app, purpose):
+    def __init__(self, perfmetConn, dataSource, stage):
         """
         Initializes variables to help with the performance metrics recording.
         """
-        self.dbConn, self.stage = app.getPerfmetResource(purpose)
-        self.dataSource = app.dataSource
+        self.dbConn = perfmetConn
+        self.stage = stage
+        self.dataSource = dataSource
         self.processingTime = date_util.getNow()
         self.processingTotal = None
         self.records = None

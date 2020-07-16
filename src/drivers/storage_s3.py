@@ -15,6 +15,9 @@ def configAWS_S3(awsKey, awsSecretKey):
     
     _AWS_SESSION = boto3.Session(aws_access_key_id=awsKey, aws_secret_access_key=awsSecretKey)
 
+def isAWS_S3_Configured():
+    return not _AWS_SESSION is None
+
 class StorageS3:
     """
     Implements storage access functions using AWS S3.
