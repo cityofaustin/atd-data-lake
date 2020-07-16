@@ -1,7 +1,8 @@
 """
 gs_investigate contains routines for reading GRIDSMART counts file contents, used by gs_json_standard.py.
-"""
 
+@author Kenneth Perrine, Nadia Florez
+"""
 from datetime import datetime as dt
 import zipfile
 import re
