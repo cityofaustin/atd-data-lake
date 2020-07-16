@@ -11,18 +11,25 @@ class Publisher:
     
     @param connector: The implementer of publishing, of type PublishConnBase
     """
-    def __init__(self, connector, catalog, dataSource):
+    def __init__(self, connector, catalog, dataSource, simulationMode=False, writeFilePath=None):
         """
         Initializes the object
+        
+        @param simulationMode: If True, the cloud resource will not be written to
+        @param writeFilePath: If a filename is specified here, then publishing will go to the given file rather than a cloud resource
         """
         self.connector = connector
         self.catalog = catalog
         self.dataSource = dataSource
         self.chunkSize = connector.getPreferredChunk()
+        self.simulationMode = simulationMode
         
         # For internal operation:
         self.buffer = []
         self.rowCounterPreFlush = 0
+        self.fileWriter = None
+        if writeFilePath:
+            self.fileWriter = PublishCSVConn(writeFilePath)
         
     def addRow(self, jsonRecord):
         """
@@ -36,7 +43,10 @@ class Publisher:
         """
         Writes out the buffer contents
         """
-        self.connector.write(self.buffer)
+        if not self.simulationMode:
+            self.connector.write(self.buffer)
+        if self.fileWriter:
+            self.fileWriter.write(self.buffer)
         self.rowCounterPreFlush += len(self.buffer) 
         self.buffer.clear()
         
@@ -55,6 +65,9 @@ class Publisher:
             self.flush()
         self.connector.close()
         self.connector = None
+        if self.fileWriter:
+            self.fileWriter.close()
+            self.fileWriter = None
 
     def __delete__(self):
         """

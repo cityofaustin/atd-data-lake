@@ -7,7 +7,7 @@ platform-independent accessors for storage and catalog objects.
 from collections import namedtuple
 
 from config import config_app
-from support import storage, catalog, unitdata, perfmet
+from support import storage, catalog, unitdata, perfmet, publish
 
 DataSourceConfig = namedtuple("DataSourceConfig", "code name")
 
@@ -63,3 +63,13 @@ def createUnitDataAccessor(dataSource, areaBase):
     Returns a new unit data object
     """
     return config_app.createUnitDataConn(dataSource, areaBase)
+
+def createPublisher(dataSource, variant, catalog, simulationMode=False, writeFilePath=None):
+    """
+    Returns a new publisher object.
+    
+    @param simulationMode: If True, the cloud resource will not be written to
+    @param writeFilePath: If a filename is specified here, then publishing will go to the given file rather than a cloud resource
+    """
+    publisherConn = config_app.createPublisherConn(dataSource, variant)
+    return publish.Publisher(publisherConn, catalog, dataSource, simulationMode, writeFilePath)

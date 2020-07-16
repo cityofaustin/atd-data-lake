@@ -6,8 +6,8 @@ config_app.py contains application-specific configurations.
 import config
 from config import config_secret
 
-from drivers import storage_s3, catalog_postgrest, perfmet_postgrest
-from drivers.devices import bt_unitdata_knack, wt_unitdata_knack, gs_unitdata_knack
+from drivers import storage_s3, catalog_postgrest, perfmet_postgrest, publish_socrata
+from drivers.devices import bt_unitdata_knack, wt_unitdata_knack, gs_unitdata_knack,
 
 # ** These project-wide items are independent of specific devices: **
 TIMEZONE = "US/Central"
@@ -44,6 +44,7 @@ AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", default="")
 AWS_SECRET_KEY = getattr(config_secret, "AWS_SECRET_KEY", default="")
 
 SOC_HOST = "data.austintexas.gov"
+SOC_IDENTIFIER = "datalake"
 SOC_APP_TOKEN = getattr(config_secret, "SOC_APP_TOKEN", default="")
 SOC_WRITE_AUTH = getattr(config_secret, "SOC_WRITE_AUTH", default=())
 "SOC_WRITE_AUTH is a tuple of username and password"
@@ -95,3 +96,20 @@ def createUnitDataConn(dataSource, areaBase):
         return wt_unitdata_knack.WTUnitDataKnack(KNACK_APP_ID, KNACK_API_KEY, areaBase)
     elif dataSource == "gs":
         return gs_unitdata_knack.GSUnitDataKnack(KNACK_APP_ID, KNACK_API_KEY, areaBase)
+
+def createPublisherConn(dataSource, variant):
+    """
+    Returns a new publisher connector object
+    """
+    if dataSource == "bt":
+        if variant == "traf_match_summary":
+            socResource = SOC_RESOURCE_BT_TMSR
+        elif variant == "matched":
+            socResource = SOC_RESOURCE_BT_ITMF
+        elif variant == "unmatched":
+            socResource = SOC_RESOURCE_BT_IAF
+    elif dataSource == "wt":
+        pass
+    elif dataSource == "gs":
+        socResource = SOC_RESOURCE_GS_AGG
+    return publish_socrata.PublishSocrataConn(SOC_HOST, SOC_WRITE_AUTH, socResource, SOC_IDENTIFIER)
