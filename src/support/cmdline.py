@@ -12,10 +12,10 @@ CmdLineConfig = namedtuple("CmdLineConfig", "appName appDescr customArgs")
 appName: The name of the application (short string)
 appDescr: Description of the application (longer string)
 customArgs: Dictionary of add_argument parameter name or tuple of flags -> Dictionary of add_argument parameters
-   (e.g. action -> String, default -> Boolean, etc.). Example {("-p", "--param"): {help: "my parameter"}}
+   (e.g. action -> String, default -> Boolean, etc.). Example {("-p", "--param"): {"help": "my parameter"}}
 """
 
-def constructArgs(cmdLineConfig):
+def processArgs(cmdLineConfig):
     """
     Builds up the command line processor with standard parameters and also custom parameters that are passed in.
     """
@@ -45,10 +45,3 @@ def constructArgs(cmdLineConfig):
     # TODO: Consider parameters for writing out files?
     args = parser.parse_args()
     return args
-    
-def processArgs(args, initializer):
-    """
-    Parse and process the command line parameters
-    """
-    # Or do we do that in initializer?
-    

@@ -1,31 +1,56 @@
-'''
-Rough script of bt metadata ingestion into postgrest for CoA Data project
- + movement of bt files to s3
-@ Nadia Florez
-'''
-import json
-import os
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+"""
+Bluetooth sensor ingestion takes files from the AWAM share and places them into the Data Lake
+"raw" layer.
 
-from pypgrest import Postgrest
-import arrow
+@author Kenneth Perrine
+"""
+from support import app, cmdline
+from config import config_app
+from util import date_dirs
 
-import _setpath
-from aws_transport.support import last_upd_fs, config
-from util import date_util, date_dirs
+# This sets up application information and command line parameters:
+CMDLINE_CONFIG = cmdline.CmdLineConfig(
+    appName="bt_insert_lake.py",
+    appDescr="Inserts Bluetooth data from AWAM share into the Raw Data Lake",
+    customArgs={("-d", "--sourcedir"): {
+        "default": ".",
+        "help": "Source directory (e.g. AWAM share) to read Bluetooth files from"}})
 
-PROGRAM_DESC = "Inserts Bluetooth data from AWAM share into the Raw Data Lake"
+# This defines the valid filename formats that exist in the AWAM directory:
+DIR_DEFS = [date_dirs.DateDirDef(prefix=config_app.UNIT_LOCATION + "_bt_",
+                                 dateFormat="%m-%d-%Y",
+                                 postfix=".txt"),
+            date_dirs.DateDirDef(prefix=config_app.UNIT_LOCATION + "_btmatch_",
+                                 dateFormat="%m-%d-%Y",
+                                 postfix=".txt"),
+            date_dirs.DateDirDef(prefix=config_app.UNIT_LOCATION + "_bt_summary_15_",
+                                 dateFormat="%m-%d-%Y",
+                                 postfix=".txt")]
 
-"Number of months to go back for filing records"
-DATE_EARLIEST = 12
-# TODO: Consider months instead of years.
+class BTInsertLakeApp(app.App):
+    """
+    Special behavior around Bluetooth ingestion. This may seem like overkill, but demonstrates
+    how new application-specific variables can be added to the App class.
+    """
+    def __init__(self, args):
+        """
+        Initializes application-specific variables
+        """
+        self.sourceDir = None
+        super().__init__(args, "bt", needsTempDir=False)
+    
+    def _ingestArgs(self, args):
+        """
+        Processes application-specific variables
+        """
+        self.sourceDir = args.source_dir
+        super()._ingestArgs(args)
 
-"S3 bucket to target"
-BUCKET = config.composeBucket("raw")
-
-DIR_DEFS = [date_dirs.DateDirDef(prefix="Austin_bt_", dateFormat="%m-%d-%Y", postfix=".txt"),
-            date_dirs.DateDirDef(prefix="Austin_btmatch_", dateFormat="%m-%d-%Y", postfix=".txt"),
-            date_dirs.DateDirDef(prefix="Austin_bt_summary_15_", dateFormat="%m-%d-%Y", postfix=".txt")]
+def main(args):
+    """
+    Main entry point after processing command line arguments
+    """
+    curApp = BTInsertLakeApp(args)
 
 class LastUpdateBT(last_upd_fs.LastUpdateFS):
     """
@@ -84,35 +109,6 @@ def bt_metadata_ingest(metadata, catalog):
 
     catalog.upsert(metadata)
 
-def main():
-    "Main entry-point that takes --last_run_date parameter"
-    
-    # Parse command-line parameter:
-    parser = ArgumentParser(description=PROGRAM_DESC, formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument("-d", "--source_dir", default=".", help="Source directory (e.g. AWAM share) to read Bluetooth files from")
-    parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time and time zone offset")
-    parser.add_argument("-m", "--months_old", help="process no more than this number of months old, or provide YYYY-MM-DD for absolute date")
-    parser.add_argument("-M", "--missing", action="store_true", default=False, help="check for missing entries after the earliest processing date")
-    parser.add_argument("-s", "--same_day", action="store_true", default=False, help="retrieves and processes files that are the same day as collection")
-    
-    # TODO: Consider parameters for writing out files?
-    args = parser.parse_args()
-
-    date_util.setLocalTimezone(config.TIMEZONE)
-    lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=False)
-    print("bt_insert_lake: Last run date: %s" % str(lastRunDate))
-
-    if args.months_old:
-        try:
-            monthsOld = int(args.months_old)
-        except ValueError:
-            monthsOld = date_util.parseDate(args.months_old, dateOnly=True)
-    else:
-        monthsOld = DATE_EARLIEST
-
-    # Catalog and AWS connections:
-    catalog = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-    s3 = config.getAWSSession().resource('s3')
 
     # Gather records of prior activity from catalog:
     print("Beginning loop...")
@@ -141,4 +137,8 @@ def main():
     return count    
 
 if __name__ == "__main__":
-    main()
+    """
+    Entry-point when run from the command-line
+    """
+    args = cmdline.processArgs(CMDLINE_CONFIG)
+    main(args)
