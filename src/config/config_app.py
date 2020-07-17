@@ -30,7 +30,6 @@ DATASOURCE_MAP = {"bt": config.DataSourceConfig(code="bt", name="Bluetooth"),
 
 # ** These items are specific to devices and dependencies: **
 CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_test"
-PROCESS_LOG_URL = "http://transportation-data-test.austintexas.io/data_lake_process_log_test"
 CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", default="")
 
 PERFMET_JOB_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_job"
@@ -80,13 +79,7 @@ def createCatalogConn():
     Returns a new catalog connector object
     """
     return catalog_postgrest.CatalogPostgREST(CATALOG_URL, CATALOG_KEY)
-
-def createProcessLogConn():
-    """
-    Returns a new catalog connector object
-    """
-    return catalog_postgrest.ProcessLogPostgREST(PROCESS_LOG_URL, CATALOG_KEY)
-        
+    
 def createPerfmetConn():
     """
     Returns a new perfmet connector object

@@ -144,5 +144,5 @@ class Storage:
         """
         Creates a catalog object based upon the given criteria. Used for providing parameters for writing a file.
         """
-        return self.catalog.buildCatalogElement(self.repository, base, ext, collectionDate, \
-            self.makePath(base, ext, collectionDate), processingDate=processingDate, metadata=metadata)
+        return self.catalog.buildCatalogElement(self.repository, base, ext, collectionDate, processingDate, \
+            self.makePath(base, ext, collectionDate), metadata)

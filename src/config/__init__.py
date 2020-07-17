@@ -50,14 +50,7 @@ def createCatalog(dataSource):
     """
     catalogConn = config_app.createCatalogConn()
     return catalog.Catalog(catalogConn, dataSource)
-
-def createProcessLog(dataSource):
-    """
-    Returns a new process log object implemented according to defs in config_app.py
-    """
-    processLogConn = config_app.createProcessLogConn()
-    return catalog.ProcessLog(processLogConn, dataSource)
-        
+    
 def createPerfmet(stageName, dataSource):
     """
     Returns a new perfmet object 
