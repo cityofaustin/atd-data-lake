@@ -27,16 +27,19 @@ class LastUpdate:
         # Set through configure():
         self.startDate = None
         self.endDate = None
+        self.baseExtKey = False
 
-    def configure(self, startDate=None, endDate=None):
+    def configure(self, startDate=None, endDate=None, baseExtKey=False):
         """
         Configures additional properties and parameters for LastUpdate:
         
         @param startDate: Lower bound for finding missing data
         @param endDate: Upper bound for processing, or None for no upper bound
+        @param baseExtKey: Set this to true to compare the presence of both base and ext; otherwise, just base is used.
         """
         self.startDate = startDate
         self.endDate = endDate
+        self.baseExtKey = baseExtKey
         return self
 
     class _CompareTarget:
@@ -76,13 +79,13 @@ class LastUpdate:
         self.target.prepare(earliest, self.endDate)
         compareTargets = {}
         for target in self.target.runQuery():
-            key = (target.base, target.ext)
+            key = (target.base, target.ext) if self.baseExtKey else target.base
             if key not in compareTargets:
                 compareTargets[key] = self._CompareTarget()
             compareTargets[key].items.append(target)
         for sourceItem in self.source.runQuery():
             skipFlag = False
-            key = (sourceItem.base, sourceItem.ext)
+            key = (sourceItem.base, sourceItem.ext) if self.baseExtKey else sourceItem.base
             if key in compareTargets:
                 compareTarget = compareTargets[key]
                 compareTarget.advanceDate(sourceItem.date)
@@ -164,8 +167,8 @@ class LastUpdCatProv(LastUpdProv):
         """
         Initializes the object
         
-        @param baseFilter An exact match string or string containing "%" for matching base names
-        @param extFilter An exact match string or string containing "%" for matching ext names
+        @param baseFilter An exact match string or string containing "%" for pattern-matching base names
+        @param extFilter An exact match string or string containing "%" for pattern-matching ext names
         """
         super().__init__()
         self.catalog = catalog
@@ -185,9 +188,9 @@ class LastUpdCatProv(LastUpdProv):
             yield LastUpdProv._LastUpdProvItem(result["id_base"], result["id_ext"], result["collection_date"], result["collection_end"],
                                    payload=result, label=result["path"])
 
-class LastUpdStorageProv(LastUpdCatProv):
+class LastUpdStorageCatProv(LastUpdCatProv):
     """
-    Represents a Storage object, as a LastUpdate source or target.
+    Represents a Catalog tied with a Storage object, as a LastUpdate source or target.
     """
     def __init__(self, storage, baseFilter=None, extFilter=None):
         """
