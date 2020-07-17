@@ -39,13 +39,13 @@ class LastUpdGSProv(LastUpdProv):
         self.dateList = list(ourDatesSet)
         self.dateList.sort()
 
-    def _getIdentifier(self, logReader):
+    def _getIdentifier(self, logReader, date):
         """
         Creates identifier for the comparison purposes from the given file information
         
         @return Tuple of base, ext
         """
-        return logReader.constructBase(), "zip"
+        return logReader.constructBase(), "zip", date
         
     def runQuery(self):
         """
@@ -55,13 +55,13 @@ class LastUpdGSProv(LastUpdProv):
         for ourDate in self.dateList:
             for logReader in self.logReaders:
                 if logReader.queryDate(ourDate):
-                    base, ext = self._getIdentifier(logReader)
+                    base, ext, date = self._getIdentifier(logReader, ourDate)
                     yield LastUpdProv._LastUpdProvItem(base=base,
                                                        ext=ext,
-                                                       date=ourDate,
+                                                       date=date,
                                                        dateEnd=None,
                                                        payload=logReader,
-                                                       label=logReader.constructFilename(ourDate))
+                                                       label=logReader.constructFilename(date))
     
     def getPayload(self, lastUpdItem):
         """

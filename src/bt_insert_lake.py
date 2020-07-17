@@ -32,7 +32,7 @@ class BTLastUpdateProv(last_upd_fs.LastUpdFileProv):
     """
     Overrides the default file provider so as to generate the correct identifier for AWAM files
     """
-    def _getIdentifier(self, filePath, typeIndex):
+    def _getIdentifier(self, filePath, typeIndex, date):
         """
         Creates identifier for the comparison purposes from the given file information
         """
@@ -48,7 +48,7 @@ class BTLastUpdateProv(last_upd_fs.LastUpdFileProv):
         else:
             raise ValueError("Bad typeIndex")
         ext = desc + postfix
-        return prefix, ext
+        return prefix, ext, date
 
 class BTInsertLakeApp(app.App):
     """

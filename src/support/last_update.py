@@ -144,13 +144,13 @@ class LastUpdProv:
         self.startDate = startDate
         self.endDate = endDate
         
-    def _getIdentifier(self, base, ext):
+    def _getIdentifier(self, base, ext, date):
         """
         Creates identifier for the comparison purposes from the given file information
         
-        @return Tuple of base, ext
+        @return Tuple of base, ext, date
         """
-        return base, ext
+        return base, ext, date
 
     def runQuery(self):
         """
@@ -193,10 +193,10 @@ class LastUpdCatProv(LastUpdProv):
             lateDate = None
         for result in self.catalog.query(self.repository, self.baseFilter, self.extFilter, self.startDate, lateDate,
                                          exactEarlyDate=(self.startDate == self.endDate)):
-            base, ext = self._getIdentifier(result["id_base"], result["id_ext"])
+            base, ext, date = self._getIdentifier(result["id_base"], result["id_ext"], result["collection_date"])
             yield LastUpdProv._LastUpdProvItem(base=base,
                                                ext=ext,
-                                               date=result["collection_date"],
+                                               date=date,
                                                dateEnd=result["collection_end"],
                                                payload=result,
                                                label=result["path"])

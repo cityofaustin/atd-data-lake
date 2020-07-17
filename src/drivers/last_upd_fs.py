@@ -49,7 +49,7 @@ class LastUpdFileProv(LastUpdProv):
         self.dateList = list(ourDatesSet)
         self.dateList.sort()
     
-    def _getIdentifier(self, filePath, typeIndex):
+    def _getIdentifier(self, filePath, typeIndex, date):
         """
         Creates identifier for the comparison purposes from the given file information
         
@@ -59,7 +59,7 @@ class LastUpdFileProv(LastUpdProv):
         ext = self.pattList[typeIndex].postfix
         if ext.startswith("."):
             ext = ext[1:]
-        return base, ext
+        return base, ext, date
     
     def runQuery(self):
         """
@@ -70,10 +70,10 @@ class LastUpdFileProv(LastUpdProv):
             for index in range(len(self.pattList)):
                 myFile = self.dateDirs[index].resolveFile(ourDate.replace(tzinfo=None), fullPath=True)
                 if myFile:
-                    base, ext = self._getIdentifier(myFile, index)
+                    base, ext, date = self._getIdentifier(myFile, index, ourDate)
                     yield LastUpdProv._LastUpdProvItem(base=base,
                                            ext=ext,
-                                           date=ourDate,
-                                           dateEnd=(ourDate + self.impliedDuration) if self.impliedDuration else None,
+                                           date=date,
+                                           dateEnd=(date + self.impliedDuration) if self.impliedDuration else None,
                                            payload=self.dateDirs[index],
                                            label=myFile)
