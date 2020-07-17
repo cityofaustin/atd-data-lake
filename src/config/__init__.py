@@ -23,11 +23,19 @@ def getLocalTimezone():
     """
     return config_app.TIMEZONE
 
-def getRepository(purpose, productionMode=True):
+def electProductionMode(productionMode=None):
+    """
+    Sets default production mode, or returns the default if none is specified 
+    """
+    if productionMode is not None:
+        config_app.productionMode = productionMode
+    return config_app.productionMode
+
+def getRepository(purpose):
     """
     Returns the repository name given the purpose and production mode status
     """
-    lookupStr = purpose + ("-production" if productionMode else "-debug")
+    lookupStr = purpose + ("-production" if config_app.productionMode else "-debug")
     return config_app.PURPOSE_REPO_MAP[lookupStr]
 
 def getDataSourceInfo(dataSourceCode):
@@ -36,11 +44,11 @@ def getDataSourceInfo(dataSourceCode):
     """
     return config_app.DATASOURCE_MAP[dataSourceCode]
 
-def createStorage(catalog, purpose, dataSource, productionMode=True, tempDir=None, simulationMode=False, writeFilePath=None):
+def createStorage(catalog, purpose, dataSource, tempDir=None, simulationMode=False, writeFilePath=None):
     """
     Returns a new storage object implemented according to defs in config_app.py
     """
-    repository = getRepository(purpose, productionMode)
+    repository = getRepository(purpose)
     storageConn = config_app.createStorageConn(repository)
     return storage.Storage(storageConn, repository, dataSource, catalog, tempDir, simulationMode, writeFilePath)
     

@@ -10,10 +10,14 @@ from drivers import storage_s3, catalog_postgrest, perfmet_postgrest, publish_so
 from drivers.devices import bt_unitdata_knack, wt_unitdata_knack, gs_unitdata_knack,
 
 # ** These project-wide items are independent of specific devices: **
+"Time zone associated with the location of this data lake"
 TIMEZONE = "US/Central"
 
 "Unit file location prefix"
 UNIT_LOCATION = "Austin"
+
+"Production mode default; use False for debug"
+productionMode = True
 
 PURPOSE_REPO_MAP = {"raw-production": "atd-data-lake-raw",
                     "raw-debug": "atd-data-lake-raw-test",

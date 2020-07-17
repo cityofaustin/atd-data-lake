@@ -4,9 +4,10 @@ Bluetooth sensor ingestion takes files from the AWAM share and places them into 
 
 @author Kenneth Perrine
 """
-from support import app, cmdline
+from support import app, cmdline, last_update
 from config import config_app
 from util import date_dirs
+from drivers import last_upd_fs
 
 # This sets up application information and command line parameters:
 CMDLINE_CONFIG = cmdline.CmdLineConfig(
@@ -27,43 +28,16 @@ DIR_DEFS = [date_dirs.DateDirDef(prefix=config_app.UNIT_LOCATION + "_bt_",
                                  dateFormat="%m-%d-%Y",
                                  postfix=".txt")]
 
-class BTInsertLakeApp(app.App):
+class BTLastUpdateProv(last_upd_fs.LastUpdFileProv):
     """
-    Special behavior around Bluetooth ingestion. This may seem like overkill, but demonstrates
-    how new application-specific variables can be added to the App class.
+    Overrides the default file provider so as to generate the correct identifier for AWAM files
     """
-    def __init__(self, args):
+    def _getIdentifier(self, filePath, typeIndex):
         """
-        Initializes application-specific variables
+        Creates identifier for the comparison purposes from the given file information
         """
-        self.sourceDir = None
-        super().__init__(args, "bt", needsTempDir=False)
-    
-    def _ingestArgs(self, args):
-        """
-        Processes application-specific variables
-        """
-        self.sourceDir = args.source_dir
-        super()._ingestArgs(args)
-
-def main(args):
-    """
-    Main entry point after processing command line arguments
-    """
-    curApp = BTInsertLakeApp(args)
-
-class LastUpdateBT(last_upd_fs.LastUpdateFS):
-    """
-    Contains methods for creating list of Bluetooth files.
-    """
-    def __init__(self, srcDir, tgtRepo, dateEarliest=None):
-        super().__init__(srcDir, tgtRepo, "bt", DIR_DEFS, dateEarliest)
-
-    def _getIdentifier(self, filePath, typeIndex, date):
-        """
-        We want our identifiers to be phrased like: Base="Austin"; Ext="unmatched.txt".
-        """
-        prefix = self.pattList[typeIndex].prefix.split("_")[0] # TODO: Returns "Austin"; we probably want something more generalized.
+        # We want our identifiers to be phrased like: Base="Austin"; Ext="unmatched.txt".
+        prefix = self.pattList[typeIndex].prefix.split("_")[0] # TODO: Returns "Austin"
         postfix = self.pattList[typeIndex].postfix
         if typeIndex == 0:
             desc = "unmatched"
@@ -74,7 +48,54 @@ class LastUpdateBT(last_upd_fs.LastUpdateFS):
         else:
             raise ValueError("Bad typeIndex")
         ext = desc + postfix
-        return (prefix, ext, date)
+        return prefix, ext
+
+class BTInsertLakeApp(app.App):
+    """
+    Special behavior around Bluetooth ingestion. This may seem like overkill, but demonstrates
+    how new application-specific variables can be added to the App class.
+    """
+    def __init__(self, args):
+        """
+        Initializes application-specific variables
+        """
+        self.sourceDir = None
+        super().__init__(args, "bt",
+                         purposeTgt="raw",
+                         needsTempDir=False,
+                         perfmetStage="Ingest")
+    
+    def _ingestArgs(self, args):
+        """
+        Processes application-specific variables
+        """
+        self.sourceDir = args.source_dir
+        super()._ingestArgs(args)
+
+    def etlActivity(self, processingDate):
+        """
+        This performs the main ETL processing.
+        
+        @return count: A general number of records processed
+        """
+        provSrc = last_upd_fs.LastUpdFileProv(self.sourceDir, DIR_DEFS)
+        provTgt = self.storageTgt
+        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
+                                                                        endDate=self.endDate,
+                                                                        baseExtKey=True)
+        for item in comparator.compare(lastRunDate=self.lastRunDate):
+            
+        
+
+def main(args):
+    """
+    Main entry point after processing command line arguments
+    """
+    curApp = BTInsertLakeApp(args)
+    return curApp.doMainLoop()
+
+
+
 
 ## Function definitions
 def set_S3_pointer(filename, date, data_source='bt'): ### may have to include bucket!! ###

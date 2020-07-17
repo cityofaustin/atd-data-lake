@@ -8,7 +8,7 @@ import arrow
 
 import tempfile
 import shutil
-from support import config
+import config
 from util import date_util
 
 "Number of months to go back for filing records"
@@ -19,18 +19,28 @@ class App:
     App is a holding place for application-wide parameters that contain driver connection
     objects and application-wide parameters.    
     """
-    def __init__(self, args, dataType, needsTempDir=True, parseDateOnly=True, needsPerfmet=True):
+    def __init__(self, args, dataSource, purposeSrc=None, purposeTgt=None, needsTempDir=True, parseDateOnly=True, perfmetStage=None):
         """
         Constructor initializes variables.
         
         @param args: Collection of command-line arguments that were parsed with ArgumentParser or directly passed in
-        @param dataType: The datatype abbreviation for application activities
+        @param dataSource: The data source abbreviation for application activities
+        @param purposeSrc: A purpose string for the source, used to get the source repository name
+        @param purposeTgt: The purpose string for the target, used to get the target repository name
         @param needsTempDir: Causes temporary directory to be managed & set to self.tempDir
         @param parseDateOnly: Causes the start/end dates to work on day boundaries only
-        @param needsPerfmet: Causes the performance metrics initialization
+        @param perfmetStage: Causes the performance metrics initialization to happen with the stage name if specified
         """
         "To be defined immediately:"
-        self.dataType = dataType
+        self.dataSource = dataSource
+        self.purposeSrc = purposeSrc
+        self.purposeTgt = purposeTgt
+        
+        "Typical connection parameters for ETL:"
+        self.catalog = None
+        self.storageSrc = None
+        self.storageTgt = None
+        self.perfmet = None
         
         "To be populated in argument ingester:"
         self.startDate = None
@@ -42,18 +52,12 @@ class App:
         "General configuration variables:"        
         self.needsTempDir = needsTempDir
         self.parseDateOnly = parseDateOnly
-        self.needsPerfmet = needsPerfmet
-        
-        "To be populated by the connector:"
-        self.catalog = None
-        # TODO: Source name, target name?
-        self.storage1 = None
-        self.storage2 = None
-        self.perfmet = None
-        
+        self.perfmetStage = perfmetStage
+                
         # Call the argument ingester:        
-        self._ingestArgs(args)
         self.args = args
+        self._ingestArgs()
+        self._connect()
         
     def _ingestArgs(self, args):
         """
@@ -61,7 +65,7 @@ class App:
         this and call the parent if custom arguments need to be processed.
         """
         # Local time zone:
-        date_util.setLocalTimezone(config.TIMEZONE)
+        date_util.setLocalTimezone(config.getLocalTimezone())
         
         # Last run date:
         if args.last_run_date:
@@ -95,24 +99,60 @@ class App:
             self.endDate = None
             
         # Production mode:
-        self.productionMode = config.electProdMode(not self.productionMode)        
-    
-        # Catalog and AWS connections:
-        config.setDataType(self.dataType)
+        self.productionMode = config.electProductionMode(not args.debugmode) \
+            if hasattr(args, "debugmode") else config.electProductionMode()
     
         # Debugging features:
         self.simulationMode = args.simulate
         self.writeFilePath = args.output_filepath
-        
-        
-        # ------------- Need to figure out.
-        catalog = Postgrest(config.CATALOG_URL, auth=config.CATALOG_KEY)
-        _S3 = config.getAWSSession().resource('s3')
-    
+            
         # Set up temporary output directory:
         if self.needsTempDir:
             self.tempDir = tempfile.mkdtemp()
             print("Created holding place: %s" % self.tempDir)
+            
+    def _connect(self):
+        """
+        Establishes connections typical for an ETL process
+        """
+        # Establish the catalog connection:
+        self.catalog = config.createCatalog(self.dataSource)
+        
+        # Establish the source and target storage resources:
+        if self.purposeSrc:
+            self.storageSrc = config.createStorage(self.catalog, self.purposeSrc, self.dataSource,
+                                                   tempDir=self.tempDir,
+                                                   simulationMode=self.simulationMode,
+                                                   writeFilePath=self.writeFilePath)
+        if self.purposeTgt:
+            self.storageTgt = config.createStorage(self.catalog, self.purposeTgt, self.dataSource,
+                                                   tempDir=self.tempDir,
+                                                   simulationMode=self.simulationMode,
+                                                   writeFilePath=self.writeFilePath)
+
+        # Establish performance metrics:
+        if self.perfmetStage:
+            self.perfmet = config.createPerfmet(self.perfmetStage, self.dataSource)
+
+    def doMainLoop(self):
+        """
+        Coordinates the main loop activity
+        """
+        # TODO: Add in benchmarking
+        
+        # --- BEGIN STUFF
+        
+        self.etlActivity(date_util.localize(arrow.now().datetime))
+
+        # --- END STUFF
+
+    def etlActivity(self, processingDate):
+        """
+        This performs the main ETL processing, to be implemented by the specific application.
+        
+        @return count: A general number of records processed
+        """
+        return 0
 
     def __delete__(self):
         """
