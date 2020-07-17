@@ -140,13 +140,25 @@ class App:
         """
         # TODO: Add in benchmarking
         
-        # --- BEGIN STUFF
         
-        self.etlActivity(date_util.localize(arrow.now().datetime))
+        # TODO: Preparation method call?
+        
+        runCount = 1
+        recsProcessed = 0
+        # --- BEGIN STUFF. TODO: Support for loop over time period at intervals (with functional disable for that)?
+        
+        # TODO: Exception handling with retry ability?
+        
+        recsProcessed += self.etlActivity(date_util.localize(arrow.now().datetime), runCount)
 
+        runCount += 1
         # --- END STUFF
+        
+        # TODO: Shutdown method call?
+        
+        return recsProcessed
 
-    def etlActivity(self, processingDate):
+    def etlActivity(self, processingDate, runCount):
         """
         This performs the main ETL processing, to be implemented by the specific application.
         

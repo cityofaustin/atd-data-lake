@@ -72,13 +72,13 @@ class BTInsertLakeApp(app.App):
         self.sourceDir = args.source_dir
         super()._ingestArgs(args)
 
-    def etlActivity(self, processingDate):
+    def etlActivity(self, processingDate, runCount):
         """
         This performs the main ETL processing.
         
         @return count: A general number of records processed
         """
-        provSrc = last_upd_fs.LastUpdFileProv(self.sourceDir, DIR_DEFS)
+        provSrc = BTLastUpdateProv(self.sourceDir, DIR_DEFS)
         provTgt = self.storageTgt
         comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
                                                                         endDate=self.endDate,

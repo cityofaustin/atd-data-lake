@@ -144,11 +144,19 @@ class LastUpdProv:
         self.startDate = startDate
         self.endDate = endDate
         
+    def _getIdentifier(self, base, ext):
+        """
+        Creates identifier for the comparison purposes from the given file information
+        
+        @return Tuple of base, ext
+        """
+        return base, ext
+
     def runQuery(self):
         """
-        Runs a query against the data source and provides results as a generator of _LastUpdProvItem.
+        Runs a query against the data source and yields results as a generator of _LastUpdProvItem.
         """
-        pass
+        yield from []
         
     def getPayload(self, lastUpdItem):
         """
@@ -184,9 +192,14 @@ class LastUpdCatProv(LastUpdProv):
         if self.startDate == self.endDate:
             lateDate = None
         for result in self.catalog.query(self.repository, self.baseFilter, self.extFilter, self.startDate, lateDate,
-                                         exactEarlyDate=self.startDate == self.endDate):
-            yield LastUpdProv._LastUpdProvItem(result["id_base"], result["id_ext"], result["collection_date"], result["collection_end"],
-                                   payload=result, label=result["path"])
+                                         exactEarlyDate=(self.startDate == self.endDate)):
+            base, ext = self._getIdentifier(result["id_base"], result["id_ext"])
+            yield LastUpdProv._LastUpdProvItem(base=base,
+                                               ext=ext,
+                                               date=result["collection_date"],
+                                               dateEnd=result["collection_end"],
+                                               payload=result,
+                                               label=result["path"])
 
 class LastUpdStorageCatProv(LastUpdCatProv):
     """
