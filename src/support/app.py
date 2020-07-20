@@ -4,6 +4,9 @@ app.py: Class and logic for application and driver initialization
 Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
 """
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from collections import namedtuple
+
 import arrow
 
 import tempfile
@@ -14,16 +17,23 @@ from util import date_util
 "Number of months to go back for filing records"
 DATE_EARLIEST = 365
 
+"""
+AppDescription:
+appName: The name of the application (short string)
+appDescr: Description of the application (longer string)
+"""
+AppDescription = namedtuple("CmdLineConfig", "appName appDescr")
+
 class App:
     """
     App is a holding place for application-wide parameters that contain driver connection
     objects and application-wide parameters.    
     """
-    def __init__(self, args, dataSource, purposeSrc=None, purposeTgt=None, needsTempDir=True, parseDateOnly=True, perfmetStage=None):
+    def __init__(self, dataSource, appDescription, args=None, purposeSrc=None, purposeTgt=None, needsTempDir=True, parseDateOnly=True, perfmetStage=None):
         """
         Constructor initializes variables.
         
-        @param args: Collection of command-line arguments that were parsed with ArgumentParser or directly passed in
+        @param args: Collection of command-line arguments; use None to allow the default command line to be parsed
         @param dataSource: The data source abbreviation for application activities
         @param purposeSrc: A purpose string for the source, used to get the source repository name
         @param purposeTgt: The purpose string for the target, used to get the target repository name
@@ -31,34 +41,72 @@ class App:
         @param parseDateOnly: Causes the start/end dates to work on day boundaries only
         @param perfmetStage: Causes the performance metrics initialization to happen with the stage name if specified
         """
-        "To be defined immediately:"
+        # To be defined immediately:
         self.dataSource = dataSource
         self.purposeSrc = purposeSrc
         self.purposeTgt = purposeTgt
         
-        "Typical connection parameters for ETL:"
+        # Typical connection parameters for ETL:
         self.catalog = None
         self.storageSrc = None
         self.storageTgt = None
         self.perfmet = None
         
-        "To be populated in argument ingester:"
+        # To be populated in argument ingester:
         self.startDate = None
         self.endDate = None
         self.lastRunDate = None
         self.tempDir = None
         self.productionMode = None
 
-        "General configuration variables:"        
+        # General configuration variables:        
         self.needsTempDir = needsTempDir
         self.parseDateOnly = parseDateOnly
         self.perfmetStage = perfmetStage
                 
+        # Parse the command line:
+        if not args:
+            args = self.processArgs(appDescription)
+        
         # Call the argument ingester:        
         self.args = args
         self._ingestArgs()
         self._connect()
+
+    def processArgs(self, cmdLineConfig):
+        """
+        Builds up the command line processor with standard parameters and also custom parameters that are passed in.
+        """
+        parser = ArgumentParser(prog=cmdLineConfig.appName,
+                                description=cmdLineConfig.appDescr,
+                                formatter_class=RawDescriptionHelpFormatter)
+        # Tier-1 parameters:
+        parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset")
+        parser.add_argument("-s", "--start_date", help="start date; process no more than this number of months old, or provide YYYY-MM-DD for absolute date")
+        parser.add_argument("-e", "--end_date", help="end date; process no later than this date, in YYYY-MM-DD format")
+        parser.add_argument("-M", "--nomissing", action="store_true", default=False, help="don't check for missing entries after the earliest processing date")
         
+        # Custom parameters:
+        self._addCustomArgs(parser)
+        
+        # Tier-2 parameters:
+        parser.add_argument("-f", "--name_filter", default=".*", help="filter processing on units whose names match the given regexp")
+        parser.add_argument("-o", "--output_filepath", help="specify a path to output files to a specific directory")
+        parser.add_argument("-0", "--simulate", help="simulates the writing of files to the filestore and catalog")
+        parser.add_argument("-L", "--logfile", help="enables logfile output to the given path")
+        parser.add_argument("--log_autoname", help="automatically create the log name from app parameters")
+        parser.add_argument("--debugmode", action="store_true", help="sets the code to run in debug mode, which usually causes access to non-production storage")
+        
+        # TODO: Consider parameters for writing out files?
+        args = parser.parse_args()
+        return args
+    
+    def _addCustomArgs(self, parser):
+        """
+        Override this and call parser.add_argument() to add custom command-line arguments.
+        """
+        pass
+
     def _ingestArgs(self, args):
         """
         This is where arguments are ingested and set to Initializer class-level attributes. Override
