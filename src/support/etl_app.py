@@ -1,5 +1,5 @@
 """
-app.py: Class and logic for application and driver initialization
+etl_app.py: Class and logic for application and driver initialization
 
 Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
@@ -24,9 +24,9 @@ appDescr: Description of the application (longer string)
 """
 AppDescription = namedtuple("CmdLineConfig", "appName appDescr")
 
-class App:
+class ETLApp:
     """
-    App is a holding place for application-wide parameters that contain driver connection
+    ETLApp is a holding place for application-wide parameters that contain driver connection
     objects and application-wide parameters.    
     """
     def __init__(self, dataSource, appDescription, args=None, purposeSrc=None, purposeTgt=None, needsTempDir=True, parseDateOnly=True, perfmetStage=None):

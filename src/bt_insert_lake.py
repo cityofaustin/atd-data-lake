@@ -4,13 +4,13 @@ Bluetooth sensor ingestion takes files from the AWAM share and places them into 
 
 @author Kenneth Perrine
 """
-from support import app, last_update
+from support import etl_app, last_update
 from config import config_app
 from util import date_dirs
 from drivers import last_upd_fs
 
 # This sets up application information and command line parameters:
-APP_DESCRIPTION = app.AppDescription(
+APP_DESCRIPTION = etl_app.AppDescription(
     appName="bt_insert_lake.py",
     appDescr="Inserts Bluetooth data from AWAM share into the Raw Data Lake")
 
@@ -47,7 +47,7 @@ class BTLastUpdateProv(last_upd_fs.LastUpdFileProv):
         ext = desc + postfix
         return prefix, ext, date
 
-class BTInsertLakeApp(app.App):
+class BTInsertLakeApp(etl_app.ETLApp):
     """
     Special behavior around Bluetooth ingestion. This may seem like overkill, but demonstrates
     how new application-specific variables can be added to the App class.
