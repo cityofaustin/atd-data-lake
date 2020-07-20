@@ -65,6 +65,8 @@ class LastUpdate:
                     return True
             return False
         
+    Identifier = namedtuple("Identifier", "base ext date")
+        
     def compare(self, lastRunDate=None):
         """
         Iterates through the source and target, and generates identifiers for those that need updating
@@ -92,7 +94,7 @@ class LastUpdate:
                 if compareTarget.isWithin(sourceItem.date, sourceItem.dateEnd):
                     skipFlag = True
             if not skipFlag:
-                yield self._LastUpdateItem((sourceItem.base, sourceItem.ext, sourceItem.date),
+                yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
                                       priorLastUpdate=not self.lastRunDate or sourceItem.date < self.lastRunDate,
                                       payload=self.source.getPayload(sourceItem),
                                       label=sourceItem.label)

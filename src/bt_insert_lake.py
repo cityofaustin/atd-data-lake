@@ -4,18 +4,15 @@ Bluetooth sensor ingestion takes files from the AWAM share and places them into 
 
 @author Kenneth Perrine
 """
-from support import app, cmdline, last_update
+from support import app, last_update
 from config import config_app
 from util import date_dirs
 from drivers import last_upd_fs
 
 # This sets up application information and command line parameters:
-CMDLINE_CONFIG = cmdline.CmdLineConfig(
+APP_DESCRIPTION = app.AppDescription(
     appName="bt_insert_lake.py",
-    appDescr="Inserts Bluetooth data from AWAM share into the Raw Data Lake",
-    customArgs={("-d", "--sourcedir"): {
-        "default": ".",
-        "help": "Source directory (e.g. AWAM share) to read Bluetooth files from"}})
+    appDescr="Inserts Bluetooth data from AWAM share into the Raw Data Lake")
 
 # This defines the valid filename formats that exist in the AWAM directory:
 DIR_DEFS = [date_dirs.DateDirDef(prefix=config_app.UNIT_LOCATION + "_bt_",
@@ -60,11 +57,18 @@ class BTInsertLakeApp(app.App):
         Initializes application-specific variables
         """
         self.sourceDir = None
-        super().__init__(args, "bt",
+        super().__init__("bt", APP_DESCRIPTION,
+                         args=args,
                          purposeTgt="raw",
                          needsTempDir=False,
                          perfmetStage="Ingest")
     
+    def _addCustomArgs(self, parser):
+        """
+        Override this and call parser.add_argument() to add custom command-line arguments.
+        """
+        parser.add_argument("-d", "--sourcedir", default=".", help="Source directory (e.g. AWAM share) to read Bluetooth files from")
+        
     def _ingestArgs(self, args):
         """
         Processes application-specific variables
@@ -83,83 +87,41 @@ class BTInsertLakeApp(app.App):
         comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
                                                                         endDate=self.endDate,
                                                                         baseExtKey=True)
+        count = 0
+        prevDate = None
         for item in comparator.compare(lastRunDate=self.lastRunDate):
+            # Cause the catalog to update only after we complete all records for each date:
+            if not prevDate:
+                prevDate = item.date
+            if item.date != prevDate:
+                self.storageTgt.flushCatalog()
+                
+            # Set up the storage path for the data item:
+            pathTgt = self.storageTgt.makePath(item.identifier.base, item.identifier.ext, item.identifier.date)
+            print("%s -> %s:%s" % (item.payload, pathTgt.repository, pathTgt))
             
+            # Write the file to storage:
+            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
+                                                                  item.identifier.date, processingDate)
+            self.storageTgt.writeFile(item.payload, catalogElement, cacheCatalogFlag=True)
+            self.perfmet.recordCollect(item.identifier.date, representsDay=True)
+            count += 1
+        else:
+            self.storageTgt.flushCatalog()
         
+        self.perfmet.logJob(count)
+        print("Records processed: %d" % count)
+        return count    
 
-def main(args):
+def main(args=None):
     """
-    Main entry point after processing command line arguments
+    Main entry point. Allows for dictionary to bypass default command-line processing.
     """
     curApp = BTInsertLakeApp(args)
     return curApp.doMainLoop()
-
-
-
-
-## Function definitions
-def set_S3_pointer(filename, date, data_source='bt'): ### may have to include bucket!! ###
-    # TODO: Put this in a standardized location so others can access this method.
-
-    year = str(date.year)
-    month = str(date.month)
-    day = str(date.day)
-
-    s_year = year
-    s_month = month if len(month) == 2 else month.zfill(2)
-    s_day = day if len(day) == 2 else day.zfill(2)
-
-    return "{year}/{month}/{day}/{data_source}/{file}".format(year=s_year,
-                                                            month=s_month,
-                                                            day=s_day,
-                                                            data_source=data_source,
-                                                            file=filename)
-def bt_metadata(repository, idBase, idExt, pointer, collectionDate):
-
-    processing_date = str(date_util.localize(arrow.now().datetime))
-    json_blob = json.dumps({"element": "True"})
-
-    metadata = {"repository": repository, "data_source": 'bt',
-               "id_base": idBase, "id_ext": idExt, "pointer": pointer,
-               "collection_date": str(collectionDate),
-               "processing_date": processing_date, "metadata": json_blob}
-
-    return metadata
-
-def bt_metadata_ingest(metadata, catalog):
-
-    catalog.upsert(metadata)
-
-
-    # Gather records of prior activity from catalog:
-    print("Beginning loop...")
-    count = 0
-    lastUpdateWorker = LastUpdateBT(args.source_dir, "raw", monthsOld)
-    for record in lastUpdateWorker.getToUpdate(lastRunDate, sameDay=args.same_day, detectMissing=args.missing):
-        filename = os.path.basename(record.filePath)
-
-        pointer = set_S3_pointer(filename=filename, date=record.fileDate)
-        
-        print("%s -> %s:%s%s" % (filename, BUCKET, pointer, "" if not record.missingFlag else " (missing)"))
-
-        # Put TXT to S3:
-        with open(record.filePath, 'rb') as bt_file:
-            s3Object = s3.Object(BUCKET, pointer)
-            s3Object.put(Body=bt_file)
-        
-        # Update the catalog:
-        bt_metadata_ingest(bt_metadata(repository='raw', idBase=record.identifier[0], idExt=record.identifier[1],
-                                      pointer=pointer, collectionDate=record.fileDate), catalog=catalog)
-
-        # Increment count:
-        count += 1
-        
-    print("Records processed: %d" % count)
-    return count    
 
 if __name__ == "__main__":
     """
     Entry-point when run from the command-line
     """
-    args = cmdline.processArgs(CMDLINE_CONFIG)
-    main(args)
+    main()
