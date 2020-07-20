@@ -74,8 +74,7 @@ class BTJSONStandardApp(etl_app.ETLApp):
             # Prepare for writing to the target:
             catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
                                                                   item.identifier.date, processingDate)
-            outJSON = json.dumps(outJSON)
-            self.storageTgt.writeBuffer(outJSON, catalogElement, cacheCatalogFlag=True)
+            self.storageTgt.writeJSON(outJSON, catalogElement, cacheCatalogFlag=True)
             
             # Final stages:
             self.perfmet.recordCollect(item.identifier.date, representsDay=True)

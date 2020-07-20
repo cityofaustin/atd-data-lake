@@ -4,6 +4,9 @@ storage.py: Facilitates common Data Lake storage functions, with tracking with c
 Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
 """
+import tempfile
+import json
+
 import os
 import arrow
 
@@ -79,6 +82,14 @@ class Storage:
         """
         with open(sourceFile, "rb") as fileObject:
             self.writeBuffer(fileObject, catalogElement, cacheCatalogFlag=cacheCatalogFlag)
+            
+    def writeJSON(self, sourceJSON, catalogElement, cacheCatalogFlag=False):
+        """
+        writeJSON writes stringified JSON to the resource, streaming out to a temporary file to reduce RAM footprint
+        """
+        with tempfile.NamedTemporaryFile("w") as outFile:
+            json.dump(sourceJSON, outFile)
+            self.writeFile(outFile.name, catalogElement, cacheCatalogFlag)
         
     def writeBuffer(self, sourceBuffer, catalogElement, cacheCatalogFlag=False):
         """
