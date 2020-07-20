@@ -32,6 +32,12 @@ class Storage:
         self.simulationMode = simulationMode
         self.writeFilePath = writeFilePath
     
+    def makeFilename(self, base, ext, collectionDate):
+        """
+        Makes a filename from the base, ext, and collectionDate.
+        """
+        return base + "_" + collectionDate.strftime("%Y-%m-%d") + "." + ext
+    
     def makePath(self, base, ext, collectionDate, filenamePart=None):
         """
         Builds a storage platform-specific path using the given base, ext, and collectionDate. Used for providing parameters
@@ -40,7 +46,7 @@ class Storage:
         if isinstance(collectionDate, str):
             collectionDate = arrow.get(collectionDate)
         if not filenamePart:
-            filenamePart = base + "_" + collectionDate.strftime("%Y-%m-%d") + "." + ext 
+            filenamePart = self.makeFilename(base, ext, collectionDate) 
         return self.storageConn.makePath(base, ext, collectionDate, filenamePart)
     
     def retrieveFilePath(self, path, destPath=None, inferFilename=False):

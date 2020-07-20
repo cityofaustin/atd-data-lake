@@ -49,8 +49,7 @@ class BTLastUpdateProv(last_upd_fs.LastUpdFileProv):
 
 class BTInsertLakeApp(etl_app.ETLApp):
     """
-    Special behavior around Bluetooth ingestion. This may seem like overkill, but demonstrates
-    how new application-specific variables can be added to the App class.
+    Application functions and special behavior around Bluetooth ingestion.
     """
     def __init__(self, args):
         """

@@ -11,7 +11,7 @@ from support import storage, catalog, unitdata, perfmet, publish
 
 DataSourceConfig = namedtuple("DataSourceConfig", "code name")
 
-def getUnitLcation():
+def getUnitLocation():
     """
     Returns the unit location as defined in the configuration
     """
@@ -66,11 +66,13 @@ def createPerfmet(stageName, dataSource):
     perfmetConn = config_app.createPerfmetConn()
     return perfmet.PerfMet(perfmetConn, dataSource, stageName)
     
-def createUnitDataAccessor(dataSource, areaBase):
+def createUnitDataAccessor(dataSource):
     """
     Returns a new unit data object
     """
-    return config_app.createUnitDataConn(dataSource, areaBase)
+    if isinstance(dataSource, storage.Storage):
+        return unitdata.UnitDataStorage(dataSource, getUnitLocation())
+    return config_app.createUnitDataConn(dataSource, getUnitLocation())
 
 def createPublisher(dataSource, variant, catalog, simulationMode=False, writeFilePath=None):
     """
