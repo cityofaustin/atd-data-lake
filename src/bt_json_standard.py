@@ -65,7 +65,7 @@ class BTJSONStandardApp(etl_app.ETLApp):
             print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
             filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
             fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-            outJSON, perfWork = self.btStandardize(item, unitData, filepathSrc,
+            outJSON, perfWork = btStandardize(item, filepathSrc,
                 self.storageTgt.makeFilename(item.identifier.base, fileType + ".json", item.identifier.date), fileType, processingDate)
 
             # Clean up:
@@ -74,6 +74,7 @@ class BTJSONStandardApp(etl_app.ETLApp):
             # Prepare for writing to the target:
             catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
                                                                   item.identifier.date, processingDate)
+            outJSON = json.dumps(outJSON)
             self.storageTgt.writeBuffer(outJSON, catalogElement, cacheCatalogFlag=True)
             
             # Final stages:
@@ -143,7 +144,7 @@ def btStandardize(storageItem, filepathSrc, filenameTgt, fileType, processingDat
     # Step 3: Read in the file and parse dates as we read:
     data = []
     perfWork = {} # This will be sensor -> [count, minTime, maxTime]
-    reader = csv.DictReader(open(filepathSrc), fieldnames=btDataColumns)
+    reader = csv.DictReader(open(filepathSrc, "rt"), fieldnames=btDataColumns)
     for row in reader:
         for col in btDateColumns[0]:
             row[col] = btDateColumns[1](row[col])
@@ -165,7 +166,7 @@ def btStandardize(storageItem, filepathSrc, filenameTgt, fileType, processingDat
     # We're complete!
     reader.close()
     return {"header": jsonHeader,
-            "data": json.dumps(data)}, perfWork 
+            "data": data}, perfWork 
 
 def main(args=None):
     """
