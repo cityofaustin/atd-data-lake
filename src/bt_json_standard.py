@@ -9,7 +9,7 @@ import config
 
 import csv, json, datetime, os
 
-# This sets up application information and command line parameters:
+# This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
     appName="bt_json_standard.py",
     appDescr="Performs JSON canonicalization for Bluetooth data between the raw and rawjson Data Lake buckets")
@@ -22,14 +22,14 @@ class BTJSONStandardApp(etl_app.ETLApp):
         """
         Initializes application-specific variables
         """
-        self.sourceDir = None
         super().__init__("bt", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="raw",
                          purposeTgt="rawjson",
                          perfmetStage="Standardize")
+        self.unitData = None
     
-    def etlActivity(self, processingDate, runCount):
+    def etlActivity(self):
         """
         This performs the main ETL processing.
         
@@ -37,63 +37,55 @@ class BTJSONStandardApp(etl_app.ETLApp):
         """
         # First, get the unit data for Bluetooth:
         unitDataProv = config.createUnitDataAccessor(self.dataSource)
-        unitData = unitDataProv.retrieve()
+        self.unitData = unitDataProv.retrieve()
                 
-        # Configure the source and target repositories:
-        provSrc = last_update.LastUpdStorageCatProv(self.storageSrc)
-        provTgt = last_update.LastUpdStorageCatProv(self.storageTgt)
-        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
-                                                                        endDate=self.endDate,
-                                                                        baseExtKey=False)
-        count = 0
-        prevDate = None
-        for item in comparator.compare(lastRunDate=self.lastRunDate):
-            # Check for valid data files:
-            if item.ext not in ("traf_match_summary.txt", "matched.txt", "unmatched.txt"):
-                print("WARNING: Unsupported file type or extension: %s" % item.ext)
-                continue
-            
-            # Cause the catalog to update only after we complete all records for each date:
-            if not prevDate:
-                # This runs on the first item encountered. Write unit data to the target repository:
-                config.createUnitDataAccessor(self.storageTgt).store(unitData)
-                prevDate = item.date                
-            if item.date != prevDate:
-                self.storageTgt.flushCatalog()
-            
-            # Read in the file and call the transformation code.
-            print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-            filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
-            fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-            outJSON, perfWork = btStandardize(item, filepathSrc,
-                self.storageTgt.makeFilename(item.identifier.base, fileType + ".json", item.identifier.date), fileType, processingDate)
-
-            # Clean up:
-            os.remove(filepathSrc)
-            
-            # Prepare for writing to the target:
-            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
-                                                                  item.identifier.date, processingDate)
-            self.storageTgt.writeJSON(outJSON, catalogElement, cacheCatalogFlag=True)
-            
-            # Final stages:
-            self.perfmet.recordCollect(item.identifier.date, representsDay=True)
-            if fileType == "unmatched":
-                for sensor, rec in perfWork.items():
-                    self.perfmet.recordSensorObs(sensor, "Unmatched Entries", perfmet.SensorObs(observation=rec[0],
-                        expected=None, collectionDate=item.identifier.date, minTimestamp=rec[1], maxTimestamp=rec[2]))
-                # TODO: One issue we have with this is that there isn't a definitive way to know if a BT sensor is dead
-                # without it totally missing from the list. We need to add in zero-entries for sensors we expect to be working.
-                # Or, calculate expectations using prior records.
-                self.perfmet.writeSensorObs()
-
-            count += 1
-        else:
-            self.storageTgt.flushCatalog()
-        
+        # Configure the source and target repositories and start the compare loop:
+        count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
+                                   last_update.LastUpdStorageCatProv(self.storageTgt),
+                                   baseExtKey=False)
         self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
+
+    def innerLoopActivity(self, item):
+        """
+        This is where the actual ETL activity is called for the given compare item.
+        """
+        if item.ext not in ("traf_match_summary.txt", "matched.txt", "unmatched.txt"):
+            print("WARNING: Unsupported file type or extension: %s" % item.ext)
+            return 0
+        
+        # Write unit data to the target repository:
+        if self.itemCount == 0:
+            config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
+            
+        # Read in the file and call the transformation code.
+        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
+        filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
+        fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
+        outJSON, perfWork = btStandardize(item, filepathSrc,
+            self.storageTgt.makeFilename(item.identifier.base, fileType + ".json", item.identifier.date), fileType, self.processingDate)
+
+        # Clean up:
+        os.remove(filepathSrc)
+        
+        # Prepare for writing to the target:
+        catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
+                                                              item.identifier.date, self.processingDate)
+        self.storageTgt.writeJSON(outJSON, catalogElement)
+            
+        # Final stages:
+        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
+        if fileType == "unmatched":
+            for sensor, rec in perfWork.items():
+                self.perfmet.recordSensorObs(sensor, "Unmatched Entries", perfmet.SensorObs(observation=rec[0],
+                    expected=None, collectionDate=item.identifier.date, minTimestamp=rec[1], maxTimestamp=rec[2]))
+            # TODO: One issue we have with this is that there isn't a definitive way to know if a BT sensor is dead
+            # without it totally missing from the list. We need to add in zero-entries for sensors we expect to be working.
+            # Or, calculate expectations using prior records.
+            self.perfmet.writeSensorObs()
+
+        return 1
 
 def _parseTime(inTime):
     "Parses the time string as encountered in the Bluetooth source files."

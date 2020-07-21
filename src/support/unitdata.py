@@ -50,7 +50,7 @@ class UnitDataStorage:
             unitData["header"]["collection_date"], processingDate=unitData["header"]["collection_date"],
             metadata=unitData["header"])
         # TODO: If unit data gets big, we'll need to see if it is better to write to a file and write that out.
-        self.storageObject.writeBuffer(json.dumps(unitDataCat), unitDataCat)
+        self.storageObject.writeJSON(unitData, unitDataCat)
         
 def makeHeader(areaBase, device, sameDay=False):
     """

@@ -13,6 +13,7 @@ import tempfile
 import shutil
 import config
 from util import date_util
+from support import last_update
 
 "Number of months to go back for filing records"
 DATE_EARLIEST = 365
@@ -63,6 +64,12 @@ class ETLApp:
         self.needsTempDir = needsTempDir
         self.parseDateOnly = parseDateOnly
         self.perfmetStage = perfmetStage
+        
+        # State while the inner loop is running:
+        self.processingDate = None
+        self.runCount = 0
+        self.itemCount = 0
+        self.prevDate = None
                 
         # Parse the command line:
         if not args:
@@ -191,13 +198,14 @@ class ETLApp:
         
         # TODO: Preparation method call?
         
-        runCount = 1
+        self.runCount = 1
         recsProcessed = 0
+        self.processingDate = date_util.localize(arrow.now().datetime)
         # --- BEGIN STUFF. TODO: Support for loop over time period at intervals (with functional disable for that)?
         
         # TODO: Exception handling with retry ability?
         
-        recsProcessed += self.etlActivity(date_util.localize(arrow.now().datetime), runCount)
+        recsProcessed += self.etlActivity()
 
         runCount += 1
         # --- END STUFF
@@ -206,11 +214,50 @@ class ETLApp:
         
         return recsProcessed
 
-    def etlActivity(self, processingDate, runCount):
+    def etlActivity(self):
         """
         This performs the main ETL processing, to be implemented by the specific application.
         
         @return count: A general number of records processed
+        """
+        return 0
+    
+    def doCompareLoop(self, provSrc, provTgt, baseExtKey=True):
+        """
+        Sets up and iterates through the compare loop, calling innerLoopActivity.
+        
+        @param provSrc: Specifies source providers as a last_update.LastUpdateProv object
+        @param provTgt: Specifies the target provider as a last_update.LastUpdateProv object, or None for all sources
+        """
+        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
+                                                                        endDate=self.endDate,
+                                                                        baseExtKey=baseExtKey)
+        self.itemCount = 0
+        self.prevDate = None
+        for item in comparator.compare(lastRunDate=self.lastRunDate):
+            countIncr = self.innerLoopActivity(item)
+            
+            if countIncr:
+                if not self.prevDate:
+                    self.prevDate = item.date
+                if item.date != self.prevDate and self.storageTgt:
+                    self.storageTgt.flushCatalog()
+            self.itemCount += countIncr            
+        else:
+            self.storageTgt.flushCatalog()
+        return self.itemCount
+        
+    def innerLoopActivity(self, item):
+        """
+        This is where the actual ETL activity is called for the given compare item.
+        
+        Handy class attributes for helping processing are:
+            self.processingDate: Identifies the current processing date
+            self.itemCount: Starting with 0, this is the number of items that have been processed (increments with return value)
+            self.prevDate: This can be used to compare against item.date to see if processing has shifted to a new date
+        
+        @param item: Type last_update.LastUpdProv._LastUpdProvItem that describes the item to be updated
+        @return Number of items that were updated
         """
         return 0
 

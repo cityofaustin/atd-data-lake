@@ -10,7 +10,7 @@ import pandas as pd
 
 import json, os, hashlib
 
-# This sets up application information and command line parameters:
+# This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
     appName="bt_ready.py",
     appDescr="Performs JSON enrichment for Bluetooth data between the 'rawjson' and 'ready' Data Lake buckets")
@@ -23,14 +23,14 @@ class BTReadyApp(etl_app.ETLApp):
         """
         Initializes application-specific variables
         """
-        self.sourceDir = None
         super().__init__("bt", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="rawjson",
                          purposeTgt="ready",
                          perfmetStage="Ready")
+        self.unitData = None
 
-    def etlActivity(self, processingDate, runCount):
+    def etlActivity(self):
         """
         This performs the main ETL processing.
         
@@ -38,51 +38,47 @@ class BTReadyApp(etl_app.ETLApp):
         """
         # First, get the unit data for Bluetooth:
         unitDataProv = config.createUnitDataAccessor(self.storageSrc)
-        unitData = unitDataProv.retrieve()
+        self.unitData = unitDataProv.retrieve()
         
-        # Configure the source and target repositories:
-        provSrc = last_update.LastUpdStorageCatProv(self.storageSrc)
-        provTgt = last_update.LastUpdStorageCatProv(self.storageTgt)
-        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
-                                                                        endDate=self.endDate,
-                                                                        baseExtKey=False)
-        count = 0
-        prevDate = None
-        for item in comparator.compare(lastRunDate=self.lastRunDate):
-            # Check for valid data files:
-            if item.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
-                print("WARNING: Unsupported file type or extension: %s" % item.ext)
-                continue
-            
-            # Cause the catalog to update only after we complete all records for each date:
-            if not prevDate:
-                # This runs on the first item encountered. Write unit data to the target repository:
-                config.createUnitDataAccessor(self.storageTgt).store(unitData)
-                prevDate = item.date                
-            if item.date != prevDate:
-                self.storageTgt.flushCatalog()
-            
-            # Read in the file and call the transformation code.
-            print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-            filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
-            fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-            outJSON = btReady(item, unitData, filepathSrc, fileType, processingDate)
-
-            # Clean up:
-            os.remove(filepathSrc)
-
-            # Prepare for writing to the target:
-            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
-                                                                  item.identifier.date, processingDate)
-            self.storageTgt.writeJSON(outJSON, catalogElement, cacheCatalogFlag=True)
-
-            count += 1
-        else:
-            self.storageTgt.flushCatalog()
-        
+        # Configure the source and target repositories and start the compare loop:
+        count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
+                                   last_update.LastUpdStorageCatProv(self.storageTgt),
+                                   baseExtKey=False)
         self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
+
+    def innerLoopActivity(self, item):
+        """
+        This is where the actual ETL activity is called for the given compare item.
+        """
+        # Check for valid data files:
+        if item.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
+            print("WARNING: Unsupported file type or extension: %s" % item.ext)
+            return 0
+        
+        # Write unit data to the target repository:
+        if self.itemCount == 0:
+            config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
+        
+        # Read in the file and call the transformation code.
+        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
+        filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
+        fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
+        outJSON = btReady(item, self.unitData, filepathSrc, fileType, self.processingDate)
+
+        # Clean up:
+        os.remove(filepathSrc)
+
+        # Prepare for writing to the target:
+        catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
+                                                              item.identifier.date, self.processingDate)
+        self.storageTgt.writeJSON(outJSON, catalogElement)
+
+        # Performance metrics:
+        self.perfmet.recordCollect(item.date, representsDay=True)
+        
+        return 1
 
 def _createHash(row):
     """
@@ -141,7 +137,7 @@ def main(args=None):
     """
     Main entry point. Allows for dictionary to bypass default command-line processing.
     """
-    curApp = BTJSONStandardApp(args)
+    curApp = BTReadyApp(args)
     return curApp.doMainLoop()
 
 if __name__ == "__main__":

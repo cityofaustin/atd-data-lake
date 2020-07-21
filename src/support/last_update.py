@@ -14,12 +14,12 @@ class LastUpdate:
     # Caveat: While this will allow for targets that have bigger time intervals than sources, the source
     # time intervals must be evenly divisible. It would be possible to allow for partial updates in cases
     # where intervals aren't evenly divisible.
-    def __init__(self, source, target):
+    def __init__(self, source, target=None):
         """
         Initializes the object
         
         @param source: Used to access information on the availability of source data
-        @param target: Used to access information on the availability of target data
+        @param target: Used to access information on the availability of target data, or None for all
         """
         self.source = source
         self.target = target
@@ -78,13 +78,14 @@ class LastUpdate:
         if not earliest or lastRunDate and earliest > lastRunDate:
             earliest = lastRunDate
         self.source.prepare(earliest, self.endDate)
-        self.target.prepare(earliest, self.endDate)
         compareTargets = {}
-        for target in self.target.runQuery():
-            key = (target.base, target.ext) if self.baseExtKey else target.base
-            if key not in compareTargets:
-                compareTargets[key] = self._CompareTarget()
-            compareTargets[key].items.append(target)
+        if self.target:
+            self.target.prepare(earliest, self.endDate)
+            for target in self.target.runQuery():
+                key = (target.base, target.ext) if self.baseExtKey else target.base
+                if key not in compareTargets:
+                    compareTargets[key] = self._CompareTarget()
+                compareTargets[key].items.append(target)
         for sourceItem in self.source.runQuery():
             skipFlag = False
             key = (sourceItem.base, sourceItem.ext) if self.baseExtKey else sourceItem.base

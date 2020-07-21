@@ -9,7 +9,7 @@ from config import config_app
 from util import date_dirs
 from drivers import last_upd_fs
 
-# This sets up application information and command line parameters:
+# This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
     appName="bt_insert_lake.py",
     appDescr="Inserts Bluetooth data from AWAM share into the Raw Data Lake")
@@ -81,36 +81,32 @@ class BTInsertLakeApp(etl_app.ETLApp):
         
         @return count: A general number of records processed
         """
-        provSrc = BTLastUpdateProv(self.sourceDir, DIR_DEFS)
-        provTgt = self.storageTgt
-        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
-                                                                        endDate=self.endDate,
-                                                                        baseExtKey=True)
-        count = 0
-        prevDate = None
-        for item in comparator.compare(lastRunDate=self.lastRunDate):
-            # Cause the catalog to update only after we complete all records for each date:
-            if not prevDate:
-                prevDate = item.date
-            if item.date != prevDate:
-                self.storageTgt.flushCatalog()
-                
-            # Set up the storage path for the data item:
-            pathTgt = self.storageTgt.makePath(item.identifier.base, item.identifier.ext, item.identifier.date)
-            print("%s -> %s:%s" % (item.payload, pathTgt.repository, pathTgt))
-            
-            # Write the file to storage:
-            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
-                                                                  item.identifier.date, processingDate)
-            self.storageTgt.writeFile(item.payload, catalogElement, cacheCatalogFlag=True)
-            self.perfmet.recordCollect(item.identifier.date, representsDay=True)
-            count += 1
-        else:
-            self.storageTgt.flushCatalog()
-        
+        # Configure the source and target repositories and start the compare loop:
+        count = self.doCompareLoop(BTLastUpdateProv(self.sourceDir, DIR_DEFS),
+                                   last_update.LastUpdStorageCatProv(self.storageTgt),
+                                   baseExtKey=True)
         self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
+
+    def innerLoopActivity(self, item):
+        """
+        This is where the actual ETL activity is called for the given compare item.
+        """
+        # Set up the storage path for the data item:
+        pathTgt = self.storageTgt.makePath(item.identifier.base, item.identifier.ext, item.identifier.date)
+        print("%s -> %s:%s" % (item.payload, pathTgt.repository, pathTgt))
+        
+        # Write the file to storage:
+        catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
+                                                              item.identifier.date, self.processingDate)
+        self.storageTgt.writeFile(item.payload, catalogElement, cacheCatalogFlag=True)
+        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
+        
+        # Performance metrics:
+        self.perfmet.recordCollect(item.date, representsDay=True)
+
+        return 1
 
 def main(args=None):
     """

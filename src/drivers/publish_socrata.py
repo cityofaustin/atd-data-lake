@@ -4,6 +4,7 @@ publish_socrata.py coordinates the writing of data to Socrata
 @author Kenneth Perrine
 """
 from tdutils import socratautil
+import arrow
 
 from support import publish
 
@@ -41,3 +42,6 @@ class PublishSocrataConn(publish.PublishConnBase):
         """
         return SOC_CHUNK
         
+def socTime(inTimeStr):
+    "Converts the canonicalized time to the time representation that Socrata uses."
+    return arrow.get(inTimeStr).datetime.strftime("%Y-%m-%dT%H:%M:%S")
