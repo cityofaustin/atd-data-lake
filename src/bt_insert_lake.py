@@ -75,7 +75,7 @@ class BTInsertLakeApp(etl_app.ETLApp):
         self.sourceDir = args.source_dir
         super()._ingestArgs(args)
 
-    def etlActivity(self, processingDate, runCount):
+    def etlActivity(self):
         """
         This performs the main ETL processing.
         
@@ -101,10 +101,9 @@ class BTInsertLakeApp(etl_app.ETLApp):
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
                                                               item.identifier.date, self.processingDate)
         self.storageTgt.writeFile(item.payload, catalogElement, cacheCatalogFlag=True)
-        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
         
         # Performance metrics:
-        self.perfmet.recordCollect(item.date, representsDay=True)
+        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
 
         return 1
 

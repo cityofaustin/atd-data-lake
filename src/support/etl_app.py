@@ -59,6 +59,9 @@ class ETLApp:
         self.lastRunDate = None
         self.tempDir = None
         self.productionMode = None
+        self.deviceFilter = None
+        self.simulationMode = False
+        self.writeFilePath = None
 
         # General configuration variables:        
         self.needsTempDir = needsTempDir
@@ -160,6 +163,7 @@ class ETLApp:
         # Debugging features:
         self.simulationMode = args.simulate
         self.writeFilePath = args.output_filepath
+        self.deviceFilter = args.name_filter
             
         # Set up temporary output directory:
         if self.needsTempDir:

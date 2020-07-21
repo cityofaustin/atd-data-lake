@@ -64,7 +64,7 @@ class BTReadyApp(etl_app.ETLApp):
         # Read in the file and call the transformation code.
         print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
         filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
-        fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
+        fileType = item.ext.split(".")[0] # Get string up to the file type extension.
         outJSON = btReady(item, self.unitData, filepathSrc, fileType, self.processingDate)
 
         # Clean up:
@@ -76,7 +76,7 @@ class BTReadyApp(etl_app.ETLApp):
         self.storageTgt.writeJSON(outJSON, catalogElement)
 
         # Performance metrics:
-        self.perfmet.recordCollect(item.date, representsDay=True)
+        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
         
         return 1
 

@@ -9,16 +9,16 @@ class LastUpdGSProv(LastUpdProv):
     """
     Represents a collection of GRIDSMART devices and their respective histories
     """
-    def __init__(self, logReaders, targetPath):
+    def __init__(self, devicesLogReaders, targetPath):
         """
         Initializes the object.
         
-        @param logReaders: List of LogReader objects from gs_support
+        @param deviceslogReaders: List of _GSDeviceLogreader objects from gs_support
         @param targetPath: Path to write counts file archives to when getPayload() is called
         """
         super().__init__()
         
-        self.logReaders = logReaders
+        self.devicesLogReaders = devicesLogReaders
         self.targetPath = targetPath
         self.dateList = None
 
@@ -31,8 +31,8 @@ class LastUpdGSProv(LastUpdProv):
 
         # Get the unique dates that are within the time range:
         ourDatesSet = set()
-        for logReader in self.logReaders:
-            for ourDate in logReader.avail:
+        for device in self.devicesLogReaders:
+            for ourDate in device.logReader.avail:
                 if (not startDate or ourDate >= startDate) \
                         and (not endDate or ourDate < endDate or startDate == endDate and startDate == ourDate):
                     ourDatesSet.add(ourDate) 
@@ -53,19 +53,19 @@ class LastUpdGSProv(LastUpdProv):
         """
         # Identify all GRIDSMART records that match the dates within the time range:
         for ourDate in self.dateList:
-            for logReader in self.logReaders:
-                if logReader.queryDate(ourDate):
-                    base, ext, date = self._getIdentifier(logReader, ourDate)
+            for device in self.devicesLogReaders:
+                if device.logReader.queryDate(ourDate):
+                    base, ext, date = self._getIdentifier(device.logReader, ourDate)
                     yield LastUpdProv._LastUpdProvItem(base=base,
                                                        ext=ext,
                                                        date=date,
                                                        dateEnd=None,
-                                                       payload=logReader,
-                                                       label=logReader.constructFilename(date))
+                                                       payload=device,
+                                                       label=device.logReader.constructFilename(date))
     
     def getPayload(self, lastUpdItem):
         """
         Optionally returns a payload associated with the lastUpdItem. This can be where an expensive query takes place.
         """
-        return lastUpdItem.payload.getCountsFile(lastUpdItem.date, self.targetPath)
+        return lastUpdItem.payload.getCountsFile(lastUpdItem.identifier.date, self.targetPath)
     

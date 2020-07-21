@@ -77,7 +77,7 @@ class BTPublishApp(etl_app.ETLApp):
         os.remove(filepathSrc)
         
         # These variables will keep track of the device counter that gets reset daily:
-        if item.date != self.prevDate:
+        if item.identifier.date != self.prevDate:
             self.addrLookup = {}
             self.addrLookupCounter = 0
         
@@ -143,8 +143,15 @@ class BTPublishApp(etl_app.ETLApp):
             publisher.addRow(entry)
         publisher.flush()
         
+        # Write to catalog:
+        if not self.simulationMode:
+            catElement = self.catalog.buildCatalogElement(config.getRepository("public"), item.identifier.base,
+                                                          item.identifier.ext, item.identifier.date,
+                                                          self.processingDate, publisher.connector.socResource)
+            self.catalog.upsert(catElement)
+        
         # Performance metrics:
-        self.perfmet.recordCollect(item.date, representsDay=True)
+        self.perfmet.recordCollect(item.identifier.date, representsDay=True)
 
         return 1
 

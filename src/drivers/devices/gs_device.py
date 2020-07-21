@@ -116,4 +116,3 @@ def deviceFromJSON(jr, netAddr):
         raise
         
     return device 
-    
