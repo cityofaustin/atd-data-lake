@@ -14,7 +14,7 @@ class UnitDataStorage:
     """
     This handles the storage and retrieval of unit data from a Storage object.
     """
-    def __init__(self, storageObject, areaBase, referenceDate=None):
+    def __init__(self, storageObject, areaBase):
         """
         Initializes the object.
         
@@ -23,22 +23,44 @@ class UnitDataStorage:
         """
         self.storageObject = storageObject
         self.areaBase = areaBase
-        self.referenceDate = referenceDate if referenceDate else date_util.localize(arrow.now().datetime)
+        self.unitDataCatList = None
+        self.prevIndex = None
+        self.prevUnitData = None
     
-    def retrieve(self):
+    def prepare(self, dateEarliest=None, dateLatest=None):
+        """
+        
+        """
+        self.unitDataCatList = self.storageObject.catalog.getSearchableQueryList(self.storage.repository, self.areaBase,
+                                            "unit_data.json", dateEarliest, dateLatest,
+                                            exactEarlyDate=(dateEarliest and dateEarliest == dateLatest),
+                                            singleLatest=(not dateEarliest and not dateLatest))
+    
+    def retrieve(self, date=None):
         """
         This retrieves a unit data dictionary for this data type.
         
         @return Path to the written unit data file if writeFile is true; otherwise, the in-memory dictionary.
         """
-        # Step 1: Recent Unit Data
-        unitDataCat = self.storageObject.catalog.queryLatest(self.storage.repository, self.areaBase, "unit_data.json")
-        if unitDataCat:
-            # Step 2: Retrieve actual unit data:
-            buffer = self.storageObject.retrieveBuffer(unitDataCat["path"])
-            return json.loads(buffer)
-            # TODO: Re-make the header, or check the integrity of the existing header.
-        return None
+        # If prepare was never called, we'll just retrieve the latest unit data:
+        if not self.unitDataCatList:
+            self.prepare()
+        
+        # Find unit data catalog entry and return efficient responses if they're cached:
+        if date:
+            date += datetime.timedelta(secs=1)
+        unitDataCatIndex = self.unitDataCatList.getNextDateIndex(date) if date else len(self.unitDataCatList.catalogElements) - 1 
+        if unitDataCatIndex >= len(self.unitDataCatList.catalogElements) or unitDataCatIndex < 0:
+            return None
+        if unitDataCatIndex == self.prevIndex:
+            return self.prevUnitData
+        
+        # Get the unit data:
+        buffer = self.storageObject.retrieveBuffer(self.unitDataCatList.catalogElements[unitDataCatIndex]["path"])
+        self.prevIndex = unitDataCatIndex
+        self.prevUnitData = json.loads(buffer)
+        return self.prevUnitData
+        # TODO: Re-make the header, or check the integrity of the existing header.
 
     def store(self, unitData):
         """

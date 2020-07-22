@@ -4,6 +4,9 @@ catalog.py: Interface for accessing the Data Lake Catalog
 Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
 """
+import bisect
+import datetime
+
 import arrow
 
 from util import date_util
@@ -33,7 +36,51 @@ class Catalog:
         @param limit: Optional limit on query results
         """
         return [x for x in self.query(stage, base, ext, earlyDate, lateDate, exactEarlyDate=exactEarlyDate, limit=limit, reverse=reverse)]
+    
+    class _SearchableQueryList:
+        """
+        The return from getSearchableQueryList() which has a function for returning the index to the next date
+        """
+        def __init__(self, dates, catalogElements):
+            """
+            Initializes variables
+            """
+            self.dates = dates
+            self.catalogElements = catalogElements
+            
+        def getNextDateIndex(self, date):
+            """
+            Returns the index into catalogElements that has the date equal or immediately next in line from
+            the given date.
+            """
+            return bisect.bisect_left(self.dates, date)
+    
+    def getSearchableQueryList(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, singleLatest=False):
+        """
+        Returns a list of catalog entries sorted by date that match the criteria in a tuple along with a simple
+        list of dates. This can then be passed into searchQueryListNext to identify the index that corresponds with
+        the next date.
+        """
+        limit = None
+        reverse = False
+        if singleLatest:
+            limit = 1
+            reverse = True
+        queryList = self.getQueryList(stage, base, ext, earlyDate, lateDate, exactEarlyDate, limit=limit, reverse=reverse)
         
+        # Try to get the next one, for good measure:
+        if lateDate:
+            addedQueryItem = self.queryEarliest(stage, base, ext, lateDate + datetime.timedelta(secs=1))
+            if addedQueryItem:
+                if not queryList:
+                    queryList = [addedQueryItem]
+                elif addedQueryItem["collection_date"] != queryList[-1]["collection_date"]:
+                    queryList.appen(addedQueryItem)
+        
+        if queryList:
+            return self._SearchableQueryList([x["collection_date"] for x in queryList], queryList)
+        return None
+    
     def query(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, limit=None, reverse=False):
         """
         Returns a generator of catalog entries sorted by date that match the given criteria.
@@ -76,6 +123,16 @@ class Catalog:
         """
         results = self.getQueryList(stage, base, ext, earlyDate, lateDate, limit=1, reverse=True)
         return results[0] if results else None
+
+    def queryEarliest(self, stage, base, ext, earlyDate=None, lateDate=None):
+        """
+        Returns the earliest catalog entry that matches the given criteria, or None if nothing returns.
+
+        @param earlyDate: Limit the search to an early date, or None for no limit.
+        @param lateDate: Limit the search to a late date, or None for no limit.
+        """
+        results = self.getQueryList(stage, base, ext, earlyDate, lateDate, limit=1, reverse=False)
+        return results[0] if results else None        
         
     def buildCatalogElement(self, stage, base, ext, collectionDate, processingDate, path, collectionEnd=None, metadata=None):
         """

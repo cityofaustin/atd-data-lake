@@ -28,7 +28,7 @@ class BTReadyApp(etl_app.ETLApp):
                          purposeSrc="rawjson",
                          purposeTgt="ready",
                          perfmetStage="Ready")
-        self.unitData = None
+        self.unitDataProv = None
 
     def etlActivity(self):
         """
@@ -37,8 +37,8 @@ class BTReadyApp(etl_app.ETLApp):
         @return count: A general number of records processed
         """
         # First, get the unit data for Bluetooth:
-        unitDataProv = config.createUnitDataAccessor(self.storageSrc)
-        self.unitData = unitDataProv.retrieve()
+        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
+        self.unitDataProv.prepare(self.dateEarliest, self.dateLatest)
         
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
@@ -53,19 +53,18 @@ class BTReadyApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Check for valid data files:
-        if item.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
-            print("WARNING: Unsupported file type or extension: %s" % item.ext)
+        if item.identifier.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
+            print("WARNING: Unsupported file type or extension: %s" % item.identifier.ext)
             return 0
         
-        # Write unit data to the target repository:
-        if self.itemCount == 0:
-            config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
+        # Retrieve unit data closest to the date that we're processing:
+        unitData = self.unitDataProv.retrieve(item.identifier.date)
         
         # Read in the file and call the transformation code.
         print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
         filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
         fileType = item.ext.split(".")[0] # Get string up to the file type extension.
-        outJSON = btReady(item, self.unitData, filepathSrc, fileType, self.processingDate)
+        outJSON = btReady(item, unitData, filepathSrc, fileType, self.processingDate)
 
         # Clean up:
         os.remove(filepathSrc)

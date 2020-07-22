@@ -51,8 +51,8 @@ class BTJSONStandardApp(etl_app.ETLApp):
         """
         This is where the actual ETL activity is called for the given compare item.
         """
-        if item.ext not in ("traf_match_summary.txt", "matched.txt", "unmatched.txt"):
-            print("WARNING: Unsupported file type or extension: %s" % item.ext)
+        if item.identifier.ext not in ("traf_match_summary.txt", "matched.txt", "unmatched.txt"):
+            print("WARNING: Unsupported file type or extension: %s" % item.identifier.ext)
             return 0
         
         # Write unit data to the target repository:
