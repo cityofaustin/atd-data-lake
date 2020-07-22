@@ -3,9 +3,13 @@ JSON standardization for GRIDSMART
 
 @author Kenneth Perrine, Nadia Florez
 """
-from support import etl_app, last_update
+from support import etl_app, last_update, perfmet
 import config
-from drivers.devices import last_upd_gs, gs_support
+from drivers.devices import gs_investigate
+from util import date_util
+
+import pandas as pd
+import pytz
 
 import os, datetime, json
 
@@ -27,6 +31,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
                          purposeSrc="raw",
                          purposeTgt="rawjson",
                          perfmetStage="Standardize")
+        self.prevDate = None
         self.unitDataProv = None
         self.prevUnitData = None
         self.siteFileCatElems = None
@@ -51,6 +56,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc, extFilter="zip"),
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
+        self.perfmet.writeSensorObs()
         self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
@@ -60,9 +66,9 @@ class GSJSONStandardApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Commit old sensor observations:
-        if prevDate and record.fileDate > prevDate:
+        if self.prevDate and item.idenifier.date > self.prevDate:
             # Write out uncommitted sensor performance metric observations for the prior date:
-            perfMet.writeSensorObs()
+            self.perfmet.writeSensorObs()
             
         # Get site file:
         siteFileCatElem, newSiteFlag = self.siteFileCatElems.getForPrevDate(item.identifier.base, item.identifier.date, forceValid=True)
@@ -82,8 +88,9 @@ class GSJSONStandardApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
             
         print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-        
-
+        worker = GSJSONStandard(item, siteFile, self.storageSrc, self.storageTgt, self.processingDate)
+        if not worker.jsonize():
+            return 0
 
         # Write the site file if it is a new one:
         if newSiteFlag:
@@ -93,14 +100,10 @@ class GSJSONStandardApp(etl_app.ETLApp):
             
         # Performance metrics logging:
         self.perfmet.recordCollect(item.identifier.date, representsDay=True)
-        perfMet.recordSensorObs(record.identifier[0], "Vehicle Counts", perfmet.SensorObs(observation=worker.perfWork[0],
-            expected=None, collectionDate=record.fileDate, minTimestamp=worker.perfWork[1], maxTimestamp=worker.perfWork[2]))
-
-
-        # Clean up:
-        os.remove(filepathSrc)
+        self.perfmet.recordSensorObs(item.identifier.base, "Vehicle Counts", perfmet.SensorObs(observation=worker.perfWork[0],
+            expected=None, collectionDate=item.identifier.date, minTimestamp=worker.perfWork[1], maxTimestamp=worker.perfWork[2]))
         
-        return count
+        return 1
 
 class GSJSONStandard:
     """
@@ -116,6 +119,7 @@ class GSJSONStandard:
         self.apiVersion = None
         self.columns = None
         self.header = self.setHeader()
+        self.perfWork = [0, None, None]
         
     @staticmethod
     def getAPIVersion(fileDict):
@@ -190,7 +194,6 @@ class GSJSONStandard:
         i = 0
         self.api_version = self.getAPIVersion(fileDict)
         self.setDataColumns()
-        catCache = []
         for key, value in fileDict.items():
             guid = key
             csvPath = value # Recall this is a temporary location from unzipped
@@ -199,16 +202,16 @@ class GSJSONStandard:
 
             print(("Working on file {}").format(csvPath))
             # Initiate json object
-            json_data = {'header': self.header,
-                         'data': None}
+            jsonData = {'header': self.header,
+                        'data': None}
             # Add header information
-            json_data['header']['origin_filename'] = guid + '.csv'
-            json_data['header']['target_filename'] = targetFilename
-            json_data['header']['version'] = self.apiVersion
-            json_data['header']['guid'] = guid
+            jsonData['header']['origin_filename'] = guid + '.csv'
+            jsonData['header']['target_filename'] = targetFilename
+            jsonData['header']['version'] = self.apiVersion
+            jsonData['header']['guid'] = guid
 
             data = pd.read_csv(csvPath, header=None, names=self.columns)
-            json_data['data'] = data.apply(lambda x: x.to_dict(), axis=1).tolist()
+            jsonData['data'] = data.apply(lambda x: x.to_dict(), axis=1).tolist()
 
             # Fix the time representation. First, find the time delta:
             try:
@@ -220,9 +223,9 @@ class GSJSONStandard:
                 # next day.
                 collDatetime = self.item.identifier.date.replace(hour=0, minute=0, second=0, microsecond=0)
                 timestamp = None
-                if self.apiVersion == 8 and json_data['data']:
+                if self.apiVersion == 8 and jsonData['data']:
                     timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " 000000", "%Y-%m-%d %H%M%S")
-                    timestamp -= datetime.timedelta(minutes=json_data['data'][0]['utc_offset'])
+                    timestamp -= datetime.timedelta(minutes=jsonData['data'][0]['utc_offset'])
                     timestamp = pytz.utc.localize(timestamp)
                     timestamp = date_util.localize(timestamp + timeDelta)
                 elif self.apiVersion == 7:
@@ -234,14 +237,14 @@ class GSJSONStandard:
                     timestamp = date_util.localize(timestamp + timeDelta)
                 if timestamp:
                     if timestamp < collDatetime:
-                        json_data['header']['day_covered'] = -1
+                        jsonData['header']['day_covered'] = -1
                     elif timestamp == collDatetime:
-                        json_data['header']['day_covered'] = 0
+                        jsonData['header']['day_covered'] = 0
                     else:
-                        json_data['header']['day_covered'] = 1
+                        jsonData['header']['day_covered'] = 1
                 
                 # Add in "timestamp_adj" for each data item:
-                for item in json_data['data']:
+                for item in jsonData['data']:
                     if self.apiVersion == 8:
                         # TODO: The UTC Offset doesn't seem to reflect DST. Should we ignore it and blindly localize instead?
                         #       We can figure this out by seeing what the latest count is on a live download of the current day.
@@ -260,6 +263,15 @@ class GSJSONStandard:
                         item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
                         
                         item['count_version'] = int(item['count_version'])
+                    if timestamp:
+                        # Performance metrics:
+                        if not self.perfWork[1]:
+                            self.perfWork = [0, timestamp, timestamp]
+                        self.perfWork[0] += 1
+                        if timestamp < self.perfWork[1]:
+                            self.perfWork[1] = timestamp
+                        if timestamp > self.perfWork[2]:
+                            self.perfWork[2] = timestamp
             except KeyError:
                 print("WARNING: Time representation processing has malfunctioned. Correct time key may not be present in site file.")
             except ValueError as exc:
@@ -267,12 +279,12 @@ class GSJSONStandard:
                 print(exc)
             
             # Write to storage object:
-            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, ext, item.identifier.date, processingDate=self.processingDate)
-            self.storageTgt.writeJSON(json_data, catalogElement, cacheCatalogFlag=True)
+            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, guid + ".json", item.identifier.date, processingDate=self.processingDate)
+            self.storageTgt.writeJSON(jsonData, catalogElement, cacheCatalogFlag=True)
             
             i += 1
-            print(("JSON standardization saved as {}").format(targetPath))
-            print(("File {} out of {} done!").format(i, n))
+            print("JSON standardization saved as {}".format(targetFilename))
+            print("File {} out of {} done!".format(i, n))
             
 def main(args=None):
     """
