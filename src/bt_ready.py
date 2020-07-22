@@ -53,6 +53,8 @@ class BTReadyApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Check for valid data files:
+        if item.identifier.ext == "unit_data.json":
+            return 0
         if item.identifier.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
             print("WARNING: Unsupported file type or extension: %s" % item.identifier.ext)
             return 0

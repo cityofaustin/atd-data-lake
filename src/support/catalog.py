@@ -48,18 +48,34 @@ class Catalog:
             self.dates = dates
             self.catalogElements = catalogElements
             
+        def __getitem__(self, index):
+            """
+            Convenience for retrieving items from the catalogElements array
+            """
+            return self.catalogElements[index]
+            
         def getNextDateIndex(self, date):
             """
-            Returns the index into catalogElements that has the date equal or immediately next in line from
+            Returns the index into catalogElements that has the date equal or immediately greater from
             the given date.
             """
             return bisect.bisect_left(self.dates, date)
-    
-    def getSearchableQueryList(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, singleLatest=False):
+
+        def getNextDateIndexEx(self, date):
+            """
+            Returns the index into catalogElements that has the date immediately greater from the given date.
+            """
+            return bisect.bisect_right(self.dates, date)
+
+    def getSearchableQueryList(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, singleLatest=False, baseDict=False):
         """
-        Returns a list of catalog entries sorted by date that match the criteria in a tuple along with a simple
-        list of dates. This can then be passed into searchQueryListNext to identify the index that corresponds with
-        the next date.
+        Returns a _SearchableQueryList object that contains a list of catalog entries sorted by date that match the criteria.
+        The getNextDateIndex() method can be called to identify the index that corresponds with the next date.
+        
+        @param earlyDate: Set this to None to have no early date.
+        @param lateDate: Set this to None to have no late date.
+        @param exactEarlyDate: Set this to true to query only on exact date defined by the earlyDate parameter
+        @return A single _SearchableQueryList object
         """
         limit = None
         reverse = False
@@ -76,10 +92,99 @@ class Catalog:
                     queryList = [addedQueryItem]
                 elif addedQueryItem["collection_date"] != queryList[-1]["collection_date"]:
                     queryList.appen(addedQueryItem)
-        
         if queryList:
             return self._SearchableQueryList([x["collection_date"] for x in queryList], queryList)
         return None
+
+    class _SearchableQueryDict:
+        """
+        The return from getSearchableQueryDict() which has a function for returning the element for the next date.
+        Also keeps track of whether the return/object is the same.
+        """
+        def __init__(self):
+            """
+            Initializes variables
+            """
+            self.prevIndices = {}
+            self.searchableLists = {}
+        
+        def getForNextDate(self, base, date, exclusive=False, forceValid=False):
+            """
+            Returns the catalog element for the next date
+            
+            @param exlusive: If True, returns the next catalog element if the date matches
+            @param forceValud: When True, if the resulting date is out of range, returns the nearest in range
+            """
+            return self._getForDate(base, date, exclusive, nextFlag=True, forceValid=forceValid)
+            
+        def getForPrevDate(self, base, date, exclusive=False, forceValid=False):
+            """
+            Returns the catalog element for the next date
+            
+            @param exlusive: If True, returns the previous catalog element if the date matches
+            @param forceValud: When True, if the resulting date is out of range, returns the nearest in range
+            """
+            return self._getForDate(base, date, exclusive, nextFlag=False, forceValid=forceValid)
+
+        def _getForDate(self, base, date, exclusive=False, nextFlag=True, forceValid=False):
+            """
+            Returns the catalog element for the previous or next date
+            
+            @param nextFlag: If True, returns the catalog element for the next date
+            @param exlusive: If True, returns the next catalog element if the date matches
+            @param forceValud: When True, if the resulting date is out of range, returns the nearest in range
+            @return A tuple of the catalog entry and True if the returned item is new from the last query
+            """
+            if base not in self.searchableLists:
+                return None, False
+            searchableList = self.searchableLists[base]
+            if not nextFlag:
+                if not exclusive:
+                    index = searchableList.getNextIndexEx(date) - 1
+                else:
+                    index = searchableList.getNextIndex(date) - 1
+            else:
+                if not exclusive:
+                    index = searchableList.getNextIndex(date)
+                else:
+                    index = searchableList.getNextIndexEx(date)
+            if index >= len(searchableList):
+                if not forceValid:
+                    return None, False
+                else:
+                    index = len(searchableList) - 1
+            if index < 0:
+                if not forceValid:
+                    return None, False
+                else:
+                    index = 0
+            newFlag = False
+            if base not in self.prevIndices or index != self.prevIndices[base]:
+                self.prevIndices[base] = index
+                newFlag = True
+            return searchableList[index], newFlag
+
+    def getSearchableQueryDict(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False):
+        """
+        Returns a dictionary of catalog entries keyed by base and sorted by date that match the criteria. The searchQueryListNext()
+        method can then be found to find the element that corresponds with the next date.
+        
+        @param earlyDate: Set this to None to have no early date.
+        @param lateDate: Set this to None to have no late date.
+        @param exactEarlyDate: Set this to true to query only on exact date defined by the earlyDate parameter
+        @return A _SearchableQueryDict object that contains dicts of _SearchableQueryList objects keyed off of base 
+        """
+        queryList = self.getQueryList(stage, base, ext, earlyDate, lateDate, exactEarlyDate)
+        
+        ret = self._SearchableQueryDict()
+        if queryList:
+            for item in queryList:
+                if item["base"] not in ret.searchableLists:
+                    ret.searchableLists[item["base"]] = self._SearchableQueryList([], [])
+                queryListObj = ret.searchableLists[item["base"]] 
+                queryListObj.dates.append(item["collection_date"])
+                queryListObj.catalogElements.append(item)
+        return ret
     
     def query(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, limit=None, reverse=False):
         """

@@ -9,14 +9,14 @@ import zipfile
 import tempfile
 import shutil
 
-"""
-ZipHelper represents a ZIP file. It unpacks the ZIP file upon creation, and then cleans up upon destruction.
-"""
 class ZipHelper:
     """
-    __init__() is the constructor and attempts to unpack the given .ZIP file.
+    ZipHelper represents a ZIP file. It unpacks the ZIP file upon creation, and then cleans up upon destruction.
     """
     def __init__(self, zipFile):
+        """
+        __init__() is the constructor and attempts to unpack the given .ZIP file.
+        """
         # Create the temporary directory:
         self.tempDir = tempfile.mkdtemp()
         
@@ -24,10 +24,10 @@ class ZipHelper:
         zipRef = zipfile.ZipFile(zipFile, 'r')
         zipRef.extractall(self.tempDir)
 
-    """
-    _getFiles() is used internally.
-    """
     def _getFiles(self, path, getFullPath, findDirs):
+        """
+        _getFiles() is used internally.
+        """
         if not self.tempDir:
             return None
         if not path.startswith(self.tempDir):
@@ -40,41 +40,41 @@ class ZipHelper:
                 ret.append(fullFile if getFullPath else filename)
         return ret
 
-    """
-    getFiles() returns a list of files contained within the ZIP file at the given subdirectory, or the root"
-    directory if no path supplied. Supply an optional directory path to list files within that directory.
-    """
     def getFiles(self, path="", getFullPath=True):
+        """
+        getFiles() returns a list of files contained within the ZIP file at the given subdirectory, or the root"
+        directory if no path supplied. Supply an optional directory path to list files within that directory.
+        """
         return self._getFiles(path, getFullPath, False)
 
-    """
-    getDirs() returns a list of directories contained within the ZIP file at the given subdirectory, or the root"
-    directory if no path supplied. Supply an optional directory path to list files within that directory.
-    """
     def getDirs(self, path="", getFullPath=True):
+        """
+        getDirs() returns a list of directories contained within the ZIP file at the given subdirectory, or the root"
+        directory if no path supplied. Supply an optional directory path to list files within that directory.
+        """
         return self._getFiles(path, getFullPath, True)
             
-    """
-    cleanup() removes the unpacked ZIP file contents.
-    """
     def cleanup(self):
+        """
+        cleanup() removes the unpacked ZIP file contents.
+        """
         shutil.rmtree(self.tempDir)
         self.tempDir = None
 
-    """
-    isOpen() returns True if the ZIP file is currently unpacked and available.
-    """
     def isOpen(self):
+        """
+        isOpen() returns True if the ZIP file is currently unpacked and available.
+        """
         return True if self.tempDir else False
     
-    """
-    getUnpackPath() returns the path to the base of the unpacked ZIP file, or None if the ZIP file contents aren't available.
-    """
     def getUnpackPath(self):
+        """
+        getUnpackPath() returns the path to the base of the unpacked ZIP file, or None if the ZIP file contents aren't available.
+        """
         return self.tempDir
     
-    """
-    __del__() calls cleanup() to automatically remove the unpacked ZIP file.
-    """
     def __del__(self):
+        """
+        __del__() calls cleanup() to automatically remove the unpacked ZIP file.
+        """
         self.cleanup()

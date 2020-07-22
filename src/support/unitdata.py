@@ -29,12 +29,13 @@ class UnitDataStorage:
     
     def prepare(self, dateEarliest=None, dateLatest=None):
         """
-        
+        Searches the catalog for relevant unit data that is relevant to the date constraints if given
         """
         self.unitDataCatList = self.storageObject.catalog.getSearchableQueryList(self.storage.repository, self.areaBase,
                                             "unit_data.json", dateEarliest, dateLatest,
                                             exactEarlyDate=(dateEarliest and dateEarliest == dateLatest),
                                             singleLatest=(not dateEarliest and not dateLatest))
+        return self
     
     def retrieve(self, date=None):
         """
