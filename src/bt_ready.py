@@ -63,12 +63,9 @@ class BTReadyApp(etl_app.ETLApp):
         
         # Read in the file and call the transformation code.
         print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-        filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
+        data = self.storageSrc.retrieveJSON(item.payload["path"])
         fileType = item.ext.split(".")[0] # Get string up to the file type extension.
-        outJSON = btReady(item, unitData, filepathSrc, fileType, self.processingDate)
-
-        # Clean up:
-        os.remove(filepathSrc)
+        outJSON = btReady(item, unitData, data, fileType, self.processingDate)
 
         # Prepare for writing to the target:
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
@@ -89,19 +86,15 @@ def _createHash(row):
     hasher.update(bytes(toHash, "utf-8"))
     return hasher.hexdigest()
 
-def btReady(unitData, filepathSrc, fileType, processingDate):
+def btReady(unitData, data, fileType, processingDate):
     """
     Transforms Bluetooth data to "ready" JSON along with the unit data.
     """
-    # Step 1: Read the file:
-    with open(filepathSrc, 'r') as dataFile:
-        data = json.load(dataFile)
-        
-    # Step 2: Prepare header:
+    # Step 1: Prepare header:
     header = data["header"]
     header["processing_date"] = str(processingDate)    
 
-    # Step 3: Convert the data and devices to Pandas dataframes:
+    # Step 2: Convert the data and devices to Pandas dataframes:
     data = pd.DataFrame(data["data"])
     devices = pd.DataFrame(unitData["devices"])
     

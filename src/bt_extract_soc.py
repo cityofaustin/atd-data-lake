@@ -67,13 +67,8 @@ class BTPublishApp(etl_app.ETLApp):
         
         # Read in the file and call the transformation code.
         print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-        filepathSrc = self.storageSrc.retrieveFilePath(item.payload["path"])
+        data = self.storageSrc.retrieveJSON(item.payload["path"])
         fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-        with open(filepathSrc, "r") as fileObj:
-            data = json.loads(fileObj)
-
-        # Clean up:
-        os.remove(filepathSrc)
         
         # These variables will keep track of the device counter that gets reset daily:
         if item.identifier.date != self.prevDate:

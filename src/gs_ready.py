@@ -3,14 +3,14 @@ ATD Data Lake 'ready' bucket for GRIDSMART
 
 @author Kenneth Perrine, Nadia Florez
 """
-from support import etl_app, last_update, perfmet
-import config
-from config import config_app
-from util import date_util, gps_h
+import datetime, collections, difflib, json, traceback
 
 import arrow
 
-import datetime, collections, difflib, json, traceback
+from support import etl_app, last_update
+import config
+from config import config_app
+from util import gps_h
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
@@ -304,11 +304,7 @@ def getCountsFile(base, date, guid, storage):
     catalogElement = storage.catalog.querySingle(storage.repository, base, guid + ".json", date)
     if not catalogElement:
         return None
-    data = storage.retrieveBuffer(catalogElement["path"])
-    if data:
-        return json.loads(data)
-    else:
-        return None
+    return storage.retrieveJSON(catalogElement["path"])
 
 def fillDayRecords(ourDate, countsFileData, ident, receiver):
     "Caution: this mutates countsFileData."

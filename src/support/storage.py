@@ -65,7 +65,19 @@ class Storage:
             destPath = self.tempDir
             inferFilename = True
         return self.dataSource.retrieveFilePath(path, destPath=destPath, inferFilename=inferFilename)
-            
+    
+    def retrieveJSON(self, path):
+        """
+        retrieveJSON(path) efficiently returns a dictionary representing JSON via a temporary file.
+        """
+        ret = None
+        tempFilePath = tempfile.mktemp()
+        if self.retrieveFilePath(path, destPath=tempFilePath):
+            with open(tempFilePath, "r") as fileObj:
+                ret = json.load(fileObj)
+        os.remove(tempFilePath)
+        return ret
+    
     def retrieveBuffer(self, path):
         """
         retrieveBufferPath retrieves a resource at the given storage platform-specific path and provides it as a buffer.
