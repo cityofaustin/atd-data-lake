@@ -85,7 +85,6 @@ class BTInsertLakeApp(etl_app.ETLApp):
         count = self.doCompareLoop(BTLastUpdateProv(self.sourceDir, DIR_DEFS),
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=True)
-        self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
 

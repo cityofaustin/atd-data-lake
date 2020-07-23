@@ -46,7 +46,6 @@ class GSInsertLakeApp(etl_app.ETLApp):
         count = self.doCompareLoop(self.gsProvider,
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
-        self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
 

@@ -44,8 +44,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         @return count: A general number of records processed
         """
         # First, get the unit data for GRIDSMART:
-        unitDataProv = config.createUnitDataAccessor(self.dataSource)
-        unitDataProv.prepare(self.dateEarliest, self.dateLatest)
+        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc).prepare(self.startDate, self.endDate)
         
         # Prepare to get site files:
         self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository, "site.json",
@@ -57,7 +56,6 @@ class GSJSONStandardApp(etl_app.ETLApp):
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
         self.perfmet.writeSensorObs()
-        self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
 

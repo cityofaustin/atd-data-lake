@@ -214,6 +214,9 @@ class ETLApp:
         runCount += 1
         # --- END STUFF
         
+        if self.perfmet:
+            self.perfmet.logJob(recsProcessed)
+        
         # TODO: Shutdown method call?
         
         return recsProcessed

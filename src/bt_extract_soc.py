@@ -53,7 +53,6 @@ class BTPublishApp(etl_app.ETLApp):
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
                                    last_update.LastUpdCatProv(self.storageTgt, config.getRepository("public")),
                                    baseExtKey=False)
-        self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
 

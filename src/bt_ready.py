@@ -44,7 +44,6 @@ class BTReadyApp(etl_app.ETLApp):
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
-        self.perfmet.logJob(count)
         print("Records processed: %d" % count)
         return count    
 
