@@ -9,7 +9,7 @@ import config
 
 import arrow
 
-import json, os, hashlib
+import hashlib
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
@@ -66,9 +66,9 @@ class BTPublishApp(etl_app.ETLApp):
             return 0
         
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-        data = self.storageSrc.retrieveJSON(item.payload["path"])
         fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
+        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.publishers[fileType].connector.socResource))
+        data = self.storageSrc.retrieveJSON(item.payload["path"])
         
         # These variables will keep track of the device counter that gets reset daily:
         if item.identifier.date != self.prevDate:

@@ -101,7 +101,7 @@ def createUnitDataConn(dataSource, areaBase):
     elif dataSource == "gs":
         return gs_unitdata_knack.GSUnitDataKnack(KNACK_APP_ID, KNACK_API_KEY, areaBase)
 
-def createPublisherConn(dataSource, variant):
+def createPublisherConn(dataSource, variant=None):
     """
     Returns a new publisher connector object
     """
