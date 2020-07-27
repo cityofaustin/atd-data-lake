@@ -122,10 +122,10 @@ class Storage:
         )
         if self.writeFilePath:
             # We have a debug flag for writing out the file to a given path. Write it.
-            filename = self.makePath(catalogElement["id_base"], catalogElement["id_ext"], catalogElement["collection_date"])
+            filename = self.makeFilename(catalogElement["id_base"], catalogElement["id_ext"], arrow.get(catalogElement["collection_date"]))
             debugPath = os.path.join(self.writeFilePath, filename)
             with open(debugPath, "wb") as outFile:
-                outFile.write(sourceBuffer)
+                writeFromBinBuffer(sourceBuffer, outFile)
                 outFile.flush()
             if not self.simulationMode:
                 # Use that written file to write to the storage repository.
@@ -176,3 +176,18 @@ class Storage:
         """
         return self.catalog.buildCatalogElement(self.repository, base, ext, collectionDate, processingDate, \
             self.makePath(base, ext, collectionDate), metadata)
+
+BIN_BUFFER_SIZE = 1024
+"Used in the writeFromBinBuffer() function."
+
+def writeFromBinBuffer(readBuffer, writeBuffer):
+    """
+    Reads from a buffer to another buffer. Lifted off of
+    https://stackoverflow.com/questions/16630789/python-writing-binary-files-bytes 
+    """
+    while True:
+        buf = readBuffer.read(1024)
+        if buf: 
+            writeBuffer.write(buf)
+        else:
+            break
