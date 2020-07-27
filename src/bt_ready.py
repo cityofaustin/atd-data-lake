@@ -62,8 +62,8 @@ class BTReadyApp(etl_app.ETLApp):
         unitData = self.unitDataProv.retrieve(item.identifier.date)
         
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
-        data = self.storageSrc.retrieveJSON(item.payload["path"])
+        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.storageTgt.repository))
+        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
         fileType = item.ext.split(".")[0] # Get string up to the file type extension.
         outJSON = btReady(item, unitData, data, fileType, self.processingDate)
 

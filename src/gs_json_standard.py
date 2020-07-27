@@ -77,7 +77,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
             siteFile = self.siteFileCache[item.identifier.base]
         else:
             # Get site file from repository if needed:
-            siteFile = json.loads(self.storageSrc.retrieveBuffer(siteFileCatElem["path"]))
+            siteFile = json.loads(self.storageSrc.retrieveBuffer(siteFileCatElem["pointer"]))
             self.siteFileCache[item.identifier.base] = siteFile
         
         # Obtain unit data, and write it to the target repository if it's new:
@@ -85,7 +85,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         if unitData != self.prevUnitData:
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
             
-        print("%s: %s -> %s" % (item.payload["path"], self.stroageSrc.repository, self.storageTgt.repository))
+        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.storageTgt.repository))
         worker = GSJSONStandard(item, siteFile, self.storageSrc, self.storageTgt, self.processingDate)
         if not worker.jsonize():
             return 0
@@ -164,7 +164,7 @@ class GSJSONStandard:
 
     def jsonize(self):
         # Read the .ZIP file and unpack here.
-        filePath = self.storageSrc.retrieveFilePath(self.item.payload["path"])
+        filePath = self.storageSrc.retrieveFilePath(self.item.payload["pointer"])
         if not gs_investigate.investigate(filePath, lambda fileDict: self._jsonizeWork(fileDict)):
             print("File %s not processed." % filePath)
             return False

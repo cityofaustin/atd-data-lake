@@ -112,13 +112,14 @@ The Data Lake catalog, accessible through a PostgREST interface, provides a quer
  id              | integer                  |           | not null | api.data_lake_catalog_id_seq
  repository      | text                     |           | not null |
  data_type       | text                     |           | not null |
- identifier      | text                     |           | not null |
+ id_base         | text                     |           | not null |
+ id_ext          | text                     |           | not null |
  pointer         | text                     |           | not null |
  collection_date | timestamp with time zone |           | not null |
- processing_date | timestamp with time zone |           | not null |
+ processing_date | timestamp with time zone |           |          |
  metadata        | jsonb                    |           |          |
 Indexes:
-    "data_lake_catalog_pkey" PRIMARY KEY, btree (collection_date, repository, data_type, identifier)
+    "data_lake_catalog_pkey" PRIMARY KEY, btree (collection_date, repository, data_type, id_base, id_ext)
     "data_lake_catalog_date_idx" btree (collection_date)
 ```
 

@@ -57,7 +57,7 @@ class UnitDataStorage:
             return self.prevUnitData
         
         # Get the unit data:
-        buffer = self.storageObject.retrieveBuffer(self.unitDataCatList.catalogElements[unitDataCatIndex]["path"])
+        buffer = self.storageObject.retrieveBuffer(self.unitDataCatList.catalogElements[unitDataCatIndex]["pointer"])
         self.prevIndex = unitDataCatIndex
         self.prevUnitData = json.loads(buffer)
         return self.prevUnitData

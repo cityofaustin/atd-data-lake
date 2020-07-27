@@ -3,11 +3,10 @@ config_app.py contains application-specific configurations.
 
 @author Kenneth Perrine
 """
-import config
-from config import config_secret
+from config import config_secret, config_support
 
 from drivers import storage_s3, catalog_postgrest, perfmet_postgrest, publish_socrata
-from drivers.devices import bt_unitdata_knack, wt_unitdata_knack, gs_unitdata_knack,
+from drivers.devices import bt_unitdata_knack, wt_unitdata_knack, gs_unitdata_knack
 
 # ** These project-wide items are independent of specific devices: **
 "Time zone associated with the location of this data lake"
@@ -28,29 +27,29 @@ PURPOSE_REPO_MAP = {"raw-production": "atd-data-lake-raw",
                     "public-production": "socrata",
                     "public-debug": "socrata-test"}
 
-DATASOURCE_MAP = {"bt": config.DataSourceConfig(code="bt", name="Bluetooth"),
-                  "wt": config.DataSourceConfig(code="wt", name="Wavetronix"),
-                  "gs": config.DataSourceConfig(code="gs", name="GRIDSMART")}
+DATASOURCE_MAP = {"bt": config_support.DataSourceConfig(code="bt", name="Bluetooth"),
+                  "wt": config_support.DataSourceConfig(code="wt", name="Wavetronix"),
+                  "gs": config_support.DataSourceConfig(code="gs", name="GRIDSMART")}
 
 # ** These items are specific to devices and dependencies: **
 CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_test"
-CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", default="")
+CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", "")
 
 PERFMET_JOB_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_job"
 PERFMET_OBS_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_obs"
 
-KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", default="")
-KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", default="")
+KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", "")
+KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", "")
 
-KNACK_PERFMET_ID = getattr(config_secret, "KNACK_PERFMET_ID", default="")
+KNACK_PERFMET_ID = getattr(config_secret, "KNACK_PERFMET_ID", "")
 
-AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", default="")
-AWS_SECRET_KEY = getattr(config_secret, "AWS_SECRET_KEY", default="")
+AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", "")
+AWS_SECRET_KEY = getattr(config_secret, "AWS_SECRET_KEY", "")
 
 SOC_HOST = "data.austintexas.gov"
 SOC_IDENTIFIER = "datalake"
-SOC_APP_TOKEN = getattr(config_secret, "SOC_APP_TOKEN", default="")
-SOC_WRITE_AUTH = getattr(config_secret, "SOC_WRITE_AUTH", default=())
+SOC_APP_TOKEN = getattr(config_secret, "SOC_APP_TOKEN", "")
+SOC_WRITE_AUTH = getattr(config_secret, "SOC_WRITE_AUTH", ())
 "SOC_WRITE_AUTH is a tuple of username and password"
 
 SOC_RESOURCE_BT_IAF = "qnpj-zrb9"

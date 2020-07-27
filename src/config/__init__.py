@@ -4,12 +4,8 @@ platform-independent accessors for storage and catalog objects.
 
 @author Kenneth Perrine
 """
-from collections import namedtuple
-
 from config import config_app
 from support import storage, catalog, unitdata, perfmet, publish
-
-DataSourceConfig = namedtuple("DataSourceConfig", "code name")
 
 def getUnitLocation():
     """
@@ -40,7 +36,7 @@ def getRepository(purpose):
 
 def getDataSourceInfo(dataSourceCode):
     """
-    Returns a DataSourceConfig lookup for the given datasource code
+    Returns a config_support.DataSourceConfig lookup for the given datasource code
     """
     return config_app.DATASOURCE_MAP[dataSourceCode]
 

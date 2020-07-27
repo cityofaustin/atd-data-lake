@@ -68,7 +68,7 @@ class CatalogPostgREST:
                 command["collection_date"] = collDateRange
                 
         # Run the query:
-        return self.catalog.select(params=command)
+        return self.catalogDB.select(params=command)
     
     def upsert(self, upsertDataList):
         """
@@ -77,4 +77,10 @@ class CatalogPostgREST:
         "processing_date", and optionally "metadata".
         """
         self.catalogDB.upsert(upsertDataList)
-        
+    
+    @staticmethod
+    def getPreferredChunk():
+        """
+        Retruns the preferred chunk size that catalog.Catalog.query() should used in requests.
+        """
+        return PREFERRED_CHUNK_SIZE

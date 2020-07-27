@@ -61,7 +61,7 @@ This section now pertains to creating and accessing the Catalog.
 
 ### Create Catalog
 
-This is what will be done to create the catalog table that is accessible through PostgREST (note that this documents the new "base/ext" identifier scheme that isn't quite implemented yet):
+This is what will be done to create the catalog table that is accessible through PostgREST:
 
 ```sql
 CREATE TABLE IF NOT EXISTS api.data_lake_catalog (
@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS api.data_lake_catalog (
   id_ext TEXT NOT NULL,
   pointer TEXT NOT NULL,
   collection_date TIMESTAMP WITH TIME ZONE NOT NULL,
-  processing_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  collection_end TIMESTAMP WITH TIME ZONE,
+  processing_date TIMESTAMP WITH TIME ZONE,
   metadata JSONB,
   PRIMARY KEY (collection_date, repository, data_source, id_base, id_ext)
 );
@@ -131,6 +132,11 @@ pgrest.delete({"value": "eq.%s" % myStr})
 if pgrest.select({"select": "value", "value": "eq.%s" % myStr}):
     print("Present 2")
 ```
+
+
+> from pypgrest import Postgrest
+>>> catalog=Postgrest("https://transportation-data.austinmobility.io/data-lake-catalog", auth="****")
+>>> rec={"repository":"test","data_source":"test","id_base":"test","id_ext":"test","pointer":"test","collection_date":"2020-01-01"}
 
 Further instructions on parameters: https://postgrest.org/en/v4.1/api.html. It looks like "AND" operators in queries are easy-- just add key/value pairs to select calls-- but, "OR" operators require the use of stored procedures. To insert a stored procedure, it appears that one would need to get into the database with psql as seen in a previous section.
 

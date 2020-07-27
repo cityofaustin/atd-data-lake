@@ -29,6 +29,21 @@ class GSInsertLakeApp(etl_app.ETLApp):
                          perfmetStage="Ingest")
         self.unitData = None
         self.gsProvider = None
+        self.deviceFilter = None
+
+    def _addCustomArgs(self, parser):
+        """
+        Override this and call parser.add_argument() to add custom command-line arguments.
+        """        
+        parser.add_argument("-f", "--name_filter", default=".*", help="filter processing on units whose names match the given regexp")
+
+    def _ingestArgs(self, args):
+        """
+        Processes application-specific variables
+        """
+        if hasattr(args, "name_filter"):
+            self.deviceFilter = args.name_filter
+        super()._ingestArgs(args)
     
     def etlActivity(self):
         """

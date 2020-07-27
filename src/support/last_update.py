@@ -14,15 +14,17 @@ class LastUpdate:
     # Caveat: While this will allow for targets that have bigger time intervals than sources, the source
     # time intervals must be evenly divisible. It would be possible to allow for partial updates in cases
     # where intervals aren't evenly divisible.
-    def __init__(self, source, target=None):
+    def __init__(self, source, target=None, force=None):
         """
         Initializes the object
         
         @param source: Used to access information on the availability of source data
         @param target: Used to access information on the availability of target data, or None for all
+        @param force: Causes the updater to propose processing on records that are found to already exist
         """
         self.source = source
         self.target = target
+        self.force = force
         
         # Set through configure():
         self.startDate = None
@@ -59,8 +61,10 @@ class LastUpdate:
             "Checks to see if the given date range overlaps the current position."
             if self.curIndex < len(self.items):
                 endDate = self.items[self.curIndex].dateEnd
+                if not cmpDateEnd:
+                    cmpDateEnd = cmpDate + datetime.timedelta(days=1)
                 if not endDate:
-                    endDate = self.items[self.curIndex].date + datetime.timedelta(day=1) 
+                    endDate = self.items[self.curIndex].date + datetime.timedelta(days=1)
                 if not (cmpDateEnd < self.items[self.curIndex].date or cmpDate > cmpDateEnd):
                     return True
             return False
@@ -72,10 +76,10 @@ class LastUpdate:
         Iterates through the source and target, and generates identifiers for those that need updating
         in _LastUpdateItem objects.
         
-        @param lastRunDate: Identifies the last run time; used as a lower bound if startDate is None
+        @param lastRunDate: Identifies the last run time; but startDate supersedes it as a lower bound if earliest is specified.
         """
         earliest = self.startDate
-        if not earliest or lastRunDate and earliest > lastRunDate:
+        if not earliest:
             earliest = lastRunDate
         self.source.prepare(earliest, self.endDate)
         compareTargets = {}
@@ -94,9 +98,12 @@ class LastUpdate:
                 compareTarget.advanceDate(sourceItem.date)
                 if compareTarget.isWithin(sourceItem.date, sourceItem.dateEnd):
                     skipFlag = True
+            if self.force and skipFlag:
+                print("INFO: Forcing processing of %s for date %s." % (str(key), sourceItem.date))
+                skipFlag = False
             if not skipFlag:
                 yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
-                                      priorLastUpdate=not self.lastRunDate or sourceItem.date < self.lastRunDate,
+                                      priorLastUpdate=not lastRunDate or sourceItem.date < lastRunDate,
                                       payload=self.source.getPayload(sourceItem),
                                       label=sourceItem.label)
     
@@ -202,7 +209,7 @@ class LastUpdCatProv(LastUpdProv):
                                                date=date,
                                                dateEnd=result["collection_end"],
                                                payload=result,
-                                               label=result["path"])
+                                               label=result["pointer"])
 
 class LastUpdStorageCatProv(LastUpdCatProv):
     """

@@ -8,7 +8,7 @@ import os
 import boto3
 import arrow
 
-_AWS_SESSTION = None
+_AWS_SESSION = None
 
 def configAWS_S3(awsKey, awsSecretKey):
     global _AWS_SESSION
@@ -33,7 +33,7 @@ class StorageS3:
         
     def makePath(self, dataSource, collectionDate, filename=None):
         """
-        Builds a storage path for the S3 bucket using the given base, ext, and collectionDate.
+        Builds a storage path for the S3 bucket using the given collectionDate and filename.
         
         @param filename: If this is supplied, then the path will include the filename.
         """

@@ -72,7 +72,7 @@ class BTInsertLakeApp(etl_app.ETLApp):
         """
         Processes application-specific variables
         """
-        self.sourceDir = args.source_dir
+        self.sourceDir = args.sourcedir
         super()._ingestArgs(args)
 
     def etlActivity(self):
@@ -94,12 +94,12 @@ class BTInsertLakeApp(etl_app.ETLApp):
         """
         # Set up the storage path for the data item:
         pathTgt = self.storageTgt.makePath(item.identifier.base, item.identifier.ext, item.identifier.date)
-        print("%s -> %s:%s" % (item.payload, pathTgt.repository, pathTgt))
+        print("%s -> %s:%s" % (item.label, self.storageTgt.repository, pathTgt))
         
         # Write the file to storage:
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
                                                               item.identifier.date, self.processingDate)
-        self.storageTgt.writeFile(item.payload, catalogElement, cacheCatalogFlag=True)
+        self.storageTgt.writeFile(item.label, catalogElement, cacheCatalogFlag=True)
         
         # Performance metrics:
         self.perfmet.recordCollect(item.identifier.date, representsDay=True)

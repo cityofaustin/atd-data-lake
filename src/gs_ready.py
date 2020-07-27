@@ -122,7 +122,7 @@ class GSReadyApp(etl_app.ETLApp):
                 siteFile = self.siteFileCache[base]
             else:
                 # Get site file from repository if needed:
-                siteFile = json.loads(self.storageSrc.retrieveBuffer(siteFileCatElem["path"]))
+                siteFile = json.loads(self.storageSrc.retrieveBuffer(siteFileCatElem["pointer"]))
                 self.siteFileCache[base] = siteFile
             
             # Step 2: Resolve the base to the units file:
@@ -304,7 +304,7 @@ def getCountsFile(base, date, guid, storage):
     catalogElement = storage.catalog.querySingle(storage.repository, base, guid + ".json", date)
     if not catalogElement:
         return None
-    return storage.retrieveJSON(catalogElement["path"])
+    return storage.retrieveJSON(catalogElement["pointer"])
 
 def fillDayRecords(ourDate, countsFileData, ident, receiver):
     "Caution: this mutates countsFileData."

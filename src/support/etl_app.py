@@ -15,8 +15,9 @@ import config
 from util import date_util
 from support import last_update
 
-"Number of months to go back for filing records"
-DATE_EARLIEST = 365
+# TODO: Determine if we want to limit by certain number of days if no lower bound, or throw an exception.
+#"Number of months to go back for filing records"
+#DATE_EARLIEST = 365
 
 """
 AppDescription:
@@ -57,9 +58,9 @@ class ETLApp:
         self.startDate = None
         self.endDate = None
         self.lastRunDate = None
+        self.forceOverwrite = False
         self.tempDir = None
         self.productionMode = None
-        self.deviceFilter = None
         self.simulationMode = False
         self.writeFilePath = None
 
@@ -80,7 +81,7 @@ class ETLApp:
         
         # Call the argument ingester:        
         self.args = args
-        self._ingestArgs()
+        self._ingestArgs(args)
         self._connect()
 
     def processArgs(self, cmdLineConfig):
@@ -92,20 +93,20 @@ class ETLApp:
                                 formatter_class=RawDescriptionHelpFormatter)
         # Tier-1 parameters:
         parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset")
-        parser.add_argument("-s", "--start_date", help="start date; process no more than this number of months old, or provide YYYY-MM-DD for absolute date")
+        parser.add_argument("-s", "--start_date", help="start date; process no more than this number of days old, or provide YYYY-MM-DD for absolute date")
         parser.add_argument("-e", "--end_date", help="end date; process no later than this date, in YYYY-MM-DD format")
-        parser.add_argument("-M", "--nomissing", action="store_true", default=False, help="don't check for missing entries after the earliest processing date")
         
         # Custom parameters:
         self._addCustomArgs(parser)
         
         # Tier-2 parameters:
-        parser.add_argument("-f", "--name_filter", default=".*", help="filter processing on units whose names match the given regexp")
+        parser.add_argument("-F", "--force", action="store_true", help="force overwrite of records regardless of history")
         parser.add_argument("-o", "--output_filepath", help="specify a path to output files to a specific directory")
-        parser.add_argument("-0", "--simulate", help="simulates the writing of files to the filestore and catalog")
-        parser.add_argument("-L", "--logfile", help="enables logfile output to the given path")
-        parser.add_argument("--log_autoname", help="automatically create the log name from app parameters")
-        parser.add_argument("--debugmode", action="store_true", help="sets the code to run in debug mode, which usually causes access to non-production storage")
+        parser.add_argument("-0", "--simulate", action="store_true", help="simulates the writing of files to the filestore and catalog")
+        # TODO: Enable the logging features.
+        #parser.add_argument("-L", "--logfile", help="enables logfile output to the given path")
+        #parser.add_argument("--log_autoname", help="automatically create the log name from app parameters")
+        parser.add_argument("--debug", action="store_true", help="sets the code to run in debug mode, which usually causes access to non-production storage")
         
         # TODO: Consider parameters for writing out files?
         args = parser.parse_args()
@@ -126,7 +127,7 @@ class ETLApp:
         date_util.setLocalTimezone(config.getLocalTimezone())
         
         # Last run date:
-        if args.last_run_date:
+        if hasattr(args, "last_run_date") and args.last_run_date:
             try:
                 lastRunDate = int(args.last_run_date)
                 self.lastRunDate = date_util.localize(arrow.now()
@@ -139,7 +140,7 @@ class ETLApp:
             self.lastRunDate = None
     
         # Start date, or number of days back:
-        if args.start_date:
+        if hasattr(args, "start_date") and args.start_date:
             try:
                 dateEarliest = int(args.start_date)
                 self.startDate = date_util.localize(arrow.now()
@@ -148,22 +149,47 @@ class ETLApp:
             except ValueError:
                 self.startDate = date_util.parseDate(args.start_date, dateOnly=self.parseDateOnly)
         else:
-            self.dateEarliest = None
+            self.startDate = None
 
         # End date:
-        if args.end_date:
+        if hasattr(args, "end_date") and args.end_date:
             self.endDate = date_util.parseDate(args.end_date, dateOnly=self.parseDateOnly)
         else:
             self.endDate = None
             
+        if self.startDate or self.endDate:
+            dateStr = "INFO: Processing time range:"
+            if self.startDate:
+                dateStr += " " + str(self.startDate)
+                if self.endDate:
+                    dateStr += " up to " + str(self.endDate)
+                else:
+                    dateStr += " onward"
+            print(dateStr + ".")
+        if not self.lastRunDate and not self.startDate:
+            raise Exception("A last_run_date or start_date must be specified.")
+            
+        # Force overwrite:
+        if hasattr(args, "force"):
+            self.forceOverwrite = args.force
+            if self.forceOverwrite:
+                print("INFO: Force mode is on: items will be overwritten.") 
+            
         # Production mode:
-        self.productionMode = config.electProductionMode(not args.debugmode) \
-            if hasattr(args, "debugmode") else config.electProductionMode()
+        self.productionMode = config.electProductionMode(not args.debug) \
+            if hasattr(args, "debug") else config.electProductionMode()
+        if not self.productionMode:
+            print("INFO: Debug mode is enabled.")
     
         # Debugging features:
-        self.simulationMode = args.simulate
-        self.writeFilePath = args.output_filepath
-        self.deviceFilter = args.name_filter
+        if hasattr(args, "simulate"):
+            self.simulationMode = args.simulate
+            if self.simulationMode:
+                print("INFO: Simulated write mode is enabled.")
+        if hasattr(args, "output_filepath"):
+            self.writeFilePath = args.output_filepath
+            if self.writeFilePath:
+                print("INFO: Write file path is %s." % self.writeFilePath)
             
         # Set up temporary output directory:
         if self.needsTempDir:
@@ -199,19 +225,18 @@ class ETLApp:
         """
         # TODO: Add in benchmarking
         
+        # TODO: Add in a preparation method call?
         
-        # TODO: Preparation method call?
-        
+        # --- BEGIN STUFF. TODO: Support for loop over time period at intervals (with functional disable for that)?
         self.runCount = 1
         recsProcessed = 0
         self.processingDate = date_util.localize(arrow.now().datetime)
-        # --- BEGIN STUFF. TODO: Support for loop over time period at intervals (with functional disable for that)?
         
         # TODO: Exception handling with retry ability?
         
         recsProcessed += self.etlActivity()
 
-        runCount += 1
+        self.runCount += 1
         # --- END STUFF
         
         if self.perfmet:
@@ -236,19 +261,21 @@ class ETLApp:
         @param provSrc: Specifies source providers as a last_update.LastUpdateProv object
         @param provTgt: Specifies the target provider as a last_update.LastUpdateProv object, or None for all sources
         """
-        comparator = last_update.LastUpdate(provSrc, provTgt).configure(startDate=self.startDate,
-                                                                        endDate=self.endDate,
-                                                                        baseExtKey=baseExtKey)
+        comparator = last_update.LastUpdate(provSrc, provTgt,
+                                force=self.forceOverwrite).configure(startDate=self.startDate,
+                                                                     endDate=self.endDate,
+                                                                     baseExtKey=baseExtKey)
         self.itemCount = 0
         self.prevDate = None
         for item in comparator.compare(lastRunDate=self.lastRunDate):
+            if item.identifier.date != self.prevDate and self.storageTgt:
+                self.storageTgt.flushCatalog()
+            
             countIncr = self.innerLoopActivity(item)
             
             if countIncr:
                 if not self.prevDate:
-                    self.prevDate = item.date
-                if item.date != self.prevDate and self.storageTgt:
-                    self.storageTgt.flushCatalog()
+                    self.prevDate = item.identifier.date
             self.itemCount += countIncr            
         else:
             self.storageTgt.flushCatalog()

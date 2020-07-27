@@ -198,7 +198,7 @@ class Catalog:
         offset = 0
         while limit is None or offset < limit:
             results = self.dbConn.query(self.dataSource, stage, base, ext, earlyDate, lateDate, \
-                exactEarlyDate=exactEarlyDate, limit=self.dbConn.PREFERRED_CHUNK_SIZE, start=offset, reverse=reverse)
+                exactEarlyDate=exactEarlyDate, limit=self.dbConn.getPreferredChunk(), start=offset, reverse=reverse)
             if results:
                 for item in results:
                     if item["collection_date"]:
@@ -208,7 +208,7 @@ class Catalog:
                     if item["processing_date"]:
                         item["processing_date"] = date_util.localize(arrow.get(item["processing_date"]).datetime)
                     yield item
-            if not results or len(results) < self.dbConn.PREFERRED_CHUNK_SIZE:
+            if not results or len(results) < self.dbConn.getPreferredChunk():
                 break
             offset += len(results)
         
@@ -285,6 +285,7 @@ class Catalog:
         """
         Flushes all of the queued upsert items to the catalog.
         """
-        self.dbConn.upsert(self.upsertCache)
-        self.upsertCache.clear()
+        if self.upsertCache:
+            self.dbConn.upsert(self.upsertCache)
+            self.upsertCache.clear()
         

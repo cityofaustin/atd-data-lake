@@ -25,6 +25,7 @@ class LastUpdFileProv(LastUpdProv):
         super().__init__()
         if not isinstance(pattList, Iterable):
             pattList = [pattList]
+        self.pattList = pattList
         self.dateDirs = [date_dirs.createDateDir(patt, srcDir) for patt in self.pattList]
         self.assumeUTC = assumeUTC
         self.impliedDuration = impliedDuration

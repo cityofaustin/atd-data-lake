@@ -51,8 +51,8 @@ class GSReadyAggApp(etl_app.ETLApp):
         """
         This is where the actual ETL activity is called for the given compare item.
         """
-        print("%s: %s" % (item.payload["path"], self.stroageSrc.repository))
-        data = self.storageSrc.retrieveJSON(item.payload["path"])
+        print("%s: %s" % (item.payload["pointer"], self.stroageSrc.repository))
+        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
         header = data["header"]
         
         # Collect movement information:

@@ -39,7 +39,10 @@ class Storage:
         """
         Makes a filename from the base, ext, and collectionDate.
         """
-        return base + "_" + collectionDate.strftime("%Y-%m-%d") + "." + ext
+        spanChar = "."
+        if "." in ext:
+            spanChar = "_"
+        return base + "_" + collectionDate.strftime("%Y-%m-%d") + spanChar + ext
     
     def makePath(self, base, ext, collectionDate, filenamePart=None):
         """
@@ -50,7 +53,7 @@ class Storage:
             collectionDate = arrow.get(collectionDate)
         if not filenamePart:
             filenamePart = self.makeFilename(base, ext, collectionDate) 
-        return self.storageConn.makePath(base, ext, collectionDate, filenamePart)
+        return self.storageConn.makePath(self.dataSource, collectionDate, filenamePart)
     
     def retrieveFilePath(self, path, destPath=None, inferFilename=False):
         """
@@ -116,9 +119,7 @@ class Storage:
             catalogElement["collection_date"],
             processingDate=catalogElement["processing_date"] if "processing_date" in catalogElement else None,
             metadata=catalogElement["metadata"] if "metadata" in catalogElement else None
-        )        
-        newCatalogElement["path"] = self.storageConn.makePath(self, catalogElement["id_base"], catalogElement["id_ext"], self.dataSource,
-            catalogElement["collection_date"])
+        )
         if self.writeFilePath:
             # We have a debug flag for writing out the file to a given path. Write it.
             filename = self.makePath(catalogElement["id_base"], catalogElement["id_ext"], catalogElement["collection_date"])
@@ -128,15 +129,15 @@ class Storage:
                 outFile.flush()
             if not self.simulationMode:
                 # Use that written file to write to the storage repository.
-                self.storageConn.writeFile(debugPath, newCatalogElement["path"])
+                self.storageConn.writeFile(debugPath, newCatalogElement["pointer"])
             else:
-                print("Simulation mode: skipped writing file '%s' to repository: '%s'" % (debugPath, newCatalogElement["path"]))
+                print("Simulation mode: skipped writing file '%s' to repository: '%s'" % (debugPath, newCatalogElement["pointer"]))
         else:
             if not self.simulationMode:
                 # Write the given buffer to the storage repository.
-                self.storageConn.writeBuffer(sourceBuffer, newCatalogElement["path"])
+                self.storageConn.writeBuffer(sourceBuffer, newCatalogElement["pointer"])
             else:
-                print("Simulation mode: skipped writing buffer to repository: '%s'" % newCatalogElement["path"])
+                print("Simulation mode: skipped writing buffer to repository: '%s'" % newCatalogElement["pointer"])
         if not self.simulationMode and self.catalog:
             # Add this new entry to the target catalog:
             if cacheCatalogFlag:
@@ -156,7 +157,7 @@ class Storage:
         Copies the specific file to the target storage object. Requires the application object to have created a temp directory.
         """
         # Read and write the file:
-        tempFilePath = self.retrieveFilePath(catalogElement["path"], self.tempDir, inferFilename=True)
+        tempFilePath = self.retrieveFilePath(catalogElement["pointer"], self.tempDir, inferFilename=True)
         tgtStorage.writeFile(tempFilePath, catalogElement, cacheCatalogFlag=cacheCatalogFlag)
         
         # Clean up:
