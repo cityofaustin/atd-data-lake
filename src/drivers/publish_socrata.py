@@ -41,6 +41,12 @@ class PublishSocrataConn(publish.PublishConnBase):
         Returns the preferred maximum number of rows to write.
         """
         return SOC_CHUNK
+    
+    def getIdentifier(self):
+        """
+        Returns the resource identifier, in this case, the Socrata resource
+        """
+        return self.socResource
         
 def socTime(inTimeStr):
     "Converts the canonicalized time to the time representation that Socrata uses."

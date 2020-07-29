@@ -3,7 +3,7 @@ publish.py coordinates the publishing of data, and noting the publishing in the 
 
 @author Kenneth Perrine
 """
-import csv
+import csv, os
 
 class Publisher:
     """
@@ -16,7 +16,7 @@ class Publisher:
         Initializes the object
         
         @param simulationMode: If True, the cloud resource will not be written to
-        @param writeFilePath: If a filename is specified here, then publishing will go to the given file rather than a cloud resource
+        @param writeFilePath: If a filename is specified here, then publishing will go to the given file in addition to a cloud resource
         """
         self.connector = connector
         self.catalog = catalog
@@ -29,7 +29,9 @@ class Publisher:
         self.rowCounterPreFlush = 0
         self.fileWriter = None
         if writeFilePath:
-            self.fileWriter = PublishCSVConn(writeFilePath)
+            filePath = os.path.join(writeFilePath, self.connector.getIdentifier() + ".csv")
+            print("INFO: Writing to: %s" % filePath)
+            self.fileWriter = PublishCSVConn(filePath)
         
     def addRow(self, jsonRecord):
         """
@@ -44,7 +46,12 @@ class Publisher:
         Writes out the buffer contents
         """
         if not self.simulationMode:
+            if self.chunkSize and self.chunkSize > 1:
+                print("INFO: (At Row %d) writing %d rows." % (self.rowCounterPreFlush, len(self.buffer)))
             self.connector.write(self.buffer)
+        else:
+            if self.chunkSize and self.chunkSize > 1:
+                print("INFO: (At Row %d) would have written %d rows." % (self.rowCounterPreFlush, len(self.buffer)))
         if self.fileWriter:
             self.fileWriter.write(self.buffer)
         self.rowCounterPreFlush += len(self.buffer) 
@@ -126,13 +133,14 @@ class PublishCSVConn(PublishConnBase):
             rowBuffer = []
             for key in self.header:
                 rowBuffer.append(row[key])
-                self.csvWriter.writerow(self.rowBuffer)
+            self.csvWriter.writerow(rowBuffer)
+        self.fileHandle.flush()
 
     def getPreferredChunk(self):
         """
         Returns the preferred maximum number of rows to write.
         """
-        return 1
+        return 1000
     
     def close(self):
         """

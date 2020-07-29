@@ -31,7 +31,7 @@ class UnitDataStorage:
         """
         Searches the catalog for relevant unit data that is relevant to the date constraints if given
         """
-        self.unitDataCatList = self.storageObject.catalog.getSearchableQueryList(self.storage.repository, self.areaBase,
+        self.unitDataCatList = self.storageObject.catalog.getSearchableQueryList(self.storageObject.repository, self.areaBase,
                                             "unit_data.json", dateEarliest, dateLatest,
                                             exactEarlyDate=(dateEarliest and dateEarliest == dateLatest),
                                             singleLatest=(not dateEarliest and not dateLatest))
@@ -49,7 +49,7 @@ class UnitDataStorage:
         
         # Find unit data catalog entry and return efficient responses if they're cached:
         if date:
-            date += datetime.timedelta(secs=1)
+            date += datetime.timedelta(seconds=1)
         unitDataCatIndex = self.unitDataCatList.getNextDateIndex(date) if date else len(self.unitDataCatList.catalogElements) - 1 
         if unitDataCatIndex >= len(self.unitDataCatList.catalogElements) or unitDataCatIndex < 0:
             return None

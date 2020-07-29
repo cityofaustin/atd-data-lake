@@ -25,7 +25,7 @@ class BTReadyApp(etl_app.ETLApp):
         """
         super().__init__("bt", APP_DESCRIPTION,
                          args=args,
-                         purposeSrc="rawjson",
+                         purposeSrc="standardized",
                          purposeTgt="ready",
                          perfmetStage="Ready")
         self.unitDataProv = None
@@ -38,7 +38,7 @@ class BTReadyApp(etl_app.ETLApp):
         """
         # First, get the unit data for Bluetooth:
         self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
-        self.unitDataProv.prepare(self.dateEarliest, self.dateLatest)
+        self.unitDataProv.prepare(self.startDate, self.endDate)
         
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
@@ -62,10 +62,10 @@ class BTReadyApp(etl_app.ETLApp):
         unitData = self.unitDataProv.retrieve(item.identifier.date)
         
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.storageTgt.repository))
-        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
-        fileType = item.ext.split(".")[0] # Get string up to the file type extension.
-        outJSON = btReady(item, unitData, data, fileType, self.processingDate)
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.storageTgt.repository))
+        data = self.storageSrc.retrieveJSON(item.label)
+        fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
+        outJSON = btReady(unitData, data, fileType, self.processingDate)
 
         # Prepare for writing to the target:
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
@@ -103,7 +103,8 @@ def btReady(unitData, data, fileType, processingDate):
     if fileType == "unmatched":
         data = data.merge(devices[['device_name', 'device_id']],
                           left_on='reader_id', right_on='device_name', how='inner') \
-                            .drop(columns='device_name')
+                          .drop(columns='device_name')
+        data.sort_values(by=["host_timestamp", "reader_id"], inplace=True)
         # TODO: Consider removing "reader_id" here, for memory efficiency.
         devices = devices[devices.device_id.isin(data.device_id.unique())]
         devices = devices.apply(lambda x: x.to_dict(), axis=1).tolist()
@@ -114,6 +115,10 @@ def btReady(unitData, data, fileType, processingDate):
         data = data.merge(devices[['device_name', 'device_id']],
                                    left_on='dest_reader_id', right_on='device_name', how='inner') \
                                     .drop(columns='device_name').rename(columns={"device_id": "dest_device_id"})
+        if fileType == "matched":
+            data.sort_values(by=["start_time", "origin_reader_id", "dest_reader_id"], inplace=True)
+        elif fileType == "traf_match_summary":
+            data.sort_values(by=["timestamp", "origin_reader_id", "dest_reader_id"], inplace=True)
         # TODO: Consider removing "origin_reader_id" and "dest_reader_id" here, for memory efficiency.
         devices = devices[devices.device_id.isin(data.origin_device_id
                                     .append(data.dest_device_id, ignore_index=True).unique())]

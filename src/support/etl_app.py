@@ -189,7 +189,7 @@ class ETLApp:
         if hasattr(args, "output_filepath"):
             self.writeFilePath = args.output_filepath
             if self.writeFilePath:
-                print("INFO: Write file path is %s." % self.writeFilePath)
+                print("INFO: Write file path is: %s" % self.writeFilePath)
             
         # Set up temporary output directory:
         if self.needsTempDir:
@@ -278,7 +278,8 @@ class ETLApp:
                     self.prevDate = item.identifier.date
             self.itemCount += countIncr            
         else:
-            self.storageTgt.flushCatalog()
+            if self.storageTgt:
+                self.storageTgt.flushCatalog()
         return self.itemCount
         
     def innerLoopActivity(self, item):

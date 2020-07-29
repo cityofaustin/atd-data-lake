@@ -7,7 +7,7 @@ from support import etl_app, last_update, perfmet
 from util import date_util
 import config
 
-import csv, json, datetime, os
+import csv, datetime, os
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(

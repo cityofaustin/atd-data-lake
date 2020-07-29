@@ -51,7 +51,7 @@ class BTPublishApp(etl_app.ETLApp):
         
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc),
-                                   last_update.LastUpdCatProv(self.storageTgt, config.getRepository("public")),
+                                   last_update.LastUpdCatProv(self.storageSrc.catalog, config.getRepository("public")),
                                    baseExtKey=False)
         print("Records processed: %d" % count)
         return count    
@@ -67,8 +67,8 @@ class BTPublishApp(etl_app.ETLApp):
         
         # Read in the file and call the transformation code.
         fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.publishers[fileType].connector.socResource))
-        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.publishers[fileType].connector.getIdentifier()))
+        data = self.storageSrc.retrieveJSON(item.label)
         
         # These variables will keep track of the device counter that gets reset daily:
         if item.identifier.date != self.prevDate:
@@ -136,12 +136,13 @@ class BTPublishApp(etl_app.ETLApp):
             
             publisher.addRow(entry)
         publisher.flush()
+        publisher.reset()
         
         # Write to catalog:
         if not self.simulationMode:
             catElement = self.catalog.buildCatalogElement(config.getRepository("public"), item.identifier.base,
                                                           item.identifier.ext, item.identifier.date,
-                                                          self.processingDate, publisher.connector.socResource)
+                                                          self.processingDate, publisher.connector.getIdentifier())
             self.catalog.upsert(catElement)
         
         # Performance metrics:

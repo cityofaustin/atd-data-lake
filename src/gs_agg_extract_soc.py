@@ -59,8 +59,8 @@ class GSAggPublishApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.publisher.connector.socResource))
-        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
+        print("%s: %s -> %s" % (item.label, self.stroageSrc.repository, self.publisher.connector.getIdentifier()))
+        data = self.storageSrc.retrieveJSON(item.label)
         device = data["device"] if "device" in data else None
         
         # Contingency for bad device info:
@@ -133,12 +133,13 @@ class GSAggPublishApp(etl_app.ETLApp):
         
         # Write contents to publisher:
         self.publisher.flush()
+        self.publisher.reset()
         
         # Write to catalog:
         if not self.simulationMode:
             catElement = self.catalog.buildCatalogElement(config.getRepository("public"), item.identifier.base,
                                                           item.identifier.ext, item.identifier.date,
-                                                          self.processingDate, self.publisher.connector.socResource)
+                                                          self.processingDate, self.publisher.connector.getIdentifier())
             self.catalog.upsert(catElement)
 
         # Output warnings:

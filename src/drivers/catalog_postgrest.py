@@ -42,12 +42,12 @@ class CatalogPostgREST:
         
         # Allow base and ext identifiers to be omitted, or to be a "match first part of string" query:
         if base is not None:
-            if base.contains("%%"):
+            if "%%" in base:
                 command["id_base"] = "like.%s" % base.replace("%%", "*")
             else:
                 command["id_base"] = "eq.%s" % base
         if ext is not None:
-            if ext.contains("%%"):
+            if "%%" in ext:
                 command["id_ext"] = "like.%s" % ext.replace("%%", "*")
             else:
                 command["id_ext"] = "eq.%s" % ext
