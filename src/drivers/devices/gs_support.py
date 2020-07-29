@@ -18,10 +18,10 @@ def getDevicesLogreaders(gsUnitData, devFilter=".*"):
     Attempts to retrieve all devices and log readers using the gs_intersections table. Devices that can't be contacted
     are not added to the list.
     
-    @return List of _GSDeviceLogreader objects and JSON rendition of location data that becomes unit file contents.
+    @return List of _GSDeviceLogreader objects.
     """
     # Get the devices:
-    devices, deviceLocations = retrieveDevices(gsUnitData, devFilter)
+    devices = retrieveDevices(gsUnitData, devFilter)
     
     # Get counts availability for all of these devices:
     ret = []
@@ -45,7 +45,7 @@ def getDevicesLogreaders(gsUnitData, devFilter=".*"):
             print(exc)
             errs += 1
     print("Result: Sucesses: %d; Failures: %d" % (count, errs))
-    return ret, deviceLocations
+    return ret
 
 def _retrieveDevice(deviceIP):
     "Constructs device object from GRIDSMART API. Retrieves site file and other information from device."
@@ -59,17 +59,15 @@ def _retrieveDevice(deviceIP):
 "Return type for the retrieveDevices() function:"
 _GSDevice = collections.namedtuple("_GSDevice", "device site timeFile hwInfo streetNames")
 
-def retrieveDevices(self, gsUnitData, devFilter=".*"):
+def retrieveDevices(gsUnitData, devFilter=".*"):
     """
     Takes list of addresses from Knack and gathers site files to build a list of _GSDevice objects.
     
-    @return List of _GSDevice objects and JSON rendition of location data that becomes unit file contents.
+    @return List of _GSDevice objects.
     """
     ret = []
     regexp = re.compile(devFilter)
-    deviceLocations = gsUnitData.getLocations()
-    deviceIPs = unitdata.getIPs(deviceLocations)
-    for index, row in deviceLocations.iterrows():
+    for row in gsUnitData["devices"]:
         #if row["ip_comm_status"] == "ONLINE":
         #if True: # TODO: It seems as though the "ip_comm_status" often says "OFFLINE" when the device is actually responding. 
         if row["device_status"].strip().upper() != "REMOVED" and row["atd_location_id"] and str(row["atd_location_id"]) != 'nan':
@@ -77,7 +75,7 @@ def retrieveDevices(self, gsUnitData, devFilter=".*"):
             if not regexp.search(streetName):
                 continue
             try:
-                ourDevice, siteFile, timeFile, hardwareInfoFile = _retrieveDevice(deviceIPs[index])
+                ourDevice, siteFile, timeFile, hardwareInfoFile = _retrieveDevice(row["device_ip"])
                 timeFile = {"DateTime": timeFile["DateTime"],
                             "TimeZoneId": timeFile["TimeZoneId"],
                             "HostTimeUTC": timeFile["HostTimeUTC"]}
@@ -87,6 +85,6 @@ def retrieveDevices(self, gsUnitData, devFilter=".*"):
                                      hwInfo=hardwareInfoFile,
                                      streetNames=streetName))
             except Exception:
-                print("ERROR: A problem was encountered in accessing Device %s." % deviceIPs[index])
+                print("ERROR: A problem was encountered in accessing Device %s." % row["device_ip"])
                 continue
-    return ret, unitdata.createDict(deviceLocations)
+    return ret

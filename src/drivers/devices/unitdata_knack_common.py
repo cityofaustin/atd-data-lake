@@ -42,8 +42,9 @@ class UnitDataCommonKnack:
         self.devFilter = devFilter
         self.areaBase = areaBase
         self.sameDay = sameDay
+        self.locations = None
 
-    def getLocations(self):
+    def _getLocations(self):
         """
         Obtain the ATD Locations Knack table
         """
@@ -53,7 +54,8 @@ class UnitDataCommonKnack:
                'CROSS_ST_SEGMENT_ID','LOCATION_latitude', 'LOCATION_longitude',
                'PRIMARY_ST', 'PRIMARY_ST_SEGMENT_ID', 'SIGNAL_ID']
     
-        return pd.DataFrame(locsAccessor.data)[atdLocColumns]
+        self.locations = pd.DataFrame(locsAccessor.data)[atdLocColumns]
+        return self.locations
     
     def getDevices(self):
         """
@@ -67,9 +69,9 @@ class UnitDataCommonKnack:
                            app_id=self.appID,
                            api_key=self.apiKey,
                            filters=deviceFilters)
-    
+
         devicesData = pd.DataFrame(deviceLocs.data)
-        devicesData = (pd.merge(devicesData, self.getLocations(),
+        devicesData = (pd.merge(devicesData, self._getLocations(),
                                  on='ATD_LOCATION_ID', how='left')
                         .drop(labels='SIGNAL_ID', axis='columns')
                         .rename(columns=TS_RENAME))

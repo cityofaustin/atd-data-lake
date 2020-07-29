@@ -22,6 +22,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
         """
         Initializes application-specific variables
         """
+        self.deviceFilter = None
         super().__init__("gs", APP_DESCRIPTION,
                          args=args,
                          purposeTgt="raw",
@@ -29,7 +30,6 @@ class GSInsertLakeApp(etl_app.ETLApp):
                          perfmetStage="Ingest")
         self.unitData = None
         self.gsProvider = None
-        self.deviceFilter = None
 
     def _addCustomArgs(self, parser):
         """
@@ -54,7 +54,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
         # First, get the unit data for GRIDSMART:
         unitDataProv = config.createUnitDataAccessor(self.dataSource)
         self.unitData = unitDataProv.retrieve()
-        deviceLogreaders, locations = gs_support.getDevicesLogreaders(self.unitData, self.deviceFilter)
+        deviceLogreaders = gs_support.getDevicesLogreaders(self.unitData, self.deviceFilter)
                 
         # Configure the source and target repositories and start the compare loop:
         self.gsProvider = last_upd_gs.LastUpdGSProv(deviceLogreaders, self.tempDir)

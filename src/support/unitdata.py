@@ -91,16 +91,6 @@ def makeHeader(areaBase, device, sameDay=False):
               "processing_date": str(currentTime)}
     return header
 
-def getIPs(deviceLocations):
-    """
-    Returns a list of IP addresses from the device locations object.
-    """
-    try:
-        return deviceLocations.device_ip.tolist()
-    except Exception as e:
-        print(e)
-        return None
-
 def createDict(deviceLocations):
     """
     Converts a device locations object to dictionary object.

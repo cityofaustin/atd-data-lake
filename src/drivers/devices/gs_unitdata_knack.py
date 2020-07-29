@@ -49,13 +49,13 @@ class GSUnitDataKnack(UnitDataCommonKnack):
 
         device_locs = Knack(
                        obj='object_98',
-                       app_id=self.app_id,
-                       api_key=self.api_key,
+                       app_id=self.appID,
+                       api_key=self.apiKey,
                        filters=device_filters)
 
         devices_data = pd.DataFrame(device_locs.data)
         devices_data['SENSOR_TYPE'] = 'GRIDSMART'
-        devices_data = (pd.merge(devices_data, self.atd_locations,
+        devices_data = (pd.merge(devices_data, self._getLocations(),
                                  on='SIGNAL_ID', how='left')
                         .drop(labels='SIGNAL_ID', axis='columns')
                         .rename(columns=GS_RENAME))
@@ -68,3 +68,4 @@ class GSUnitDataKnack(UnitDataCommonKnack):
                                      'cross_st', 'cross_st_segment_id']]
 
         return devices_data
+
