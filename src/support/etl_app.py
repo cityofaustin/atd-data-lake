@@ -194,7 +194,7 @@ class ETLApp:
         # Set up temporary output directory:
         if self.needsTempDir:
             self.tempDir = tempfile.mkdtemp()
-            print("Created holding place: %s" % self.tempDir)
+            print("INFO: Created holding place: %s" % self.tempDir)
             
     def _connect(self):
         """

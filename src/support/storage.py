@@ -55,19 +55,19 @@ class Storage:
             filenamePart = self.makeFilename(base, ext, collectionDate) 
         return self.storageConn.makePath(self.dataSource, collectionDate, filenamePart)
     
-    def retrieveFilePath(self, path, destPath=None, inferFilename=False):
+    def retrieveFilePath(self, path, destPath=None, deriveFilename=False):
         """
         retrieveFilePath(path) retrieves a resource at the given storage platform-specific path (presumably retrieved from the
         catalog) and returns a full path to the written file.
         
         @param path: The complete S3 path including the desired filename
         @param destPath: The path to write the file to; set this to null in order to write the file to the temp directory
-        @param inferFilename: Set this to false if the filename is already bundled in the destPath
+        @param deriveFilename: Set this to false if the filename is already bundled in the destPath
         """
         if not destPath:
             destPath = self.tempDir
-            inferFilename = True
-        return self.dataSource.retrieveFilePath(path, destPath=destPath, inferFilename=inferFilename)
+            deriveFilename = True
+        return self.storageConn.retrieveFilePath(path, destPath=destPath, deriveFilename=deriveFilename)
     
     def retrieveJSON(self, path):
         """
@@ -85,7 +85,7 @@ class Storage:
         """
         retrieveBufferPath retrieves a resource at the given storage platform-specific path and provides it as a buffer.
         """
-        return self.dataSource.retrieveBufferPath(path)
+        return self.storageConn.retrieveBufferPath(path)
         
     def writeFile(self, sourceFile, catalogElement, cacheCatalogFlag=False):
         """
@@ -102,9 +102,11 @@ class Storage:
         """
         writeJSON writes stringified JSON to the resource, streaming out to a temporary file to reduce RAM footprint
         """
-        with tempfile.NamedTemporaryFile("w") as outFile:
+        tempFilePath = tempfile.mktemp()
+        with open(tempFilePath, "w") as outFile:
             json.dump(sourceJSON, outFile)
-            self.writeFile(outFile.name, catalogElement, cacheCatalogFlag)
+        self.writeFile(tempFilePath, catalogElement, cacheCatalogFlag)
+        os.remove(tempFilePath)
         
     def writeBuffer(self, sourceBuffer, catalogElement, cacheCatalogFlag=False):
         """
@@ -186,7 +188,7 @@ def writeFromBinBuffer(readBuffer, writeBuffer):
     https://stackoverflow.com/questions/16630789/python-writing-binary-files-bytes 
     """
     while True:
-        buf = readBuffer.read(1024)
+        buf = readBuffer.read(BIN_BUFFER_SIZE)
         if buf: 
             writeBuffer.write(buf)
         else:

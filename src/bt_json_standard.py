@@ -25,7 +25,7 @@ class BTJSONStandardApp(etl_app.ETLApp):
         super().__init__("bt", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="raw",
-                         purposeTgt="rawjson",
+                         purposeTgt="standardized",
                          perfmetStage="Standardize")
         self.unitData = None
     
@@ -59,8 +59,8 @@ class BTJSONStandardApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
             
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.storageTgt.repository))
-        filepathSrc = self.storageSrc.retrieveFilePath(item.payload["pointer"])
+        print("%s: %s -> %s" % (item.payload["pointer"], self.storageSrc.repository, self.storageTgt.repository))
+        filepathSrc = self.storageSrc.retrieveFilePath(item.label)
         fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
         outJSON, perfWork = btStandardize(item, filepathSrc,
             self.storageTgt.makeFilename(item.identifier.base, fileType + ".json", item.identifier.date), fileType, self.processingDate)
@@ -90,7 +90,7 @@ def _parseTime(inTime):
     "Parses the time string as encountered in the Bluetooth source files."
     
     try:
-        return date_util.localize(datetime.datetime.strptime(inTime, "%m/%d/%Y %I:%M:%S %p"))
+        return str(date_util.localize(datetime.datetime.strptime(inTime, "%m/%d/%Y %I:%M:%S %p")))
     except (ValueError, TypeError):
         return None
 
@@ -98,7 +98,7 @@ def _parseTimeShort(inTime):
     "Parses the time string as encountered in the Bluetooth source files."
     
     try:
-        return date_util.localize(datetime.datetime.strptime(inTime, "%m/%d/%Y %I:%M %p"))
+        return str(date_util.localize(datetime.datetime.strptime(inTime, "%m/%d/%Y %I:%M %p")))
     except (ValueError, TypeError):
         return None
 
@@ -134,29 +134,30 @@ def btStandardize(storageItem, filepathSrc, filenameTgt, fileType, processingDat
     # Step 3: Read in the file and parse dates as we read:
     data = []
     perfWork = {} # This will be sensor -> [count, minTime, maxTime]
-    reader = csv.DictReader(open(filepathSrc, "rt"), fieldnames=btDataColumns)
-    for row in reader:
-        for col in btDateColumns[0]:
-            row[col] = btDateColumns[1](row[col])
-        data.append(row)
-        
-        # Performance metrics:
-        if fileType == "unmatched":
-            if row["reader_id"] and str(row["reader_id"] == "nan"):
-                if row["reader_id"] not in perfWork:
-                    perfWork[row["reader_id"]] = [0, row["host_timestamp"], row["host_timestamp"]]
-                recs = perfWork[row["reader_id"]]
-                recs[0] += 1
-                if row["host_timestamp"]:
-                    if row["host_timestamp"] < recs[1]:
-                        recs[1] = row["host_timestamp"]
-                    elif row["host_timestamp"] > recs[2]:
-                        recs[2] = row["host_timestamp"]
+    with open(filepathSrc, "rt") as fileReader:
+        reader = csv.DictReader(fileReader, fieldnames=btDataColumns)
+        for row in reader:
+            for col in btDateColumns[0]:
+                row[col] = btDateColumns[1](row[col])
+            data.append(row)
             
+            # Performance metrics:
+            if fileType == "unmatched":
+                if row["reader_id"] and str(row["reader_id"] != "nan"):
+                    if row["reader_id"] not in perfWork:
+                        perfWork[row["reader_id"]] = [0, row["host_timestamp"], row["host_timestamp"]]
+                    recs = perfWork[row["reader_id"]]
+                    recs[0] += 1
+                    if row["host_timestamp"]:
+                        if row["host_timestamp"] < recs[1]:
+                            recs[1] = row["host_timestamp"]
+                        elif row["host_timestamp"] > recs[2]:
+                            recs[2] = row["host_timestamp"]
+                
     # We're complete!
-    reader.close()
-    return {"header": jsonHeader,
-            "data": data}, perfWork 
+    ret = {"header": jsonHeader,
+           "data": data}
+    return ret, perfWork 
 
 def main(args=None):
     """

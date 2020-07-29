@@ -59,41 +59,35 @@ class UnitDataCommonKnack:
         """
         Obtain filtered information from the Knack devices table
         """
-        device_filters = {'match': 'and',
-                          'rules': [
-                                    {
-                                     'field': 'field_884',
+        deviceFilters = {'match': 'and',
+                          'rules': [{'field': 'field_884',
                                      'operator': 'is',
-                                     'value': self.devFilter
-                                     }]}
+                                     'value': self.devFilter}]}
+        deviceLocs = Knack(obj='object_56',
+                           app_id=self.appID,
+                           api_key=self.apiKey,
+                           filters=deviceFilters)
     
-        device_locs = Knack(
-                       obj='object_56',
-                       app_id=self.appID,
-                       api_key=self.apiKey,
-                       filters=device_filters)
-    
-        devices_data = pd.DataFrame(device_locs.data)
-        devices_data = (pd.merge(devices_data, self.getLocations(),
+        devicesData = pd.DataFrame(deviceLocs.data)
+        devicesData = (pd.merge(devicesData, self.getLocations(),
                                  on='ATD_LOCATION_ID', how='left')
                         .drop(labels='SIGNAL_ID', axis='columns')
                         .rename(columns=TS_RENAME))
         # Reorder the columns:
-        devices_data = devices_data[['device_type', 'atd_device_id',
-                                     'device_name', 'device_status', 'device_ip',
-                                     'ip_comm_status', 'atd_location_id',
-                                     'coa_intersection_id',
-                                     'lat', 'lon', 'primary_st',
-                                     'primary_st_segment_id',
-                                     'cross_st', 'cross_st_segment_id']]
-    
-        return devices_data
+        devicesData = devicesData[['device_type', 'atd_device_id',
+                                   'device_name', 'device_status', 'device_ip',
+                                   'ip_comm_status', 'atd_location_id',
+                                   'coa_intersection_id',
+                                   'lat', 'lon', 'primary_st',
+                                   'primary_st_segment_id',
+                                   'cross_st', 'cross_st_segment_id']]
+        return devicesData
 
     def retrieve(self):
         """
         This retrieves a unit data dictionary for this data type.
         """
-        devices = self.getDevices().create_json()
+        devices = self.getDevices().to_dict(orient="records")
         header = unitdata.makeHeader(self.areaBase, self.device, self.sameDay)
         jsonData = {'header': header,
                     'devices': devices}

@@ -73,14 +73,22 @@ class PerfMetDB:
         if not perfMet.observations:
             return
         for identifier, obs in perfMet.observations.items():
+            minTimestamp = obs.minTimestamp
+            if minTimestamp:
+                if isinstance(minTimestamp, datetime.datetime):
+                    minTimestamp = str(date_util.localize(minTimestamp))
+            maxTimestamp = obs.maxTimestamp
+            if maxTimestamp:
+                if isinstance(maxTimestamp, datetime.datetime):
+                    maxTimestamp = str(date_util.localize(maxTimestamp))
             metadata.append({"data_source": perfMet.dataSource,
                              "sensor_name": identifier[0],
                              "data_type": identifier[1],
                              "data": obs.observation,
                              "expected": obs.expected,
                              "collection_date": str(obs.collectionDate),
-                             "timestamp_min": str(date_util.localize(obs.minTimestamp)) if obs.minTimestamp else None,
-                             "timestamp_max": str(date_util.localize(obs.maxTimestamp)) if obs.maxTimestamp else None})
+                             "timestamp_min": minTimestamp,
+                             "timestamp_max": maxTimestamp})
         self.obsDB.upsert(metadata)
     
     def readAllObs(self, timestampIn, earlyDate=None, dataSource=None, obsType=None):

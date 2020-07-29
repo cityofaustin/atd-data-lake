@@ -20,8 +20,8 @@ productionMode = True
 
 PURPOSE_REPO_MAP = {"raw-production": "atd-data-lake-raw",
                     "raw-debug": "atd-data-lake-raw-test",
-                    "canonicalized-production": "atd-data-lake-rawjson",
-                    "canonicalized-debug": "atd-data-lake-rawjson-test",
+                    "standardized-production": "atd-data-lake-rawjson",
+                    "standardized-debug": "atd-data-lake-rawjson-test",
                     "ready-production": "atd-data-lake-ready",
                     "ready-debug": "atd-data-lake-ready-test",
                     "public-production": "socrata",
