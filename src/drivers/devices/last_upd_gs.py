@@ -63,9 +63,9 @@ class LastUpdGSProv(LastUpdProv):
                                                        payload=device,
                                                        label=device.logReader.constructFilename(date))
     
-    def getPayload(self, lastUpdItem):
+    def resolvePayload(self, lastUpdItem):
         """
         Optionally returns a payload associated with the lastUpdItem. This can be where an expensive query takes place.
         """
-        return lastUpdItem.payload.getCountsFile(lastUpdItem.identifier.date, self.targetPath)
+        return lastUpdItem.payload.payload.logReader.getCountsFile(lastUpdItem.identifier.date, self.targetPath)
     

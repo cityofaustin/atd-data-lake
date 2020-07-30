@@ -8,6 +8,8 @@ import datetime
 import sys
 import os
 
+from util import date_util
+
 class LogReader:
     '''
     LogReader retrieves logs from a GRIDSMART device.
@@ -34,7 +36,7 @@ class LogReader:
 
         countsAvail = webResponse.json()
         for item in countsAvail:
-            self.avail.add(datetime.datetime.strptime(item, "%Y-%m-%d"))
+            self.avail.add(date_util.localize(datetime.datetime.strptime(item, "%Y-%m-%d")))
         
     def queryDate(self, ourDate):
         """

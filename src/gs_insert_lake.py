@@ -73,10 +73,10 @@ class GSInsertLakeApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
         
         # Put together the site file:
-        self._insertSiteFile(item, item.payload)
+        self._insertSiteFile(item, item.payload.payload)
         
         # Obtain the raw count data archive:
-        countsFilePath = self.gsProvider.getPayload(item)
+        countsFilePath = self.gsProvider.resolvePayload(item)
         
         # Write raw count data archive to storage:
         print("%s -> %s" % (item.label, self.storageTgt.repository))
@@ -92,7 +92,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
 
         return 1
 
-    def _insertSiteFile(self, item, device):
+    def _insertSiteFile(self, item, deviceLogreader):
         """
         Handles the construction and archiving of the site file.
         
@@ -107,11 +107,11 @@ class GSInsertLakeApp(etl_app.ETLApp):
         header = {"data_type": "gs_site",
                   "target_filename": siteFilename + ".json",
                   "collection_date": str(ourDay),
-                  "device_net_addr": device.device.netAddr}
+                  "device_net_addr": deviceLogreader.device.netAddr}
         jsonData = {'header': header,
-                     'site': device.site,
-                     'datetime': device.timeFile,
-                     'hardware_info': device.hwInfo}
+                     'site': deviceLogreader.site,
+                     'datetime': deviceLogreader.timeFile,
+                     'hardware_info': deviceLogreader.hwInfo}
         
         # Write it out:
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, "site.json",

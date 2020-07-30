@@ -104,7 +104,7 @@ class LastUpdate:
             if not skipFlag:
                 yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
                                       priorLastUpdate=not lastRunDate or sourceItem.date < lastRunDate,
-                                      payload=self.source.getPayload(sourceItem),
+                                      payload=sourceItem,
                                       label=sourceItem.label)
     
     class _LastUpdateItem:
@@ -167,13 +167,14 @@ class LastUpdProv:
         Runs a query against the data source and yields results as a generator of _LastUpdProvItem.
         """
         yield from []
-        
-    def getPayload(self, lastUpdItem):
+
+    def resolvePayload(self, lastUpdItem):
         """
-        Optionally returns a payload associated with the lastUpdItem. This can be where an expensive query takes place.
+        Optionally returns a payload contents associated with the lastUpdItem. This can be where an
+        expensive query takes place.
         """
         return lastUpdItem.payload
-    
+        
     "_LastUpdProvItem represents a result from a LastUpdProvider object."
     _LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date dateEnd payload label")
 
