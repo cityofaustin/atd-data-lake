@@ -104,25 +104,25 @@ class LastUpdate:
             if not skipFlag:
                 yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
                                       priorLastUpdate=not lastRunDate or sourceItem.date < lastRunDate,
-                                      payload=sourceItem,
+                                      provItem=sourceItem,
                                       label=sourceItem.label)
     
     class _LastUpdateItem:
         """
         Returned from LastUpdate.compare(). Identifies items that need updating.
         """
-        def __init__(self, identifier, priorLastUpdate=False, payload=None, label=None):
+        def __init__(self, identifier, priorLastUpdate=False, provItem=None, label=None):
             """
             Initializes contents.
             
             @param identifer: A tuple of (base, ext, date)
             @param priorLastUpdate: Set to True if this had been identified outside of the lastUpdate lower bound
-            @param payload: Additional identifier or object-specific material that is supplied by the source accessor
+            @param provItem: The source data provider item that contains the ".payload" attribute
             @param label: A descriptive label for this item
             """
             self.identifier = identifier
             self.priorLastUpdate = priorLastUpdate
-            self.payload = payload
+            self.provItem = provItem
             self.label = label
             
         def __str__(self):
@@ -172,8 +172,10 @@ class LastUpdProv:
         """
         Optionally returns a payload contents associated with the lastUpdItem. This can be where an
         expensive query takes place.
+        
+        @param lastUpdItem: A _LastUpdateItem that contains a ".payload" attribute
         """
-        return lastUpdItem.payload
+        return lastUpdItem.provItem.payload
         
     "_LastUpdProvItem represents a result from a LastUpdProvider object."
     _LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date dateEnd payload label")
