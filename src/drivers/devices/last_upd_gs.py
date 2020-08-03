@@ -9,14 +9,15 @@ class LastUpdGSProv(LastUpdProv):
     """
     Represents a collection of GRIDSMART devices and their respective histories
     """
-    def __init__(self, devicesLogReaders, targetPath):
+    def __init__(self, devicesLogReaders, targetPath, sameDay=False):
         """
         Initializes the object.
         
         @param deviceslogReaders: List of _GSDeviceLogreader objects from gs_support
         @param targetPath: Path to write counts file archives to when getPayload() is called
+        @param sameDay: If False and no endDate is specified, then filter out results that occur "today"
         """
-        super().__init__()
+        super().__init__(sameDay=sameDay)
         
         self.devicesLogReaders = devicesLogReaders
         self.targetPath = targetPath
@@ -56,6 +57,8 @@ class LastUpdGSProv(LastUpdProv):
             for device in self.devicesLogReaders:
                 if device.logReader.queryDate(ourDate):
                     base, ext, date = self._getIdentifier(device.logReader, ourDate)
+                    if self._isSameDayCancel(date):
+                        continue
                     yield LastUpdProv._LastUpdProvItem(base=base,
                                                        ext=ext,
                                                        date=date,

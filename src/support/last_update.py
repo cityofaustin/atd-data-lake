@@ -4,6 +4,8 @@ and target listing objects.
 
 @author Kenneth Perrine
 """
+from util import date_util
+
 from collections import namedtuple
 import datetime
 
@@ -139,12 +141,16 @@ class LastUpdProv:
     """
     Base class for provision of last-update information
     """
-    def __init__(self):
+    def __init__(self, sameDay=False):
         """
         Base constructor.
+        
+        @param sameDay: If True, allows a last update that happens "today" to be processed, if there is no end date specified.
         """
         self.startDate = None
         self.endDate = None
+        self.sameDayDate = date_util.localize(datetime.datetime.now()).replace(hour=0, minute=0, second=0, microsecond=0) \
+                        if not sameDay else None
     
     def prepare(self, startDate, endDate):
         """
@@ -179,19 +185,28 @@ class LastUpdProv:
         
     "_LastUpdProvItem represents a result from a LastUpdProvider object."
     _LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date dateEnd payload label")
+    
+    def _isSameDayCancel(self, date):
+        """
+        Returns True if the date is "today", and sameDay processing is disabled. This indicates that
+        the proposed match should be withheld because sameDay is False and we're trying to process a 
+        record from today.
+        """
+        return self.sameDayDate and not self.endDate and date >= self.sameDayDate
 
 class LastUpdCatProv(LastUpdProv):
     """
     Represents a Catalog, as a LastUpdate source or target.
     """
-    def __init__(self, catalog, repository, baseFilter=None, extFilter=None):
+    def __init__(self, catalog, repository, baseFilter=None, extFilter=None, sameDay=False):
         """
         Initializes the object
         
         @param baseFilter An exact match string or string containing "%" for pattern-matching base names
         @param extFilter An exact match string or string containing "%" for pattern-matching ext names
+        @param sameDay: If False and no endDate is specified, then filter out results that occur "today"
         """
-        super().__init__()
+        super().__init__(sameDay=sameDay)
         self.catalog = catalog
         self.repository = repository
         self.baseFilter = baseFilter
@@ -207,6 +222,8 @@ class LastUpdCatProv(LastUpdProv):
         for result in self.catalog.query(self.repository, self.baseFilter, self.extFilter, self.startDate, lateDate,
                                          exactEarlyDate=(self.startDate == self.endDate)):
             base, ext, date = self._getIdentifier(result["id_base"], result["id_ext"], result["collection_date"])
+            if self._isSameDayCancel(date):
+                continue
             yield LastUpdProv._LastUpdProvItem(base=base,
                                                ext=ext,
                                                date=date,

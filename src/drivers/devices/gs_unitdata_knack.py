@@ -33,7 +33,7 @@ class GSUnitDataKnack(UnitDataCommonKnack):
         @param appID is the Knack app ID to use for Knack access
         @param apiKey is the Knack API key used for Knack access
         """
-        super().__init__("gs", "GRIDSMART", appID, apiKey, areaBase)
+        super().__init__("gs", "GRIDSMART", appID, apiKey, areaBase, sameDay=True)
         
     def getDevices(self):
         """

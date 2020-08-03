@@ -13,7 +13,7 @@ class LastUpdFileProv(LastUpdProv):
     """
     Represents a filesystem directory where dates and times can be matched from filenames
     """
-    def __init__(self, srcDir, pattList, assumeUTC=False, impliedDuration=None):
+    def __init__(self, srcDir, pattList, assumeUTC=False, impliedDuration=None, sameDay=False):
         """
         Initializes the object.
         
@@ -21,8 +21,9 @@ class LastUpdFileProv(LastUpdProv):
         @param pattList: A list of one or more file patterns captured as util.date_dirs.DateDirDef objects.
         @param assumeUTC: If this is False, assume that dates stored in filenames are local time.
         @param impliedDuration: A datetime.timedelta object that represents a duration of the file, or 1 day if None.
+        @param sameDay: If False and no endDate is specified, then filter out results that occur "today"
         """
-        super().__init__()
+        super().__init__(sameDay=sameDay)
         if not isinstance(pattList, Iterable):
             pattList = [pattList]
         self.pattList = pattList
@@ -72,6 +73,8 @@ class LastUpdFileProv(LastUpdProv):
                 myFile = self.dateDirs[index].resolveFile(ourDate.replace(tzinfo=None), fullPath=True)
                 if myFile:
                     base, ext, date = self._getIdentifier(myFile, index, ourDate)
+                    if self._isSameDayCancel(date):
+                        continue
                     yield LastUpdProv._LastUpdProvItem(base=base,
                                            ext=ext,
                                            date=date,
