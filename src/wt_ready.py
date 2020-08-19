@@ -12,18 +12,18 @@ import hashlib
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
-    appName="bt_ready.py",
-    appDescr="Performs JSON enrichment for Bluetooth data between the 'rawjson' and 'ready' Data Lake buckets")
+    appName="wt_ready.py",
+    appDescr="Performs JSON enrichment for Wavetronix data between the 'rawjson' and 'ready' Data Lake buckets")
 
-class BTReadyApp(etl_app.ETLApp):
+class WTReadyApp(etl_app.ETLApp):
     """
-    Application functions and special behavior around Bluetooth JSON final data enrichment.
+    Application functions and special behavior around Wavetronix JSON final data enrichment.
     """
     def __init__(self, args):
         """
         Initializes application-specific variables
         """
-        super().__init__("bt", APP_DESCRIPTION,
+        super().__init__("wt", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="standardized",
                          purposeTgt="ready",
@@ -36,7 +36,7 @@ class BTReadyApp(etl_app.ETLApp):
         
         @return count: A general number of records processed
         """
-        # First, get the unit data for Bluetooth:
+        # First, get the unit data for Wavetronix:
         self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
         self.unitDataProv.prepare(self.startDate, self.endDate)
         
@@ -54,9 +54,6 @@ class BTReadyApp(etl_app.ETLApp):
         # Check for valid data files:
         if item.identifier.ext == "unit_data.json":
             return 0
-        if item.identifier.ext not in ("traf_match_summary.json", "matched.json", "unmatched.json"):
-            print("WARNING: Unsupported file type or extension: %s" % item.identifier.ext)
-            return 0
         
         # Retrieve unit data closest to the date that we're processing:
         unitData = self.unitDataProv.retrieve(item.identifier.date)
@@ -64,11 +61,10 @@ class BTReadyApp(etl_app.ETLApp):
         # Read in the file and call the transformation code.
         print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.storageTgt.repository))
         data = self.storageSrc.retrieveJSON(item.label)
-        fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
-        outJSON = btReady(unitData, data, fileType, self.processingDate)
+        outJSON = wtReady(unitData, data, self.processingDate)
 
         # Prepare for writing to the target:
-        catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, fileType + ".json",
+        catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, "json",
                                                               item.identifier.date, self.processingDate)
         self.storageTgt.writeJSON(outJSON, catalogElement)
 
@@ -81,14 +77,14 @@ def _createHash(row):
     """
     Returns a hash that's based upon a row's contents from the data file
     """
-    toHash = row['device_type'] + row['device_ip'] + str(row['lat']) + str(row['lon'])
+    toHash = ****row['device_type'] + row['device_ip'] + str(row['lat']) + str(row['lon'])
     hasher = hashlib.md5()
     hasher.update(bytes(toHash, "utf-8"))
     return hasher.hexdigest()
 
-def btReady(unitData, data, fileType, processingDate):
+def wtReady(unitData, data, fileType, processingDate):
     """
-    Transforms Bluetooth data to "ready" JSON along with the unit data.
+    Transforms Wavetronix data to "ready" JSON along with the unit data.
     """
     # Step 1: Prepare header:
     header = data["header"]
@@ -99,30 +95,15 @@ def btReady(unitData, data, fileType, processingDate):
     devices = pd.DataFrame(unitData["devices"])
     
     # Step 3: Tie device information to data rows:
-    devices['device_id'] = devices.apply(_createHash, axis=1)    
-    if fileType == "unmatched":
-        data = data.merge(devices[['device_name', 'device_id']],
-                          left_on='reader_id', right_on='device_name', how='inner') \
-                          .drop(columns='device_name')
-        data.sort_values(by=["host_timestamp", "reader_id"], inplace=True)
-        # TODO: Consider removing "reader_id" here, for memory efficiency.
-        devices = devices[devices.device_id.isin(data.device_id.unique())]
-        devices = devices.apply(lambda x: x.to_dict(), axis=1).tolist()
-    elif fileType == "matched" or fileType == "traf_match_summary":
-        data = data.merge(devices[['device_name', 'device_id']],
-                                   left_on='origin_reader_id', right_on='device_name', how='inner') \
-                                    .drop(columns='device_name').rename(columns={"device_id": "origin_device_id"})
-        data = data.merge(devices[['device_name', 'device_id']],
-                                   left_on='dest_reader_id', right_on='device_name', how='inner') \
-                                    .drop(columns='device_name').rename(columns={"device_id": "dest_device_id"})
-        if fileType == "matched":
-            data.sort_values(by=["start_time", "origin_reader_id", "dest_reader_id"], inplace=True)
-        elif fileType == "traf_match_summary":
-            data.sort_values(by=["timestamp", "origin_reader_id", "dest_reader_id"], inplace=True)
-        # TODO: Consider removing "origin_reader_id" and "dest_reader_id" here, for memory efficiency.
-        devices = devices[devices.device_id.isin(data.origin_device_id
-                                    .append(data.dest_device_id, ignore_index=True).unique())]
-        devices = devices.apply(lambda x: x.to_dict(), axis=1).tolist()
+    devices['device_id'] = devices.apply(_createHash, axis=1)
+    **** NEED TO APPLY TO WT:    
+    data = data.merge(devices[['device_name', 'device_id']],
+                      left_on='reader_id', right_on='device_name', how='inner') \
+                      .drop(columns='device_name')
+    data.sort_values(by=["host_timestamp", "reader_id"], inplace=True)
+    # TODO: Consider removing "reader_id" here, for memory efficiency.
+    devices = devices[devices.device_id.isin(data.device_id.unique())]
+    devices = devices.apply(lambda x: x.to_dict(), axis=1).tolist()
     
     # Step 4: Prepare the final data JSON buffer:
     data = data.apply(lambda x: x.to_dict(), axis=1).tolist()
@@ -135,7 +116,7 @@ def main(args=None):
     """
     Main entry point. Allows for dictionary to bypass default command-line processing.
     """
-    curApp = BTReadyApp(args)
+    curApp = WTReadyApp(args)
     return curApp.doMainLoop()
 
 if __name__ == "__main__":
