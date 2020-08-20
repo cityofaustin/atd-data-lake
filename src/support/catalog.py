@@ -54,6 +54,12 @@ class Catalog:
             """
             return self.catalogElements[index]
             
+        def __len__(self):
+            """
+            Allows the len() function to be used on the object.
+            """
+            return len(self.catalogElements)
+
         def getNextDateIndex(self, date):
             """
             Returns the index into catalogElements that has the date equal or immediately greater from
@@ -140,14 +146,14 @@ class Catalog:
             searchableList = self.searchableLists[base]
             if not nextFlag:
                 if not exclusive:
-                    index = searchableList.getNextIndexEx(date) - 1
+                    index = searchableList.getNextDateIndexEx(date) - 1
                 else:
-                    index = searchableList.getNextIndex(date) - 1
+                    index = searchableList.getNextiDateIndex(date) - 1
             else:
                 if not exclusive:
-                    index = searchableList.getNextIndex(date)
+                    index = searchableList.getNextDateIndex(date)
                 else:
-                    index = searchableList.getNextIndexEx(date)
+                    index = searchableList.getNextDateIndexEx(date)
             if index >= len(searchableList):
                 if not forceValid:
                     return None, False
@@ -179,9 +185,9 @@ class Catalog:
         ret = self._SearchableQueryDict()
         if queryList:
             for item in queryList:
-                if item["base"] not in ret.searchableLists:
-                    ret.searchableLists[item["base"]] = self._SearchableQueryList([], [])
-                queryListObj = ret.searchableLists[item["base"]] 
+                if item["id_base"] not in ret.searchableLists:
+                    ret.searchableLists[item["id_base"]] = self._SearchableQueryList([], [])
+                queryListObj = ret.searchableLists[item["id_base"]] 
                 queryListObj.dates.append(item["collection_date"])
                 queryListObj.catalogElements.append(item)
         return ret
