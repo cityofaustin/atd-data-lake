@@ -222,7 +222,7 @@ class Catalog:
         """
         Attempts to query for a single item given the criteria.
         """
-        results = self.getQueryList(stage, base, ext, collectionDate, exactEarlyDate=True, limit=1)
+        results = self.getQueryList(stage, base, ext, collectionDate, lateDate=None, exactEarlyDate=True, limit=1)
         return results[0] if results else None
         
     def queryLatest(self, stage, base, ext, earlyDate=None, lateDate=None):
