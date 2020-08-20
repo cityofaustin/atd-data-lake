@@ -27,7 +27,7 @@ class UnitDataCommonKnack:
     """
     Common functionality for gathering unit data from Knack
     """
-    def __init__(self, device, devFilter, appID, apiKey, areaBase, sameDay=False):
+    def __init__(self, device, devFilter, appID, apiKey, areaBase, sameDay=True):
         """
         Sets parameters for object operation
         

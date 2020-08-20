@@ -7,7 +7,7 @@ from support import etl_app, last_update
 import config
 from drivers.devices import last_upd_gs, gs_support
 
-import os, datetime
+import os
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
@@ -99,7 +99,9 @@ class GSInsertLakeApp(etl_app.ETLApp):
         @param item: Of type last_update.LastUpdate._LastUpdItem.
         @param device: Of type gs_support._GSDevice
         """
-        ourDay = self.processingDate.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=1)
+        # For the time being, unit data and site files will be stored for the day that the 
+        # collection happens, whereas the collected data is for the previous day.
+        ourDay = self.processingDate.replace(hour=0, minute=0, second=0, microsecond=0) # Same day
         siteFilename = "{}_site_{}".format(item.identifier.base, ourDay.strftime("%Y-%m-%d"))
         print("%s -> %s" % (siteFilename, self.storageTgt.repository))
         
