@@ -42,7 +42,7 @@ class GSReadyAggApp(etl_app.ETLApp):
         """
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc, extFilter="counts.json"),
-                                   last_update.LastUpdStorageCatProv(self.storageTgt),
+                                   last_update.LastUpdStorageCatProv(self.storageTgt, extFilter="agg%d.json" % self.args.agg),
                                    baseExtKey=False)
         print("Records processed: %d" % count)
         return count    
@@ -51,8 +51,8 @@ class GSReadyAggApp(etl_app.ETLApp):
         """
         This is where the actual ETL activity is called for the given compare item.
         """
-        print("%s: %s" % (item.payload["pointer"], self.stroageSrc.repository))
-        data = self.storageSrc.retrieveJSON(item.payload["pointer"])
+        print("%s: %s" % (item.label, self.storageSrc.repository))
+        data = self.storageSrc.retrieveJSON(item.label)
         header = data["header"]
         
         # Collect movement information:
@@ -65,16 +65,16 @@ class GSReadyAggApp(etl_app.ETLApp):
                                       "zone": zoneMask["Vehicle"]["Id"]})
         
         # Process the counts:
-        data = pd.DataFrame(data["counts"])
-        data['heavy_vehicle'] = np.where(data.vehicle_length < 17, 0, 1)
+        countData = pd.DataFrame(data["counts"])
+        countData['heavy_vehicle'] = np.where(countData.vehicle_length < 17, 0, 1)
         # In the following line, we convert to UTC because there's a bug in the grouper that doesn't deal with
         # the end of daylight savings time.
-        data['timestamp'] = pd.to_datetime(data["timestamp_adj"], utc=True)
-        data = data.merge(pd.DataFrame(movements), on='zone')
+        countData['timestamp'] = pd.to_datetime(countData["timestamp_adj"], utc=True)
+        countData = countData.merge(pd.DataFrame(movements), on='zone')
 
         # Do the grouping:        
         colValues = [pd.Grouper(key='timestamp', freq=('%ds' % (self.args.agg * 60))), 'zone_approach', 'turn', 'heavy_vehicle']
-        grouped = data.groupby(colValues)
+        grouped = countData.groupby(colValues)
         volume = grouped.size().reset_index(name='volume')
         avgSpeed = grouped.agg({'speed': 'mean'}).round(3).reset_index().rename(columns={'speed': 'speed_avg'})
         stdSpeed = grouped.agg({'speed': 'std'}).fillna(0).round(3).reset_index().rename(columns={'speed': 'speed_std'})
