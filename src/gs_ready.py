@@ -91,7 +91,7 @@ class GSReadyApp(etl_app.ETLApp):
             self.curDate = item.identifier.date
         if item.identifier.date > self.curDate:
             count = self._processDay(self.curDate)
-            item.identifier.date = self.curDate
+            self.curDate = item.identifier.date
         
         # Pre-load catalog entries to allow processing of all GUIDs for all intersections:
         if item.identifier.base not in self.bases:
@@ -287,6 +287,7 @@ class GSReadyApp(etl_app.ETLApp):
                 
                 # TODO: Continue to see out how to positively resolve NORTHBOUND, EASTBOUND, etc. to street geometry.
                 catalogElem = self.storageTgt.createCatalogElement(base, "counts.json", date, self.processingDate)
+                print("INFO: Writing: " + catalogElem["pointer"])
                 self.storageTgt.writeJSON(newFileContents, catalogElem, cacheCatalogFlag=True)
 
                 # Performance metrics:
@@ -306,6 +307,7 @@ def getCountsFile(date, base, guid, storage):
     catalogElement = storage.catalog.querySingle(storage.repository, base, guid + ".json", date)
     if not catalogElement:
         return None
+    print("INFO: Retrieving: " + catalogElement["pointer"])
     return storage.retrieveJSON(catalogElement["pointer"])
 
 def fillDayRecords(ourDate, countsFileData, ident, receiver):
