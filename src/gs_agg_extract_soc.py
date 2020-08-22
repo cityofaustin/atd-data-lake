@@ -49,7 +49,7 @@ class GSAggPublishApp(etl_app.ETLApp):
         
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc, extFilter="agg%d.json" % self.args.agg),
-                                   last_update.LastUpdCatProv(self.storageTgt, config.getRepository("public")),
+                                   last_update.LastUpdCatProv(self.storageSrc.catalog, config.getRepository("public")),
                                    baseExtKey=False)
         print("Records processed: %d" % count)
         return count    
@@ -59,7 +59,7 @@ class GSAggPublishApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.label, self.stroageSrc.repository, self.publisher.connector.getIdentifier()))
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.publisher.connector.getIdentifier()))
         data = self.storageSrc.retrieveJSON(item.label)
         device = data["device"] if "device" in data else None
         
@@ -69,7 +69,7 @@ class GSAggPublishApp(etl_app.ETLApp):
                       "primary_st": data["site"]["site"]["Location"]["Street1"],
                       "cross_st": data["site"]["site"]["Location"]["Street2"]}
             print("WARNING: Device for %s / %s has no device information. Skipping." % (device["primary_st"], device["cross_st"]))
-            continue # Comment this out if we're to record the site information after all.
+            return 0 # Comment this out if we're to record the site information after all.
 
         # Assemble JSON for the publisher:
         hasher = hashlib.md5()
