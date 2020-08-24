@@ -93,6 +93,7 @@ def wtStandardize(storageItem, filepathSrc, filenameTgt, processingDate):
     with open(filepathSrc, "rt") as fileReader:
         reader = csv.DictReader(fileReader)
         for row in reader:
+            row["curDateTime"] = str(date_util.localize(datetime.datetime.strptime(row["curDateTime"], "%Y-%m-%d %H:%M:%S")))
             data.append(row)
             
             # Performance metrics:
