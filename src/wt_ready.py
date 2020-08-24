@@ -97,7 +97,7 @@ def wtReady(unitData, data, processingDate):
     # Step 3: Tie device information to data rows:
     devices['device_id'] = devices.apply(_createHash, axis=1)
     data = data.merge(devices[['kits_id', 'device_id']],
-                      left_on='detID', right_on='kits_id', how='inner') \
+                      left_on='intID', right_on='kits_id', how='inner') \
                       .drop(columns="kits_id")
     data.sort_values(by=["curDateTime", "detID"], inplace=True)
     devices = devices[devices.device_id.isin(data.device_id.unique())]

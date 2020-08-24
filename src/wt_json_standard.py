@@ -94,8 +94,18 @@ def wtStandardize(storageItem, filepathSrc, filenameTgt, processingDate):
     with open(filepathSrc, "rt") as fileReader:
         reader = csv.DictReader(fileReader)
         for row in reader:
-            row["curDateTime"] = str(date_util.localize(datetime.datetime.strptime(row["curDateTime"], "%Y-%m-%d %H:%M:%S")))
-            data.append(row)
+            data.append({"detID": int(row["detID"]),
+                         "intID": int(row["intID"]),
+                         "curDateTime": str(date_util.localize(datetime.datetime.strptime(row["curDateTime"], "%Y-%m-%d %H:%M:%S"))),
+                         "intName": row["intName"],
+                         "detName": row["detName"],
+                         "volume": int(row["volume"]),
+                         "occupancy": int(row["occupancy"]),
+                         "speed": int(row["speed"]),
+                         "status": row["status"],
+                         "uploadSuccess": int(row["uploadSuccess"]),
+                         "detCountComparison": int(row["detCountComparison"]),
+                         "dailyCumulative": int(row["dailyCumulative"])})
             
             # Performance metrics:
             if row["intName"] and str(row["intName"] != "nan"):
