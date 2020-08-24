@@ -29,7 +29,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         super().__init__("gs", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="raw",
-                         purposeTgt="rawjson",
+                         purposeTgt="standardized",
                          perfmetStage="Standardize")
         self.prevDate = None
         self.unitDataProv = None
@@ -47,7 +47,9 @@ class GSJSONStandardApp(etl_app.ETLApp):
         self.unitDataProv = config.createUnitDataAccessor(self.storageSrc).prepare(self.startDate, self.endDate)
         
         # Prepare to get site files:
-        self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository, "site.json",
+        self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository,
+                                                                               base=None, 
+                                                                               ext="site.json",
                                                                                earlyDate=self.startDate,
                                                                                lateDate=self.endDate)
                 
@@ -64,7 +66,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         This is where the actual ETL activity is called for the given compare item.
         """
         # Commit old sensor observations:
-        if self.prevDate and item.idenifier.date > self.prevDate:
+        if self.prevDate and item.identifier.date > self.prevDate:
             # Write out uncommitted sensor performance metric observations for the prior date:
             self.perfmet.writeSensorObs()
             
@@ -83,9 +85,9 @@ class GSJSONStandardApp(etl_app.ETLApp):
         # Obtain unit data, and write it to the target repository if it's new:
         unitData = self.unitDataProv.retrieve(item.identifier.date)
         if unitData != self.prevUnitData:
-            config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
+            config.createUnitDataAccessor(self.storageTgt).store(unitData)
             
-        print("%s: %s -> %s" % (item.payload["pointer"], self.stroageSrc.repository, self.storageTgt.repository))
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.storageTgt.repository))
         worker = GSJSONStandard(item, siteFile, self.storageSrc, self.storageTgt, self.processingDate)
         if not worker.jsonize():
             return 0
@@ -116,7 +118,7 @@ class GSJSONStandard:
 
         self.apiVersion = None
         self.columns = None
-        self.header = self.setHeader()
+        self.header = self.getHeader()
         self.perfWork = [0, None, None]
         
     @staticmethod
@@ -128,19 +130,19 @@ class GSJSONStandard:
         return apiVersion
 
     def setDataColumns(self):
-        if self.api_version == 8:
+        if self.apiVersion == 8:
             self.columns = ["count_version", "site_version", "timestamp",
                             "utc_offset", "turn", "vehicle_length", "speed",
                             "light_state", "seconds_in_zone",
                             "vehicles_in_zone", "light_state_sec",
                             "sec_since_green", "zone_freeflow_speed",
                             "zone_freeflow_speed_cal"]
-        elif self.api_version == 7:
+        elif self.apiVersion == 7:
             self.columns = ["count_version", "site_version", "timestamp",
                             "utc_offset", "turn", "vehicle_length", "speed",
                             "light_state", "seconds_in_zone",
                             "vehicles_in_zone", "confidence"]
-        elif self.api_version == 4:
+        elif self.apiVersion == 4:
             self.columns = ["count_version", "site_version",  "timestamp",
                             "internal_veh_id", "internal_veh_type",
                             "vehicle_length", "speed", "turn", "allowable_turns",
@@ -148,23 +150,23 @@ class GSJSONStandard:
                             "queue_length", "light_state_on_exit",
                             "sec_since_green", "internal_frame_count", "day_night"]
         else:
-            raise Exception("GRIDSMART counts file format %d is not supported." % self.api_version)
+            raise Exception("GRIDSMART counts file format %d is not supported." % self.apiVersion)
 
     def getHeader(self):
         header = {"data_type": "gridsmart",
                   "zip_name": self.item.label.split("/")[-1],
                   "origin_filename": None,
                   "target_filename": None,
-                  "collection_date": self.item.identifier.date,
-                  "processing_date": self.processing_date,
-                  "version": self.api_version,
+                  "collection_date": str(self.item.identifier.date),
+                  "processing_date": str(self.processingDate),
+                  "version": self.apiVersion,
                   "guid": None}
         # Note: None values will be replaced in a per-GUID file basis
         return header
 
     def jsonize(self):
         # Read the .ZIP file and unpack here.
-        filePath = self.storageSrc.retrieveFilePath(self.item.payload["pointer"])
+        filePath = self.storageSrc.retrieveFilePath(self.item.provItem.payload["pointer"])
         if not gs_investigate.investigate(filePath, lambda fileDict: self._jsonizeWork(fileDict)):
             print("File %s not processed." % filePath)
             return False
@@ -190,7 +192,7 @@ class GSJSONStandard:
     def _jsonizeWork(self, fileDict):
         n = len(fileDict)
         i = 0
-        self.api_version = self.getAPIVersion(fileDict)
+        self.apiVersion = self.getAPIVersion(fileDict)
         self.setDataColumns()
         for key, value in fileDict.items():
             guid = key
@@ -252,10 +254,10 @@ class GSJSONStandard:
                         timestamp -= datetime.timedelta(minutes=item['utc_offset'])
                         timestamp = pytz.utc.localize(timestamp)
                         item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
-                    elif self.api_version == 7:
+                    elif self.apiVersion == 7:
                         print("WARNING: 'timestamp_adj' processing not provided for API v7!")
                         # TODO: Figure out the date parsing needed for this.
-                    elif self.api_version == 4:
+                    elif self.apiVersion == 4:
                         timestamp = datetime.datetime.strptime(item['timestamp'], "%Y%m%dT%H%M%S" + (".%f" if "." in item['timestamp'] else ""))
                         timestamp = pytz.utc.localize(timestamp)
                         item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
@@ -277,7 +279,8 @@ class GSJSONStandard:
                 print(exc)
             
             # Write to storage object:
-            catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, guid + ".json", item.identifier.date, processingDate=self.processingDate)
+            catalogElement = self.storageTgt.createCatalogElement(self.item.identifier.base, guid + ".json", 
+                self.item.identifier.date, processingDate=self.processingDate)
             self.storageTgt.writeJSON(jsonData, catalogElement, cacheCatalogFlag=True)
             
             i += 1

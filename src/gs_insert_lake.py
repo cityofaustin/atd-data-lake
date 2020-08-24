@@ -73,7 +73,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
         
         # Put together the site file:
-        self._insertSiteFile(item, item.payload.payload)
+        self._insertSiteFile(item, item.provItem.payload)
         
         # Obtain the raw count data archive:
         countsFilePath = self.gsProvider.resolvePayload(item)

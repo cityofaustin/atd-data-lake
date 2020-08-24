@@ -33,7 +33,7 @@ class GSReadyApp(etl_app.ETLApp):
         """
         super().__init__("gs", APP_DESCRIPTION,
                          args=args,
-                         purposeSrc="rawjson",
+                         purposeSrc="standardized",
                          purposeTgt="ready",
                          needsTempDir=True,
                          perfmetStage="Ready")
@@ -61,7 +61,9 @@ class GSReadyApp(etl_app.ETLApp):
         self.unitDataProv = config.createUnitDataAccessor(self.storageSrc).prepare(self.startDate, self.endDate)
 
         # Prepare to get site files:
-        self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository, "site.json",
+        self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository,
+                                                                               base=None,
+                                                                               ext="site.json",
                                                                                earlyDate=self.startDate,
                                                                                lateDate=self.endDate)
         
@@ -86,10 +88,10 @@ class GSReadyApp(etl_app.ETLApp):
         # Process if we have enough dates:
         count = 0
         if not self.curDate:
-            self.curDate = self.item.identifier.date
-        if self.item.identifier.date > self.curDate:
+            self.curDate = item.identifier.date
+        if item.identifier.date > self.curDate:
             count = self._processDay(self.curDate)
-            self.item.identifier.date = self.curDate
+            self.curDate = item.identifier.date
         
         # Pre-load catalog entries to allow processing of all GUIDs for all intersections:
         if item.identifier.base not in self.bases:
@@ -111,7 +113,7 @@ class GSReadyApp(etl_app.ETLApp):
         # Iterate through each intersection:
         sortedBases = sorted(self.bases)
         for base in sortedBases:
-            print("== " + sortedBases + ": " + date.strfdate("%Y-%m-%d") + " ==")
+            print("== " + base + ": " + date.strftime("%Y-%m-%d") + " ==")
             
             # Step 1: Get site file:
             siteFileCatElem, newSiteFlag = self.siteFileCatElems.getForPrevDate(base, date, forceValid=True)
@@ -254,7 +256,7 @@ class GSReadyApp(etl_app.ETLApp):
                         
                         # Store a representative header:
                         if not repHeader:
-                            repHeader = curDayCounts["header"] 
+                            repHeader = header
                     else:
                         print("WARNING: GUID %s is not found for current day file." % guid)
                         
@@ -285,6 +287,7 @@ class GSReadyApp(etl_app.ETLApp):
                 
                 # TODO: Continue to see out how to positively resolve NORTHBOUND, EASTBOUND, etc. to street geometry.
                 catalogElem = self.storageTgt.createCatalogElement(base, "counts.json", date, self.processingDate)
+                print("INFO: Writing: " + catalogElem["pointer"])
                 self.storageTgt.writeJSON(newFileContents, catalogElem, cacheCatalogFlag=True)
 
                 # Performance metrics:
@@ -296,7 +299,7 @@ class GSReadyApp(etl_app.ETLApp):
         self.bases.clear()
         return count
     
-def getCountsFile(base, date, guid, storage):
+def getCountsFile(date, base, guid, storage):
     """
     Using a base (street intersection name), attempts to retrieve from storage the file that corresponds with
     the given GUID for the given date. Returns path to the file, or None if it doesn't exist.   
@@ -304,6 +307,7 @@ def getCountsFile(base, date, guid, storage):
     catalogElement = storage.catalog.querySingle(storage.repository, base, guid + ".json", date)
     if not catalogElement:
         return None
+    print("INFO: Retrieving: " + catalogElement["pointer"])
     return storage.retrieveJSON(catalogElement["pointer"])
 
 def fillDayRecords(ourDate, countsFileData, ident, receiver):
