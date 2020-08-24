@@ -21,7 +21,8 @@ TS_RENAME = {'ATD_LOCATION_ID': 'atd_location_id',
              'LOCATION_latitude': 'lat',
              'LOCATION_longitude': 'lon',
              'PRIMARY_ST': 'primary_st',
-             'PRIMARY_ST_SEGMENT_ID': 'primary_st_segment_id'}
+             'PRIMARY_ST_SEGMENT_ID': 'primary_st_segment_id',
+             'KITS_ID': 'kitsID'}
 
 class UnitDataCommonKnack:
     """
@@ -82,7 +83,8 @@ class UnitDataCommonKnack:
                                    'coa_intersection_id',
                                    'lat', 'lon', 'primary_st',
                                    'primary_st_segment_id',
-                                   'cross_st', 'cross_st_segment_id']]
+                                   'cross_st', 'cross_st_segment_id',
+                                   'kits_id']]
         return devicesData
 
     def retrieve(self):

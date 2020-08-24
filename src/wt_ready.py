@@ -77,7 +77,7 @@ def _createHash(row):
     """
     Returns a hash that's based upon a row's contents from the data file
     """
-    toHash = ****row['device_type'] + row['device_ip'] + str(row['lat']) + str(row['lon'])
+    toHash = row['device_type'] + row['device_name'] + row['device_ip'] + str(row['lat']) + str(row['lon'])
     hasher = hashlib.md5()
     hasher.update(bytes(toHash, "utf-8"))
     return hasher.hexdigest()
@@ -96,9 +96,8 @@ def wtReady(unitData, data, fileType, processingDate):
     
     # Step 3: Tie device information to data rows:
     devices['device_id'] = devices.apply(_createHash, axis=1)
-    **** NEED TO APPLY TO WT:    
-    data = data.merge(devices[['device_name', 'device_id']],
-                      left_on='reader_id', right_on='device_name', how='inner') \
+    data = data.merge(devices[['kits_id', 'device_id']],
+                      left_on='detID', right_on='kits_id', how='inner') \
                       .drop(columns='device_name')
     data.sort_values(by=["host_timestamp", "reader_id"], inplace=True)
     # TODO: Consider removing "reader_id" here, for memory efficiency.

@@ -4,10 +4,9 @@ Wavetronix sensor JSON standardization translates between the "raw" and "rawjson
 @author Kenneth Perrine, Nadia Florez
 """
 from support import etl_app, last_update, perfmet
-from util import date_util
 import config
 
-import csv, datetime, os
+import csv, os
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(

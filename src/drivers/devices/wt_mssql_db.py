@@ -10,7 +10,7 @@ import collections
 
 DB_NAME = "KITSDB"
 
-KITSDBRec = collections.namedtuple("KITSDBRec", "curDateTime intName detName volume occupancy speed status uploadSuccess detCountComparison dailyCumulative")
+KITSDBRec = collections.namedtuple("KITSDBRec", "detID curDateTime intName detName volume occupancy speed status uploadSuccess detCountComparison dailyCumulative")
 
 class WT_MSSQL_DB:
     """
@@ -78,22 +78,23 @@ class WT_MSSQL_DB:
         """
         ret = {}
         cursor = self.conn.cursor()
-        sql = """SELECT CAST(CURDATETIME AS date), CURDATETIME, INTNAME, DETNAME, VOLUME, OCCUPANCY, SPEED, STATUS, UPLOADSUCCESS,
+        sql = """SELECT DETID, CAST(CURDATETIME AS date), CURDATETIME, INTNAME, DETNAME, VOLUME, OCCUPANCY, SPEED, STATUS, UPLOADSUCCESS,
 DETCOUNTCOMPARISON, DAILYCUMULATIVE FROM KITSDB.KITS.SYSDETHISTORYRM"""
         sql += self._buildDatePart(earlyDate, lateDate, includeWhere=True)
         sql += "ORDER BY CURDATETIME, INTNAME, DETNAME;"
         cursor.execute(sql)
         for row in cursor:
-            rec = KITSDBRec(curDateTime=row[1],
-                            intName=row[2],
-                            detName=row[3],
-                            volume=row[4],
-                            occupancy=row[5],
-                            speed=row[6],
-                            status=row[7],
-                            uploadSuccess=row[8],
-                            detCountComparison=row[9],
-                            dailyCumulative=row[10])
+            rec = KITSDBRec(detID=row[0],
+                            curDateTime=row[2],
+                            intName=row[3],
+                            detName=row[4],
+                            volume=row[5],
+                            occupancy=row[6],
+                            speed=row[7],
+                            status=row[8],
+                            uploadSuccess=row[9],
+                            detCountComparison=row[10],
+                            dailyCumulative=row[11])
             if row[0] not in ret:
                 ret[row[0]] = []
             ret[row[0]].append(rec)
