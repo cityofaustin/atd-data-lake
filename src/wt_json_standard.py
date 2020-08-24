@@ -4,9 +4,10 @@ Wavetronix sensor JSON standardization translates between the "raw" and "rawjson
 @author Kenneth Perrine, Nadia Florez
 """
 from support import etl_app, last_update, perfmet
+from util import date_util
 import config
 
-import csv, os
+import csv, os, datetime
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
@@ -54,7 +55,7 @@ class WTJSONStandardApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
             
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.storageSrc.repository, self.storageTgt.repository))
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.storageTgt.repository))
         filepathSrc = self.storageSrc.retrieveFilePath(item.label)
         outJSON, perfWork = wtStandardize(item, filepathSrc,
             self.storageTgt.makeFilename(item.identifier.base, "json", item.identifier.date), self.processingDate)

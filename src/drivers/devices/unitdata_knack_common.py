@@ -22,7 +22,7 @@ TS_RENAME = {'ATD_LOCATION_ID': 'atd_location_id',
              'LOCATION_longitude': 'lon',
              'PRIMARY_ST': 'primary_st',
              'PRIMARY_ST_SEGMENT_ID': 'primary_st_segment_id',
-             'KITS_ID': 'kitsID'}
+             'KITS_ID': 'kits_id'}
 
 class UnitDataCommonKnack:
     """
