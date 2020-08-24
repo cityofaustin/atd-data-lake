@@ -61,7 +61,7 @@ class WTInsertLakeApp(etl_app.ETLApp):
             csvWriter.writerow(["detID", "curDateTime", "intName", "detName", "volume", "occupancy", "speed", "status",
                                 "uploadSuccess", "detCountComparison", "dailyCumulative"])
             for row in recs:
-                csvWriter.writerow([date_util.localize(row.curDateTime).strftime("%Y-%m-%d %H:%M:%S"),
+                csvWriter.writerow([row.detID, date_util.localize(row.curDateTime).strftime("%Y-%m-%d %H:%M:%S"),
                                     row.intName, row.detName, row.volume, row.occupancy, row.speed, row.status,
                                     row.uploadSuccess, row.detCountComparison, row.dailyCumulative])
         
