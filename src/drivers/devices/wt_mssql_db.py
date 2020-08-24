@@ -84,7 +84,7 @@ UPLOADSUCCESS,DETCOUNTCOMPARISON, DAILYCUMULATIVE FROM KITSDB.KITS.SYSDETHISTORY
         if not datePart:
             sql += " WHERE "
         else:
-            sql += " AND "
+            sql += datePart + " AND "
         sql += " a.DETID = b.DETID"
         sql += " ORDER BY CURDATETIME, INTNAME, DETNAME;"
         cursor.execute(sql)
