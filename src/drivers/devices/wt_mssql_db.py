@@ -10,7 +10,7 @@ import pymssql
 import collections
 import datetime
 
-KITSDBRec = collections.namedtuple("KITSDBRec", "detID curDateTime intName detName volume occupancy speed status uploadSuccess detCountComparison dailyCumulative")
+KITSDBRec = collections.namedtuple("KITSDBRec", "detID intID curDateTime intName detName volume occupancy speed status uploadSuccess detCountComparison dailyCumulative")
 
 class WT_MSSQL_DB:
     """
@@ -78,24 +78,30 @@ class WT_MSSQL_DB:
         """
         ret = {}
         cursor = self.conn.cursor()
-        sql = """SELECT DETID, CAST(CURDATETIME AS date), CURDATETIME, INTNAME, DETNAME, VOLUME, OCCUPANCY, SPEED, STATUS, UPLOADSUCCESS,
-DETCOUNTCOMPARISON, DAILYCUMULATIVE FROM KITSDB.KITS.SYSDETHISTORYRM"""
-        sql += self._buildDatePart(earlyDate, lateDate, includeWhere=True)
+        sql = """SELECT a.DETID, b.INTID, CAST(CURDATETIME AS date), CURDATETIME, INTNAME, DETNAME, a.VOLUME, a.OCCUPANCY, SPEED, STATUS,
+UPLOADSUCCESS,DETCOUNTCOMPARISON, DAILYCUMULATIVE FROM KITSDB.KITS.SYSDETHISTORYRM AS a, KITSDB.KITS.DETECTORSRM AS b"""
+        datePart = self._buildDatePart(earlyDate, lateDate, includeWhere=True)
+        if not datePart:
+            sql += " WHERE "
+        else:
+            sql += " AND "
+        sql += " a.DETID = b.DETID"
         sql += " ORDER BY CURDATETIME, INTNAME, DETNAME;"
         cursor.execute(sql)
         for row in cursor:
             rec = KITSDBRec(detID=int(row[0]),
-                            curDateTime=date_util.localize(row[2]),
-                            intName=row[3],
-                            detName=row[4],
-                            volume=int(row[5]),
-                            occupancy=int(row[6]),
-                            speed=int(row[7]),
-                            status=row[8],
-                            uploadSuccess=int(row[9]),
-                            detCountComparison=int(row[10]),
-                            dailyCumulative=int(row[11]))
-            ourDate = date_util.localize(datetime.datetime.strptime(row[1], "%Y-%m-%d"))
+                            intID=int(row[1]),
+                            curDateTime=date_util.localize(row[3]),
+                            intName=row[4],
+                            detName=row[5],
+                            volume=int(row[6]),
+                            occupancy=int(row[7]),
+                            speed=int(row[8]),
+                            status=row[9],
+                            uploadSuccess=int(row[10]),
+                            detCountComparison=int(row[11]),
+                            dailyCumulative=int(row[12]))
+            ourDate = date_util.localize(datetime.datetime.strptime(row[2], "%Y-%m-%d"))
             if ourDate not in ret:
                 ret[ourDate] = []
             ret[ourDate].append(rec)

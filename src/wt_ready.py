@@ -82,7 +82,7 @@ def _createHash(row):
     hasher.update(bytes(toHash, "utf-8"))
     return hasher.hexdigest()
 
-def wtReady(unitData, data, fileType, processingDate):
+def wtReady(unitData, data, processingDate):
     """
     Transforms Wavetronix data to "ready" JSON along with the unit data.
     """
@@ -98,9 +98,8 @@ def wtReady(unitData, data, fileType, processingDate):
     devices['device_id'] = devices.apply(_createHash, axis=1)
     data = data.merge(devices[['kits_id', 'device_id']],
                       left_on='detID', right_on='kits_id', how='inner') \
-                      .drop(columns='device_name')
-    data.sort_values(by=["host_timestamp", "reader_id"], inplace=True)
-    # TODO: Consider removing "reader_id" here, for memory efficiency.
+                      .drop(columns="kits_id")
+    data.sort_values(by=["curDateTime", "detID"], inplace=True)
     devices = devices[devices.device_id.isin(data.device_id.unique())]
     devices = devices.apply(lambda x: x.to_dict(), axis=1).tolist()
     

@@ -45,7 +45,7 @@ class WTInsertLakeApp(etl_app.ETLApp):
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
         print("Records processed: %d" % count)
-        return count    
+        return count
 
     def innerLoopActivity(self, item):
         """
@@ -58,10 +58,10 @@ class WTInsertLakeApp(etl_app.ETLApp):
         tempFilePath = os.path.join(self.tempDir, item.label)
         with open(tempFilePath, "w", newline="") as csvFile:
             csvWriter = csv.writer(csvFile)
-            csvWriter.writerow(["detID", "curDateTime", "intName", "detName", "volume", "occupancy", "speed", "status",
+            csvWriter.writerow(["detID", "intID", "curDateTime", "intName", "detName", "volume", "occupancy", "speed", "status",
                                 "uploadSuccess", "detCountComparison", "dailyCumulative"])
             for row in recs:
-                csvWriter.writerow([row.detID, date_util.localize(row.curDateTime).strftime("%Y-%m-%d %H:%M:%S"),
+                csvWriter.writerow([row.detID, row.intID, date_util.localize(row.curDateTime).strftime("%Y-%m-%d %H:%M:%S"),
                                     row.intName, row.detName, row.volume, row.occupancy, row.speed, row.status,
                                     row.uploadSuccess, row.detCountComparison, row.dailyCumulative])
         
