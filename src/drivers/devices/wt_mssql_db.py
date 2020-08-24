@@ -5,10 +5,10 @@ the MS SQL database.
 @author Kenneth Perrine
 """
 from config import config_wt
+from util import date_util
 import pymssql
 import collections
-
-DB_NAME = "KITSDB"
+import datetime
 
 KITSDBRec = collections.namedtuple("KITSDBRec", "detID curDateTime intName detName volume occupancy speed status uploadSuccess detCountComparison dailyCumulative")
 
@@ -22,22 +22,22 @@ class WT_MSSQL_DB:
         Initializes a connection to the database. It will leverage the connection information that's
         stored in the config.config_wt.py file.
         """
-        self.conn = pymssql.connect(config_wt.WT_DB_SERVER, config_wt.WT_DB_USER, config_wt.WT_DB_PASSWORD, DB_NAME)
+        self.conn = pymssql.connect(config_wt.WT_DB_SERVER, config_wt.WT_DB_USER, config_wt.WT_DB_PASSWORD, config_wt.WT_DB_NAME)
         
     def _buildDatePart(self, earlyDate=None, lateDate=None, includeWhere=False):
         """
-        Internal function for building up the date clause on a SQL query.
+        Internal function for building up the date clause on a SQL query. Strips off time zone information.
         """
         ret = ""
         if earlyDate:
             if earlyDate == lateDate:
-                ret = "CURDATETIME = '%s'" % str(earlyDate)
+                ret = "CAST(CURDATETIME AS date) = CONVERT(VARCHAR, '%s', 120)" % str(earlyDate.strftime("%Y-%m-%d"))
             else:
-                ret = "CURDATETIME >= '%s'" % str(earlyDate)
+                ret = "CURDATETIME >= CONVERT(VARCHAR, '%s', 120)" % str(earlyDate.strftime("%Y-%m-%d %H:%M:%S"))
         if lateDate and earlyDate != lateDate:
             if ret:
                 ret += " AND "
-            ret += "CURDATETIME < '%s'" % str(lateDate)
+            ret += "CURDATETIME < CONVERT(VARCHAR, '%s', 120)" % str(lateDate.strftime("%Y-%m-%d %H:%M:%S"))
         if ret and includeWhere:
             ret = " WHERE " + ret
         return ret
@@ -55,7 +55,7 @@ class WT_MSSQL_DB:
         cursor.execute(sql)
         row = cursor.fetchone()
         if row:
-            return row[0]
+            return date_util.localize(datetime.datetime.strptime(row[0], "%Y-%m-%d"))
         return None
 
     def query(self, earlyDate=None, lateDate=None):
@@ -69,7 +69,7 @@ class WT_MSSQL_DB:
         sql += " GROUP BY CAST(CURDATETIME AS date);"
         cursor.execute(sql)
         for row in cursor:
-            ret[row[0]] = row[1]
+            ret[date_util.localize(datetime.datetime.strptime(row[0], "%Y-%m-%d"))] = int(row[1])
         return ret
 
     def retrieve(self, earlyDate=None, lateDate=None):
@@ -81,21 +81,22 @@ class WT_MSSQL_DB:
         sql = """SELECT DETID, CAST(CURDATETIME AS date), CURDATETIME, INTNAME, DETNAME, VOLUME, OCCUPANCY, SPEED, STATUS, UPLOADSUCCESS,
 DETCOUNTCOMPARISON, DAILYCUMULATIVE FROM KITSDB.KITS.SYSDETHISTORYRM"""
         sql += self._buildDatePart(earlyDate, lateDate, includeWhere=True)
-        sql += "ORDER BY CURDATETIME, INTNAME, DETNAME;"
+        sql += " ORDER BY CURDATETIME, INTNAME, DETNAME;"
         cursor.execute(sql)
         for row in cursor:
-            rec = KITSDBRec(detID=row[0],
-                            curDateTime=row[2],
+            rec = KITSDBRec(detID=int(row[0]),
+                            curDateTime=date_util.localize(row[2]),
                             intName=row[3],
                             detName=row[4],
-                            volume=row[5],
-                            occupancy=row[6],
-                            speed=row[7],
+                            volume=int(row[5]),
+                            occupancy=int(row[6]),
+                            speed=int(row[7]),
                             status=row[8],
-                            uploadSuccess=row[9],
-                            detCountComparison=row[10],
-                            dailyCumulative=row[11])
-            if row[0] not in ret:
-                ret[row[0]] = []
-            ret[row[0]].append(rec)
+                            uploadSuccess=int(row[9]),
+                            detCountComparison=int(row[10]),
+                            dailyCumulative=int(row[11]))
+            ourDate = date_util.localize(datetime.datetime.strptime(row[1], "%Y-%m-%d"))
+            if ourDate not in ret:
+                ret[ourDate] = []
+            ret[ourDate].append(rec)
         return ret

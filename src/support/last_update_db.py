@@ -39,11 +39,13 @@ class LastUpdDB(last_update.LastUpdProv):
             base, ext, date = self._getIdentifier(self.baseName, self.extName, result)
             if self._isSameDayCancel(date):
                 continue
+            filename = self.baseName + "_" + date.strftime("%Y-%m-%d") + "." + self.extName
             yield last_update.LastUpdProv._LastUpdProvItem(base=base,
                                                            ext=ext,
                                                            date=date,
+                                                           dateEnd=None,
                                                            payload=result,
-                                                           label=result["pointer"])
+                                                           label=filename)
 
     def resolvePayload(self, lastUpdItem):
         """
