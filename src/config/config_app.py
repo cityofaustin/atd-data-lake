@@ -56,6 +56,7 @@ SOC_RESOURCE_BT_IAF = "qnpj-zrb9"
 SOC_RESOURCE_BT_ITMF = "x44q-icha"
 SOC_RESOURCE_BT_TMSR = "v7zg-5jg9"
 SOC_RESOURCE_GS_AGG = "sh59-i6y9"
+SOC_RESOURCE_WT = "i626-g7ub"
 
 # KNACK_LOOKUPS provides direct Knack matches to given cross streets found on GRIDSMART devices:
 KNACK_LOOKUPS = {"Loop 360_Barton Creek": "LOC16-004315",
@@ -112,7 +113,7 @@ def createPublisherConn(dataSource, variant=None):
         elif variant == "unmatched":
             socResource = SOC_RESOURCE_BT_IAF
     elif dataSource == "wt":
-        pass
+        socResource = SOC_RESOURCE_WT
     elif dataSource == "gs":
         socResource = SOC_RESOURCE_GS_AGG
     return publish_socrata.PublishSocrataConn(SOC_HOST, SOC_WRITE_AUTH, socResource, SOC_IDENTIFIER)

@@ -1,5 +1,5 @@
 """
-Publish Bluetooth "Ready" Data Lake data
+Publish GRIDSMART Aggregated "Ready" Data Lake data
 
 @author Kenneth Perrine, Nadia Florez
 """
@@ -17,7 +17,7 @@ APP_DESCRIPTION = etl_app.AppDescription(
 
 class GSAggPublishApp(etl_app.ETLApp):
     """
-    Application functions and special behavior around Bluetooth exporting to Socrata.
+    Application functions and special behavior around GRIDSMART exporting to Socrata.
     """
     def __init__(self, args):
         """
@@ -106,7 +106,7 @@ class GSAggPublishApp(etl_app.ETLApp):
             timestamp = arrow.get(line["timestamp"])
                 
             entry = {"atd_device_id": device["atd_device_id"],
-                     "read_date": socTime(line["timestamp"]),
+                     "read_date": self.publisher.convertTime(timestamp.datetime),
                      "intersection_name": device["primary_st"].strip() + " / " + device["cross_st"].strip(),
                      "direction": approach,
                      "movement": movement,
@@ -150,10 +150,6 @@ class GSAggPublishApp(etl_app.ETLApp):
         self.perfmet.recordCollect(item.identifier.date, representsDay=True)
 
         return 1
-
-def socTime(inTimeStr):
-    "Converts the canonicalized time to the time representation that Socrata uses."
-    return arrow.get(inTimeStr).datetime.strftime("%Y-%m-%dT%H:%M:%S")
 
 def _addErrDup(errDup, errStr):
     if errStr not in errDup: 

@@ -47,7 +47,9 @@ class PublishSocrataConn(publish.PublishConnBase):
         Returns the resource identifier, in this case, the Socrata resource
         """
         return self.socResource
-        
-def socTime(inTimeStr):
-    "Converts the canonicalized time to the time representation that Socrata uses."
-    return arrow.get(inTimeStr).datetime.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    def convertTime(self, inTime):
+        """
+        Converts the datetime object to the time representation that Socrata uses.
+        """
+        return inTime.strftime("%Y-%m-%dT%H:%M:%S")
