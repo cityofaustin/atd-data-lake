@@ -33,7 +33,7 @@ COMMENT ON TABLE api.etl_perfmet_job IS
   'Austin Transportation performance metrics job log';
 
 GRANT ALL ON api.etl_perfmet_job TO super_user;
-GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_job_seq TO super_user;
+GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_job_id_seq TO super_user;
 ```
 
 > Describe the columns.
@@ -41,7 +41,7 @@ GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_job_seq TO super_user;
 
 
 ```sql
-CREATE TABLE api.etl.perfmet_obs (
+CREATE TABLE api.etl_perfmet_obs (
   id serial,
   data_source varchar NOT NULL,
   sensor_name varchar NOT NULL,
@@ -58,7 +58,7 @@ COMMENT ON TABLE api.etl_perfmet_obs IS
   'Austin Transportation performance metrics observation log';
 
 GRANT ALL ON api.etl_perfmet_obs TO super_user;
-GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_obs_seq TO super_user;
+GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_obs_id_seq TO super_user;
 ```
 
 > Describe the columns.

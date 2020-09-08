@@ -51,6 +51,14 @@ Authentication happens with JSON web tokens (JWT). A new JWT must be issued for 
 
 Also see https://github.com/cityofaustin/transportation-data/blob/ac45d62f704628dde97c2f2035f37ce6f32545c0/postgresql/schema.api/schema.sql#L25
 
+#### Sequences
+
+There is a special consideration for permissions around sequences that must happen for PostgREST to update respective tables. For example, the `api.data_lake_catalog` table below uses a `serial` type to maintain a quick integer-based unique identfier. For that to work with PostgREST, the permissions must be assigned like this (you can see the sequence name by running in `psql`: `\d api.<your_table_name>`)
+
+```sql
+GRANT USAGE, SELECT ON SEQUENCE api.<your_sequence_name> TO super_user;
+```
+
 ### JSON Web Token
 
 This allows write/update access to PostgREST databases that are granted permissions for the `super_user` user. It will be advantageous for there to be a procedure to generate tokens.
