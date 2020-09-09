@@ -18,12 +18,12 @@ UNIT_LOCATION = "Austin"
 "Production mode default; use False for debug"
 productionMode = True
 
-PURPOSE_REPO_MAP = {"raw-production": "atd-data-lake-raw",
-                    "raw-debug": "atd-data-lake-raw-test",
-                    "standardized-production": "atd-data-lake-rawjson",
-                    "standardized-debug": "atd-data-lake-rawjson-test",
-                    "ready-production": "atd-data-lake-ready",
-                    "ready-debug": "atd-data-lake-ready-test",
+PURPOSE_REPO_MAP = {"raw-production": "atd-datalake-raw",
+                    "raw-debug": "atd-datalake-raw-test",
+                    "standardized-production": "atd-datalake-rawjson",
+                    "standardized-debug": "atd-datalake-rawjson-test",
+                    "ready-production": "atd-datalake-ready",
+                    "ready-debug": "atd-datalake-ready-test",
                     "public-production": "socrata",
                     "public-debug": "socrata-test"}
 
@@ -32,11 +32,11 @@ DATASOURCE_MAP = {"bt": config_support.DataSourceConfig(code="bt", name="Bluetoo
                   "gs": config_support.DataSourceConfig(code="gs", name="GRIDSMART")}
 
 # ** These items are specific to devices and dependencies: **
-CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_test"
+CATALOG_URL = "http://transportation-data.austinmobility.io/data_lake_catalog"
 CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", "")
 
-PERFMET_JOB_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_job"
-PERFMET_OBS_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_obs"
+PERFMET_JOB_URL = "http://transportation-data.austinmobility.io/etl_perfmet_job"
+PERFMET_OBS_URL = "http://transportation-data.austinmobility.io/etl_perfmet_obs"
 
 KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", "")
 KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", "")
