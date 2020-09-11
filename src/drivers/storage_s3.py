@@ -8,6 +8,8 @@ import os
 import boto3
 import arrow
 
+from support import storage
+
 _AWS_SESSION = None
 
 def configAWS_S3(awsKey, awsSecretKey):
@@ -18,7 +20,7 @@ def configAWS_S3(awsKey, awsSecretKey):
 def isAWS_S3_Configured():
     return not _AWS_SESSION is None
 
-class StorageS3:
+class StorageS3(storage.StorageImpl):
     """
     Implements storage access functions using AWS S3.
     """    
