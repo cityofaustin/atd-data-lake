@@ -272,6 +272,7 @@ class ETLApp:
             if item.identifier.date != self.prevDate and self.storageTgt:
                 self.storageTgt.flushCatalog()
             
+            self.processingDate = date_util.localize(arrow.now().datetime)
             countIncr = self.innerLoopActivity(item)
             
             if countIncr:
