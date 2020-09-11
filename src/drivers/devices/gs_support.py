@@ -72,6 +72,7 @@ def retrieveDevices(gsUnitData, devFilter=".*"):
         #if True: # TODO: It seems as though the "ip_comm_status" often says "OFFLINE" when the device is actually responding. 
         if row["device_status"].strip().upper() != "REMOVED" and row["atd_location_id"] and str(row["atd_location_id"]) != 'nan':
             streetName = row["primary_st"] + "_" + row["cross_st"]
+            streetName = streetName.replace("/", "&") # Needed to sanitize for filenames.
             if not regexp.search(streetName):
                 continue
             try:
