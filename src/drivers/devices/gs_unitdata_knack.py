@@ -6,7 +6,7 @@ gs_unitdata_knack.py contains Knack-based Unit Data accessor for GRIDSMART
 from drivers.devices.unitdata_knack_common import UnitDataCommonKnack
 
 import pandas as pd
-from knackpy import Knack
+import knackpy
 
 GS_RENAME = {'DETECTOR_ID': 'atd_device_id',
             'DETECTOR_IP': 'device_ip',
@@ -40,18 +40,14 @@ class GSUnitDataKnack(UnitDataCommonKnack):
         Calls Knack to retrieve Unit Data.
         """
         device_filters = {'match': 'and',
-                          'rules': [
-                                    {
-                                     'field': 'field_2384',
+                          'rules': [{'field': 'field_2384',
                                      'operator': 'is',
-                                     'value': 1
-                                     }]}
+                                     'value': 1}]}
 
-        device_locs = Knack(
-                       obj='object_98',
-                       app_id=self.appID,
-                       api_key=self.apiKey,
-                       filters=device_filters)
+        knackApp = knackpy.App(app_id=self.appID,
+                               api_key=self.apiKey)
+        device_locs = knackApp.get('object_98',
+                                   filters=device_filters)
 
         devices_data = pd.DataFrame(device_locs.data)
         devices_data['SENSOR_TYPE'] = 'GRIDSMART'

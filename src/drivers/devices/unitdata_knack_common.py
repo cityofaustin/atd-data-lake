@@ -4,7 +4,7 @@ unitdata_knack_common.py contains common functions used in building up unit data
 @author Kenneth Perrine, Nadia Florez
 """
 import pandas as pd
-from knackpy import Knack
+import knackpy
 
 from support import unitdata
 
@@ -49,7 +49,8 @@ class UnitDataCommonKnack:
         """
         Obtain the ATD Locations Knack table
         """
-        locsAccessor = Knack(obj='object_11', app_id=self.appID, api_key=self.apiKey)
+        knackApp = knackpy.App(app_id=self.appID, api_key=self.apiKey)
+        locsAccessor = knackApp.get('object_11')
     
         atdLocColumns = ['ATD_LOCATION_ID', 'COA_INTERSECTION_ID', 'CROSS_ST',
                'CROSS_ST_SEGMENT_ID','LOCATION_latitude', 'LOCATION_longitude',
@@ -63,13 +64,12 @@ class UnitDataCommonKnack:
         Obtain filtered information from the Knack devices table
         """
         deviceFilters = {'match': 'and',
-                          'rules': [{'field': 'field_884',
-                                     'operator': 'is',
-                                     'value': self.devFilter}]}
-        deviceLocs = Knack(obj='object_56',
-                           app_id=self.appID,
-                           api_key=self.apiKey,
-                           filters=deviceFilters)
+                         'rules': [{'field': 'field_884',
+                                    'operator': 'is',
+                                    'value': self.devFilter}]}
+        knackApp = knackpy.App(app_id=self.appID, api_key=self.apiKey)
+        deviceLocs = knackApp.get('object_56',
+                                  filters=deviceFilters)
 
         devicesData = pd.DataFrame(deviceLocs.data)
         devicesData = (pd.merge(devicesData, self._getLocations(),
