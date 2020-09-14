@@ -3,7 +3,7 @@ publish_socrata.py coordinates the writing of data to Socrata
 
 @author Kenneth Perrine
 """
-from tdutils import socratautil
+from socratautil
 import arrow
 
 from support import publish
