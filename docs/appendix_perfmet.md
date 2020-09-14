@@ -6,7 +6,7 @@ Performance metrics in the ETL processes looks like:
 * Logging the numbers of records manipulated for each day in each ETL process
 * During the JSON Canonicalization stage, logging a representative metric for each unit handled within the data source
 
-The main purposes of logging these is to understand the overall health of the system, so that visualizations can be shown in a dashboard format. If entire ETL stages fail, then it they are obviously absent from the dashboard. If measurements for units are missing (e.g. intersections are out for GRIDSMART) or are significantly off from the average, then it is evident on the dashboard.
+The main purposes of logging these is to understand the overall health of the system, so that visualizations can be shown in a dashboard format. If entire ETL stages fail, then they should be obviously absent from the dashboard. If measurements for units are missing (e.g. intersections are out for GRIDSMART) or are significantly off from the average, then it should also be evident on the dashboard.
 
 This document describes the metrics that are created, the efforts in Knack to visualize them (which can conceivably be duplicated using other visualization platforms), and has technical notes on creating the database tables that store the daily metrics.
 

@@ -1,4 +1,4 @@
-# Appendix: Acessing S3
+# Appendix: Accessing S3
 
 *[(Back to Docs Catalog)](index.md)*
 
@@ -36,10 +36,10 @@ Or you can do:
 s3.Bucket('atd-data-lake-raw').upload_file('/tmp/hello.txt', '2018/01/test_file3.txt')
 ```
 
-The documentation at https://dluo.me/s3databoto3 has further examples on writing and reading, while using pandas. Also it has information on how to iterate over all objects under specific directories, which can be very handy for seeing what all is already present in S3.
+The documentation at https://dluo.me/s3databoto3 has further examples on writing and reading, while using Pandas. Also it has information on how to iterate over all objects under specific directories, which can be very handy for seeing what all is already present in S3. (Note that in the "atd-data-lake" project, we don't iterate through S3; rather, we maintain a catalog accessed through PostgREST that can hold metadata and searchable parameters for all entries in S3 and other published locations.)
 
 ## Reading from S3
-Using the example of "2018/07/05/bt/Austin_bt_07-05-2018.txt" in the "atd-data-lake-raw" bucket, reading that into pandas:
+Using the example of "2018/07/05/bt/Austin_bt_07-05-2018.txt" in the "atd-data-lake-raw" bucket, reading that into Pandas:
 
 ```python
 import boto3
@@ -51,3 +51,8 @@ btData = pd.read_csv(obj['Body'], header=None, names=['deviceTime', 'ipAddr', 'f
 ```
 
 As a sanity check, `btData["readerID"][2]` should be `lamar_parmer`.
+
+## Implementation
+In the "atd-data-lake" project, interactions with S3 are facilitated through the `drivers/storage_s3.py` code that implements the `support.storage.StorageImpl` interface. The code that chooses the S3 implementation is found in `config.config_app.createStorageConn()`.
+
+Presumably, if one wanted to switch over to using a locally mounted filesystem, or use another cloud storage API, one would create a new implementation of `support.storage.StorageImpl` (say, in the `drivers` directory), and then change the code in `config.config_app.createStorageConn()` to use that class instead of the S3 class.

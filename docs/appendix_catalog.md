@@ -22,9 +22,11 @@ These instructions assume that PostgREST has been configured and operating by AT
     postgres bash -c "PGPASSWORD=*** psql -h ***.rds.amazonaws.com -p 5432 -U *** -d atd01"
     ```
 1. You're connected. Make changes as nessary and use `\q` to quit psql.
-1. You'll need to restart the PostgREST server in order to access your modifications through the API:
+1. You'll need to reload the PostgREST server in order to access your modifications through the API (PostgREST needs to refresh its schema cache):
    ```bash
-   sudo docker restart ec2-user_server_1
+   sudo docker kill -s SIGUSR1 ec2-user_server_1
+   # Or, more severely:
+   # sudo docker restart ec2-user_server_1
    ```
 1. Hit the API to make sure it's running again:
    ```bash
@@ -133,11 +135,6 @@ if pgrest.select({"select": "value", "value": "eq.%s" % myStr}):
     print("Present 2")
 ```
 
-
-> from pypgrest import Postgrest
->>> catalog=Postgrest("https://transportation-data.austinmobility.io/data-lake-catalog", auth="****")
->>> rec={"repository":"test","data_source":"test","id_base":"test","id_ext":"test","pointer":"test","collection_date":"2020-01-01"}
-
 Further instructions on parameters: https://postgrest.org/en/v4.1/api.html. It looks like "AND" operators in queries are easy-- just add key/value pairs to select calls-- but, "OR" operators require the use of stored procedures. To insert a stored procedure, it appears that one would need to get into the database with psql as seen in a previous section.
 
 Further example on using PostgREST and date functions: https://github.com/cityofaustin/transportation-data-utils/blob/master/tdutils/jobutil.py; see the use of the "arrow" package, and anything that calls `Job._query()`. (This talks directly to PostgREST without the use of pypgrest, but the parameters and data types are the same as what's used by pypgrest; pypgrest just hides HTTP requests a bit).
@@ -151,7 +148,7 @@ Example of writing to the catalog (updating the entry if this is run repeatedly,
 from pypgrest import Postgrest
 import arrow
 import json
-catalog = Postgrest("http://transportation-data-test.austintexas.io/data_lake_catalog", auth="***")
+catalog = Postgrest("http://transportation-data.austinmobility.io/data_lake_catalog", auth="***")
 
 # Insert or update new element to catalog:
 repository = "raw"
