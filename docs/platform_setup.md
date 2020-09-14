@@ -13,9 +13,9 @@ At earlier times, it had been found that Docker containers unexpectedly failed a
 The webpage at [https://www.netweaver.uk/create-swap-file-centos-7/](https://www.netweaver.uk/create-swap-file-centos-7/) is adapted here.
 
 #### Allocating the Swap Space and Activating It
-Create a 1 GB swap file:
+Create an 800 MB swap file:
 ```bash
-sudo dd if=/dev/zero of=/swap count=1024 bs=1MiB
+sudo dd if=/dev/zero of=/swap count=820 bs=1MiB
 ```
 
 Set permissions, format and enable:
@@ -27,9 +27,12 @@ sudo swapon /swap
 
 #### Making Swap Space Persistent Upon Reboot
 
-This involves editing the fstab file. To do this:
+This involves editing the fstab file. To do this, run the following. The "mount -a" command checks the validity of the fstab file; it should return no error message.
 ```bash
-sudo echo "/swap swap swap sw 0 0" >> /etc/fstab
+sudo su -
+echo "/swap swap swap sw 0 0" >> /etc/fstab
+mount -a
+exit
 ```
 
 ### Setting the Time Zone
@@ -43,9 +46,9 @@ date
 free -h
 ```
 
-### Building the "ctrdocker/tdp" Container
+### Building the "ctrdocker/tdp" Image
 
-The "ctrdocker/tdp" container is built using the Dockerfile in the "atd-data-publishing" project.
+The "ctrdocker/tdp" image is built using the Dockerfile in the "atd-data-publishing" project.
 
 Get the project (after installing Git on the EC2 instance):
 ```bash
@@ -54,19 +57,19 @@ mkdir -p ~/git
 cd ~/git
 git clone https://github.com/cityofaustin/atd-data-publishing.git
 cd atd-data-publishing
-git checkout latest
 ```
 
-Edit the `requirements.txt` file to add two dependencies that are needed by the ETL processes:
+Edit the `requirements.txt` file to add a dependency that is needed by the ETL processes:
 
 ```
-sodapy
 boto3
 ```
 
-> **TODO:** Eventually we can "bake in" some of the driver functionality that's in the "atd-data-lake" project into this project and the Docker container. A good starting point is to utilize the "atd-data-publishing/config/fake_secrets.py" template to encode secret passwords directly into the container rather than having them live in the "atd-data-lake" project.
+> **TODO:** Eventually we can "bake in" some of the driver functionality that's in the "atd-data-lake" project into this project and the Docker image. A good starting point is to utilize the "atd-data-publishing/config/fake_secrets.py" template to encode secret passwords directly into the image rather than having them live in the "atd-data-lake" project.
 
-Now, build the container: `docker build --tag ctrdocker/tdp:latest`
+Now, build the image: `docker build --tag ctrdocker/tdp:latest .`
+
+> Note that if the image already exists (e.g. this process was performed earlier, and it is being rerun to upgrade dependencies), the old image should be replaced with the new. If you didn't want to replace the old image, it is possible to tag it with an older version: `docker image tag ctrdocker/tdp ctrdocker/tdp:FY19`
 
 ### Staging the "atd-data-deploy" Project
 
@@ -75,6 +78,7 @@ Now, get the "atd-data-deploy" project onto the EC2 instance:
 ```bash
 cd ~/git
 git clone https://github.com/cityofaustin/atd-data-deploy
+mkdir -p atd-data-deploy/scripts # TODO: This needs to be in the repository.
 ```
 
 ### Staging the "atd-data-lake" Project
@@ -103,17 +107,17 @@ Now "atd-data-deploy" is ready to be configured per the [Deployment Configuratio
 ```bash
 cd ~/git/atd-data-deploy
 bash build.sh
-bash deploy.sh
+bash deploy.sh # ... when it's time to have ETL processes automatically run.
 ```
 
-If "atd-data-deploy" had been run in the past, then before running the "deploy.sh" script, run `sudo crontab -e` and remove old crontab entries that will be replaced. Alternatively, you can run "deploy.sh" and then manually remove the duplicated crontab entries.
+If "atd-data-deploy" had been run in the past, then before running the "deploy.sh" script, run `sudo crontab -e` and remove old crontab entries that will be replaced; "atd-data-deploy" doesn't manage this automatically. Alternatively, you can run "deploy.sh" and then manually remove the duplicated crontab entries.
 
 ### Manually Running or Testing an ETL Process
 
-This section desribes manually starting the "ctrdocker/tdp" Docker container for starting ETL processes, whether it be for testing or for one-off running. This is necessary because the image contains all of the library dependencies needed by the ETL processes. The most straightforward way to do this is to launch the container with a Bash shell:
+This section desribes manually starting the "ctrdocker/tdp" Docker container for launching ETL processes, whether it be for testing or for one-off running. This is necessary because the image contains all of the library dependencies needed by the ETL processes. The most straightforward way to do this is to start the container and have it run a Bash shell:
 
 ```bash
-sudo docker run -it --rm -v /home/centos/git:/app --network=host -w /app/atd-data-lake/src ctrdocker/tdp
+sudo docker run -it --rm -v ~/git:/app --network=host -w /app/atd-data-lake/src ctrdocker/tdp /bin/bash
 ```
 
 Inside, you can run the ETL scripts directly. Don't forget to consider using the command-line arguments that can assist in testing ETL scripts, as noted in [Testing Appendix](appendix_testing.md). Use the `exit` command to leave and shut down the container.

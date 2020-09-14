@@ -10,7 +10,7 @@ Deployment of the ETL scripts is coordinated through the [atd-data-deploy](https
 
 The Script Server is a system that has network access to sensor devices deployed on the ATD city-wide network, as well as resources running within the ATD organization.
 
-First, the `docker.yml` configuration file for "transportation-data-deploy" is set with a couple of configurations. Note that the `ctr-awam` configuration allows for connection to a mounted "AWAM" network share that contains files produced by the Post Oak Bluetooth readers.
+First, the `config/docker.yml` configuration file for "transportation-data-deploy" is set with a couple of configurations. Note that the `ctr-awam` configuration allows for connection to a mounted "AWAM" network share that contains files produced by the Post Oak Bluetooth readers.
 
 ```yml
 ctr:
@@ -38,7 +38,7 @@ ctr-awam:
   - -w /app/$WORKDIR
 ```
 
-Then, the individual scripts that run on the Script Server are configured in `scripts.yml`:
+Then, the individual scripts that run on the Script Server are configured in `config/scripts.yml`:
 
 ```yml
 bt_insert_lake:
@@ -96,7 +96,7 @@ The EC2 instance runs transformation activities that don't depend upon access to
 
 For information on configuring the EC2 instance for running these ETL jobs, please refer to the [Platform Setup](platform_setup.md) document.
 
-This portion is the `docker.yml` configuration:
+This portion is the `config/docker.yml` configuration:
 
 ```yml
 ctr:
@@ -112,7 +112,7 @@ ctr:
   - -w /app/$WORKDIR
 ```
 
-Then, this `scripts.yml` defines all of the transformations that are currently running.
+Then, this `config/scripts.yml` defines all of the transformations that are currently running.
 
 ```yml
 bt_json_standard:
@@ -269,3 +269,4 @@ gs_ready_agg_soc:
 
 ### Preparing the Jobs
 
+Please refer to the [Platform Setup](platform_setup.md) documentation, "Configuring the ETL Process Run Times" section for information on having atd-data-deploy produce launcher scripts and crontab entries for these configurations.
