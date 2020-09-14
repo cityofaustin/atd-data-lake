@@ -56,15 +56,19 @@ def retrieveJobs():
     "Obtains all job information from Knack as raw data."
     kJob = regulate(lambda: knackpy.App(app_id=config_app.KNACK_PERFMET_ID,
                                         api_key="knack").get(scene=KNACK_JOB_VIEW["scene"],
-                                                             view=KNACK_JOB_VIEW["view"]))
-    return kJob.data_raw
+                                                             view=KNACK_JOB_VIEW["view"],
+                                                             generate=True))
+    kJob = [job.raw for job in kJob]
+    return kJob
 
 def retrieveObservations():
     "Obtains all observations information from Knack as raw data."
     kObs = regulate(lambda: knackpy.App(app_id=config_app.KNACK_PERFMET_ID,
                                         api_key="knack").get(scene=KNACK_OBS_VIEW["scene"],
-                                                             view=KNACK_OBS_VIEW["view"]))
-    return kObs.data_raw
+                                                             view=KNACK_OBS_VIEW["view"],
+                                                             generate=True))
+    kObs = [obs.raw for obs in kObs]
+    return kObs
     
 def delete(jobData, obsData):
     "Uses the IDs in the jobs and observations raw returns to clear out records in Knack."

@@ -2,7 +2,7 @@
 Author: Nadia Florez'''
 
 import pandas as pd
-from knackpy import Knack
+import knackpy
 
 class get_device_locations:
 
@@ -22,16 +22,16 @@ class get_device_locations:
 
     def atd_locations(self):
 
-        atd_locs = Knack(
-                       obj='object_11',
-                       app_id=self.app_id,
-                       api_key=self.api_key)
+        knackApp = knackpy.App(app_id=self.app_id,
+                               api_key=self.api_key)
+        atd_locs = knackApp.get('object_11')
+        atd_locs = [loc.format() for loc in atd_locs]
 
         atd_loc_columns = ['ATD_LOCATION_ID', 'COA_INTERSECTION_ID', 'CROSS_ST',
                'CROSS_ST_SEGMENT_ID','LOCATION_latitude', 'LOCATION_longitude',
                'PRIMARY_ST', 'PRIMARY_ST_SEGMENT_ID', 'SIGNAL_ID']
 
-        return pd.DataFrame(atd_locs.data)[atd_loc_columns]
+        return pd.DataFrame(atd_locs)[atd_loc_columns]
 
     def device_locations(self):
 
@@ -69,20 +69,17 @@ class get_device_locations:
         if self.device_type == 'gs':
 
             device_filters = {'match': 'and',
-                              'rules': [
-                                        {
-                                         'field': 'field_2384',
+                              'rules': [{'field': 'field_2384',
                                          'operator': 'is',
-                                         'value': 1
-                                         }]}
+                                         'value': 1}]}
 
-            device_locs = Knack(
-                           obj='object_98',
-                           app_id=self.app_id,
-                           api_key=self.api_key,
-                           filters=device_filters)
+            knackApp = knackpy.App(app_id=self.app_id,
+                                   api_key=self.api_key)
+            device_locs = knackApp.get('object_98',
+                                       filters=device_filters)
+            device_locs = [loc.format() for loc in device_locs]
 
-            devices_data = pd.DataFrame(device_locs.data)
+            devices_data = pd.DataFrame(device_locs)
             devices_data['SENSOR_TYPE'] = 'GRIDSMART'
             devices_data = (pd.merge(devices_data, self.atd_locations,
                                      on='SIGNAL_ID', how='left')
@@ -99,20 +96,17 @@ class get_device_locations:
         elif self.device_type == 'bt':
 
             device_filters = {'match': 'and',
-                              'rules': [
-                                        {
-                                         'field': 'field_884',
+                              'rules': [{'field': 'field_884',
                                          'operator': 'is',
-                                         'value': 'BLUETOOTH'
-                                         }]}
+                                         'value': 'BLUETOOTH'}]}
 
-            device_locs = Knack(
-                           obj='object_56',
-                           app_id=self.app_id,
-                           api_key=self.api_key,
-                           filters=device_filters)
+            knackApp = knackpy.App(app_id=self.app_id,
+                                   api_key=self.api_key)
+            device_locs = knackApp.get('object_56',
+                                       filters=device_filters)
+            device_locs = [loc.format() for loc in device_locs]
 
-            devices_data = pd.DataFrame(device_locs.data)
+            devices_data = pd.DataFrame(device_locs)
             devices_data = (pd.merge(devices_data, self.atd_locations,
                                      on='ATD_LOCATION_ID', how='left')
                             .drop(labels='SIGNAL_ID', axis='columns')
@@ -129,20 +123,17 @@ class get_device_locations:
         elif self.device_type == 'wt':
 
             device_filters = {'match': 'and',
-                              'rules': [
-                                        {
-                                         'field': 'field_884',
+                              'rules': [{'field': 'field_884',
                                          'operator': 'is',
-                                         'value': 'RADAR'
-                                         }]}
+                                         'value': 'RADAR'}]}
 
-            device_locs = Knack(
-                           obj='object_56',
-                           app_id=self.app_id,
-                           api_key=self.api_key,
-                           filters=device_filters)
+            knackApp = knackpy.App(app_id=self.app_id,
+                                   api_key=self.api_key)
+            device_locs = knackApp('object_56',
+                                   filters=device_filters)
+            device_locs = [loc.format() for loc in device_locs]
 
-            devices_data = pd.DataFrame(device_locs.data)
+            devices_data = pd.DataFrame(device_locs)
             devices_data = (pd.merge(devices_data, self.atd_locations,
                                      on='ATD_LOCATION_ID', how='left')
                             .drop(labels='SIGNAL_ID', axis='columns')

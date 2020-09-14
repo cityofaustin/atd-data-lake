@@ -50,13 +50,21 @@ class UnitDataCommonKnack:
         Obtain the ATD Locations Knack table
         """
         knackApp = knackpy.App(app_id=self.appID, api_key=self.apiKey)
-        locsAccessor = knackApp.get('object_11')
+        locsAccessor = knackApp.get('object_11',
+                                    generate=True)
+        locs = []
+        for loc in locsAccessor:
+            rec = loc.format(values=False)
+            rec['LOCATION_latitude'] = rec['LOCATION']['latitude']
+            rec['LOCATION_longitude'] = rec['LOCATION']['longitude']
+            locs.append(rec)
+        del knackApp, locsAccessor
     
         atdLocColumns = ['ATD_LOCATION_ID', 'COA_INTERSECTION_ID', 'CROSS_ST',
-               'CROSS_ST_SEGMENT_ID','LOCATION_latitude', 'LOCATION_longitude',
+               'CROSS_ST_SEGMENT_ID', 'LOCATION_latitude', 'LOCATION_longitude',
                'PRIMARY_ST', 'PRIMARY_ST_SEGMENT_ID', 'SIGNAL_ID']
     
-        self.locations = pd.DataFrame(locsAccessor.data)[atdLocColumns]
+        self.locations = pd.DataFrame(locs)[atdLocColumns]
         return self.locations
     
     def getDevices(self):
@@ -69,11 +77,13 @@ class UnitDataCommonKnack:
                                     'value': self.devFilter}]}
         knackApp = knackpy.App(app_id=self.appID, api_key=self.apiKey)
         deviceLocs = knackApp.get('object_56',
-                                  filters=deviceFilters)
+                                  filters=deviceFilters,
+                                  generate=True)
+        deviceLocs = [loc.format() for loc in deviceLocs]
 
-        devicesData = pd.DataFrame(deviceLocs.data)
+        devicesData = pd.DataFrame(deviceLocs)
         devicesData = (pd.merge(devicesData, self._getLocations(),
-                                 on='ATD_LOCATION_ID', how='left')
+                                on='ATD_LOCATION_ID', how='left')
                         .drop(labels='SIGNAL_ID', axis='columns')
                         .rename(columns=TS_RENAME))
         # Reorder the columns:

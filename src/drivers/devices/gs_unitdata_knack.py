@@ -47,9 +47,11 @@ class GSUnitDataKnack(UnitDataCommonKnack):
         knackApp = knackpy.App(app_id=self.appID,
                                api_key=self.apiKey)
         device_locs = knackApp.get('object_98',
-                                   filters=device_filters)
+                                   filters=device_filters,
+                                   generate=True)
+        device_locs = [loc.format() for loc in device_locs]
 
-        devices_data = pd.DataFrame(device_locs.data)
+        devices_data = pd.DataFrame(device_locs)
         devices_data['SENSOR_TYPE'] = 'GRIDSMART'
         devices_data = (pd.merge(devices_data, self._getLocations(),
                                  on='SIGNAL_ID', how='left')
