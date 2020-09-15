@@ -3,6 +3,8 @@ unitdata_knack_common.py contains common functions used in building up unit data
 
 @author Kenneth Perrine, Nadia Florez
 """
+import math
+
 import pandas as pd
 import knackpy
 
@@ -102,6 +104,14 @@ class UnitDataCommonKnack:
         This retrieves a unit data dictionary for this data type.
         """
         devices = self.getDevices().to_dict(orient="records")
+        for device in devices:
+            if 'kits_id' in device:
+                device['kits_id'] = cInt(device['kits_id'])
+            device['coa_intersection_id'] = cInt(device['coa_intersection_id'])
+            device['primary_st'] = tStr(device['primary_st'])
+            device['primary_st_segment_id'] = cInt(device['primary_st_segment_id'])
+            device['cross_st'] = tStr(device['cross_st'])
+            device['cross_st_segment_id'] = cInt(device['cross_st_segment_id'])
         header = unitdata.makeHeader(self.areaBase, self.device, self.sameDay)
         jsonData = {'header': header,
                     'devices': devices}
@@ -112,3 +122,22 @@ class UnitDataCommonKnack:
         This stores a unit data JSON files for this data type.
         """
         raise Exception("unitdata_knack_common: Storage is not supported.")
+
+def cInt(val):
+    """
+    Converts to integer if not None or NaN, otherwise returns None.
+    """
+    try:
+        return int(val) if not (val is None or math.isnan(val)) else None
+    except:
+        return None
+
+def tStr(val):
+    """
+    Trims the string if not None, otherwise returns None.
+    """
+    try:
+        return str(val).strip() if val is not None else None
+    except:
+        return None
+    
