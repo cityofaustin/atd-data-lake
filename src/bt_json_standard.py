@@ -59,7 +59,7 @@ class BTJSONStandardApp(etl_app.ETLApp):
             config.createUnitDataAccessor(self.storageTgt).store(self.unitData)
             
         # Read in the file and call the transformation code.
-        print("%s: %s -> %s" % (item.payload["pointer"], self.storageSrc.repository, self.storageTgt.repository))
+        print("%s: %s -> %s" % (item.label, self.storageSrc.repository, self.storageTgt.repository))
         filepathSrc = self.storageSrc.retrieveFilePath(item.label)
         fileType = item.identifier.ext.split(".")[0] # Get string up to the file type extension.
         outJSON, perfWork = btStandardize(item, filepathSrc,
