@@ -60,7 +60,7 @@ def createPerfmet(stageName, dataSource):
     Returns a new perfmet object 
     """
     perfmetConn = config_app.createPerfmetConn()
-    return perfmet.PerfMet(perfmetConn, dataSource, stageName)
+    return perfmet.PerfMet(perfmetConn, getDataSourceInfo(dataSource).name, stageName)
     
 def createUnitDataAccessor(dataSource):
     """

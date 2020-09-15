@@ -66,4 +66,3 @@ class GSUnitDataKnack(UnitDataCommonKnack):
                                      'cross_st', 'cross_st_segment_id']]
 
         return devices_data
-

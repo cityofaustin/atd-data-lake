@@ -12,7 +12,7 @@ import pandas as pd
 
 import _setpath
 import knackpy
-from drivers.devices import perfmet_postgrest
+from drivers import perfmet_postgrest
 from config import config_app
 from util import date_util
 
@@ -54,20 +54,18 @@ KNACK_OBS_VIEW = {"scene": "scene_5",
 
 def retrieveJobs():
     "Obtains all job information from Knack as raw data."
-    kJob = regulate(lambda: knackpy.App(app_id=config_app.KNACK_PERFMET_ID,
-                                        api_key="knack").get(scene=KNACK_JOB_VIEW["scene"],
-                                                             view=KNACK_JOB_VIEW["view"],
-                                                             generate=True))
-    kJob = [job.raw for job in kJob]
+    kJob = regulate(lambda: knackpy.api.get(app_id=config_app.KNACK_PERFMET_ID,
+                                            api_key="knack",
+                                            scene=KNACK_JOB_VIEW["scene"],
+                                            view=KNACK_JOB_VIEW["view"]))
     return kJob
 
 def retrieveObservations():
     "Obtains all observations information from Knack as raw data."
-    kObs = regulate(lambda: knackpy.App(app_id=config_app.KNACK_PERFMET_ID,
-                                        api_key="knack").get(scene=KNACK_OBS_VIEW["scene"],
-                                                             view=KNACK_OBS_VIEW["view"],
-                                                             generate=True))
-    kObs = [obs.raw for obs in kObs]
+    kObs = regulate(lambda: knackpy.api.get(app_id=config_app.KNACK_PERFMET_ID,
+                                            api_key="knack",
+                                            scene=KNACK_OBS_VIEW["scene"],
+                                            view=KNACK_OBS_VIEW["view"]))
     return kObs
     
 def delete(jobData, obsData):
@@ -205,9 +203,10 @@ def regulate(function):
         try:
             return function()
         except Exception as exc:
-            if not (tries < MAX_TRIES and str(exc).endswith("connection termination")):
+            if tries == MAX_TRIES:
                 raise exc
             print("WARNING: Got transmission exception in regulate() on Try #%d. Trying again." % (tries + 1))
+            print("  INFO: " + str(exc))
 
 """
 ** Knack API Utility Function **
@@ -273,7 +272,7 @@ def main():
 
     # Find the most recent day for performance metrics:
     print("Finding most recent processing date...")
-    perfMetDB = perfmet_postgrest.PerfMetDB(needsObs=True)
+    perfMetDB = config_app.createPerfmetConn()
     recent = perfMetDB.getRecentJobsDate()
     if not recent:
         print("ERROR: No recent processing date is found in the performance metrics DB.")
@@ -308,6 +307,7 @@ def main():
     
     # Deal with observations here:
     processObs(perfMetDB, jobs, "Bluetooth", "b. Standardize", "Unmatched Entries", calcExpected=True)
+    processObs(perfMetDB, jobs, "Wavetronix", "b. Standardize", "Vehicle Counts", calcExpected=True)
     processObs(perfMetDB, jobs, "GRIDSMART", "b. Standardize", "Vehicle Counts", calcExpected=True)
     
     print("Done.")

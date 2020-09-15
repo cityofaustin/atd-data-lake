@@ -103,6 +103,7 @@ class UnitDataCommonKnack:
         """
         This retrieves a unit data dictionary for this data type.
         """
+        print("Retrieving Unit Data...")
         devices = self.getDevices().to_dict(orient="records")
         for device in devices:
             if 'kits_id' in device:
@@ -121,7 +122,7 @@ class UnitDataCommonKnack:
         """
         This stores a unit data JSON files for this data type.
         """
-        raise Exception("unitdata_knack_common: Storage is not supported.")
+        raise NotImplementedError("unitdata_knack_common: Storage is not supported.")
 
 def cInt(val):
     """
