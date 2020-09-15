@@ -3,7 +3,7 @@ unitdata_knack_common.py contains common functions used in building up unit data
 
 @author Kenneth Perrine, Nadia Florez
 """
-import math
+import math, numbers
 
 import pandas as pd
 import knackpy
@@ -131,7 +131,7 @@ def cInt(val):
     Converts to integer if not None or NaN, otherwise returns None.
     """
     try:
-        return int(float(val)) if not (val is None or math.isnan(val)) else None
+        return int(float(val)) if not (val is None or isinstance(val, numbers.Number) and math.isnan(val)) else None
     except:
         return None
 
@@ -140,7 +140,7 @@ def cFlt(val):
     Converts to integer if not None or NaN, otherwise returns None.
     """
     try:
-        return float(val) if not (val is None or math.isnan(val)) else None
+        return float(val) if not (val is None or isinstance(val, numbers.Number) and math.isnan(val)) else None
     except:
         return None
 
