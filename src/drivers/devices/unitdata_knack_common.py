@@ -108,6 +108,8 @@ class UnitDataCommonKnack:
         for device in devices:
             if 'kits_id' in device:
                 device['kits_id'] = cInt(device['kits_id'])
+            device['lat'] = cFlt(device['lat'])
+            device['lon'] = cFlt(device['lon'])
             device['coa_intersection_id'] = cInt(device['coa_intersection_id'])
             device['primary_st'] = tStr(device['primary_st'])
             device['primary_st_segment_id'] = cInt(device['primary_st_segment_id'])
@@ -129,7 +131,16 @@ def cInt(val):
     Converts to integer if not None or NaN, otherwise returns None.
     """
     try:
-        return int(val) if not (val is None or math.isnan(val)) else None
+        return int(float(val)) if not (val is None or math.isnan(val)) else None
+    except:
+        return None
+
+def cFlt(val):
+    """
+    Converts to integer if not None or NaN, otherwise returns None.
+    """
+    try:
+        return float(val) if not (val is None or math.isnan(val)) else None
     except:
         return None
 
