@@ -42,7 +42,7 @@ class UnitDataStorage:
         This retrieves a unit data dictionary for this data type.
         
         @return Path to the written unit data file if writeFile is true; otherwise, the in-memory dictionary.
-        """
+        """        
         # If prepare was never called, we'll just retrieve the latest unit data:
         if not self.unitDataCatList:
             self.prepare()
@@ -70,7 +70,7 @@ class UnitDataStorage:
         @param unitData: Dictionary object of unit data contents 
         """
         unitDataCat = self.storageObject.createCatalogElement(self.areaBase, "unit_data.json",
-            unitData["header"]["collection_date"], processingDate=unitData["header"]["collection_date"],
+            unitData["header"]["collection_date"], processingDate=unitData["header"]["processing_date"],
             metadata=unitData["header"])
         # TODO: If unit data gets big, we'll need to see if it is better to write to a file and write that out.
         self.storageObject.writeJSON(unitData, unitDataCat)

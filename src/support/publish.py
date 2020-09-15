@@ -75,6 +75,12 @@ class Publisher:
         if self.fileWriter:
             self.fileWriter.close()
             self.fileWriter = None
+    
+    def convertTime(self, inDate):
+        """
+        Converts the datetime object to a string time representation compatible with the publisher.
+        """
+        return self.connector.convertTime(inDate)
 
     def __delete__(self):
         """
@@ -104,6 +110,12 @@ class PublishConnBase:
         Performs a close operation
         """
         pass
+    
+    def convertTime(self, inTime):
+        """
+        Converts the datetime object to a string time representation compatible with the publisher.
+        """
+        return str(inTime)
 
 class PublishCSVConn(PublishConnBase):
     """

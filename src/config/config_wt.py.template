@@ -1,0 +1,9 @@
+"""
+config_wt.py contains database connection information for Wavetronix via MS SQL DB.
+(Copy the "template" file to "config_wt.py" and fill in the secret information).
+
+@author Kenneth Perrine
+"""
+WT_DB_SERVER = ""
+WT_DB_USER = ""
+WT_DB_PASSWORD = ""

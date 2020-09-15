@@ -19,7 +19,7 @@ class Storage:
         """
         Initializes storage connection using the application object
         
-        @param storageConn: Implements the actual storage operations (a "driver")
+        @param storageConn: Implements the actual storage operations (a "driver"): implements StorageImpl.
         @param repository: The repository or bucket name that will be accessed
         @param dataSource: The dataSource abbreviation that is to be accessed
         @param catalogResource: A Catalog object
@@ -60,7 +60,7 @@ class Storage:
         retrieveFilePath(path) retrieves a resource at the given storage platform-specific path (presumably retrieved from the
         catalog) and returns a full path to the written file.
         
-        @param path: The complete S3 path including the desired filename
+        @param path: The complete target platform-dependent path including the desired filename
         @param destPath: The path to write the file to; set this to null in order to write the file to the temp directory
         @param deriveFilename: Set this to false if the filename is already bundled in the destPath
         """
@@ -193,3 +193,50 @@ def writeFromBinBuffer(readBuffer, writeBuffer):
             writeBuffer.write(buf)
         else:
             break
+
+class StorageImpl:
+    """
+    Implements storage access functions for a specific storage platform
+    """    
+    def makePath(self, dataSource, collectionDate, filename=None):
+        """
+        Builds a storage path for the target platform using the given collectionDate and filename.
+        
+        @param filename: If this is supplied, then the path will include the filename.
+        """
+        raise NotImplementedError
+    
+    def extractFilename(self, path):
+        """
+        Extracts the filename from the given path.
+        """
+        raise NotImplementedError
+    
+    def retrieveFilePath(self, path, destPath=".", deriveFilename=False):
+        """
+        retrieveFilePath(path) retrieves a resource at the given storage platform-specific path (presumably retrieved from the
+        catalog) and returns a full path to the written file.
+        
+        @param path: The target platform-dependent path in the bucket that's labeled as "repository" in this object.
+        @param destPath: A path to write the file to; otherwise, the temp directory will be used. May include a filename if destFilename is None.
+        @param deriveFilename: If true, obtains the filename from the given target platform path.
+        """
+        raise NotImplementedError
+        
+    def retrieveBufferPath(self, path):
+        """
+        retrieveBufferPath retrieves a resource at the given storage platform-specific path and provides it as a buffer.
+        """
+        raise NotImplementedError
+        
+    def writeFile(self, sourceFile, path):
+        """
+        writeFile writes sourceFile to the target fully specified target platform-dependent path.
+        """
+        raise NotImplementedError
+        
+    def writeBuffer(self, sourceBuffer, path):
+        """
+        writeBuffer writes the contents of the buffer into the target fully specified target platform-dependent path.
+        """
+        raise NotImplementedError

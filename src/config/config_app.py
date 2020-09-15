@@ -18,12 +18,12 @@ UNIT_LOCATION = "Austin"
 "Production mode default; use False for debug"
 productionMode = True
 
-PURPOSE_REPO_MAP = {"raw-production": "atd-data-lake-raw",
-                    "raw-debug": "atd-data-lake-raw-test",
-                    "standardized-production": "atd-data-lake-rawjson",
-                    "standardized-debug": "atd-data-lake-rawjson-test",
-                    "ready-production": "atd-data-lake-ready",
-                    "ready-debug": "atd-data-lake-ready-test",
+PURPOSE_REPO_MAP = {"raw-production": "atd-datalake-raw",
+                    "raw-debug": "atd-datalake-raw-test",
+                    "standardized-production": "atd-datalake-rawjson",
+                    "standardized-debug": "atd-datalake-rawjson-test",
+                    "ready-production": "atd-datalake-ready",
+                    "ready-debug": "atd-datalake-ready-test",
                     "public-production": "socrata",
                     "public-debug": "socrata-test"}
 
@@ -32,7 +32,7 @@ DATASOURCE_MAP = {"bt": config_support.DataSourceConfig(code="bt", name="Bluetoo
                   "gs": config_support.DataSourceConfig(code="gs", name="GRIDSMART")}
 
 # ** These items are specific to devices and dependencies: **
-CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_test"
+CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_new"
 CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", "")
 
 PERFMET_JOB_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_job"
@@ -56,6 +56,7 @@ SOC_RESOURCE_BT_IAF = "qnpj-zrb9"
 SOC_RESOURCE_BT_ITMF = "x44q-icha"
 SOC_RESOURCE_BT_TMSR = "v7zg-5jg9"
 SOC_RESOURCE_GS_AGG = "sh59-i6y9"
+SOC_RESOURCE_WT = "i626-g7ub"
 
 # KNACK_LOOKUPS provides direct Knack matches to given cross streets found on GRIDSMART devices:
 KNACK_LOOKUPS = {"Loop 360_Barton Creek": "LOC16-004315",
@@ -112,7 +113,7 @@ def createPublisherConn(dataSource, variant=None):
         elif variant == "unmatched":
             socResource = SOC_RESOURCE_BT_IAF
     elif dataSource == "wt":
-        pass
+        socResource = SOC_RESOURCE_WT
     elif dataSource == "gs":
         socResource = SOC_RESOURCE_GS_AGG
     return publish_socrata.PublishSocrataConn(SOC_HOST, SOC_WRITE_AUTH, socResource, SOC_IDENTIFIER)

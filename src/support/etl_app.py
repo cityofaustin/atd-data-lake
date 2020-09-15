@@ -260,6 +260,7 @@ class ETLApp:
         
         @param provSrc: Specifies source providers as a last_update.LastUpdateProv object
         @param provTgt: Specifies the target provider as a last_update.LastUpdateProv object, or None for all sources
+        @param baseExtKey: Set this to true to compare the presence of both base and ext; otherwise, just base is used.
         """
         comparator = last_update.LastUpdate(provSrc, provTgt,
                                 force=self.forceOverwrite).configure(startDate=self.startDate,
@@ -271,6 +272,7 @@ class ETLApp:
             if item.identifier.date != self.prevDate and self.storageTgt:
                 self.storageTgt.flushCatalog()
             
+            self.processingDate = date_util.localize(arrow.now().datetime)
             countIncr = self.innerLoopActivity(item)
             
             if countIncr:

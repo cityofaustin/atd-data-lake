@@ -50,6 +50,8 @@ To allow flexibility in meeting various data needs, end-user products (whether a
     * Daily updates are automatically fed into the publicly accessible data portal
     * ATD saves resources (time and effort) when uploading and maintaining public datasets 
 
+Case 3 has largely driven the implementation and streamlining efforts, especially as discussion continues about the addition of more data types.
+
 ## Theory of Operation
 
 To sustainably store and archive sensor data, Austin's Data Lake approach is a layered system where raw data is stored and processed intermediaries are rendered as JSON files. The layered system leverages the significantly lower cost of cloud storage over computing power where the processed layers can be batched or processed nightly, depending on City resources.
@@ -71,21 +73,21 @@ Together, the above components preserve the integrity of the sensor data, facili
 | System Architecture <br><img src="figures/pipeline.png" width="900">
 |---
 
-A PostgREST database acts as an inventory. It contains pointers to the data files with collection and processing dates and other metadata.  A process within the City infrastructure reads files from the source, catalogs them, and uploads to the cloud storage resource (which is currently AWS S3). The bucket has a "year/month/day/data source" file structure.
+A PostgREST database `data_lake_catalog` acts as an inventory. It contains pointers to the data files with collection and processing dates and other metadata.  A process within the City infrastructure reads files from the source, catalogs them, and uploads to the cloud storage resource (which is currently AWS S3). The bucket has a "year/month/day/data source" file structure.
 
-Within the AWS S3 are three layers: `raw`, `raw-json` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors.
+Within the AWS S3 are three layers: `raw`, `raw-json` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors. Older files here can eventually be archived (e.g. with S3 Glacier).
 
-In the `raw-json` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format.
+In the `raw-json` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format. Older files can either be purged or archived.
 
 The `ready` layer contains merges city-maintained sensor location information (currently located in Knack) to actual data so that a single file or set of files are self-contained. The theory is that no other sources or files are necessary to make sense of the data within the file.
 
 ## Source Code
 
-The code that had been written to perform the data processing activities shown below is currently stored in the `nmc/coa_dev` repository that's located on a private, internal GitLab server hosted by CTR. The code is for Python 3. This and its dependencies are intended to be migrated to the [`cityofaustin/atd-data-lake` repository](https://github.com/cityofaustin/atd-data-lake) hosted on GitHub.
+The code that had been written to perform the data processing activities shown below is currently stored in the ["cityofaustin/atd-data-lake" repository](https://github.com/cityofaustin/atd-data-lake) that's located on GitHub. The code is for Python 3.
 
-Entry points referenced in this document abide by the `cityofaustin/atd-data-deploy` interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy), which provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database.
+Entry points referenced in this document abide by the "cityofaustin/atd-data-deploy" interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy), which provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database. However, there is talk of migrating away from "atd-data-deploy" scheme and using Apache Airflow, which can offer improvements in sequencing activities, responding better to errors, and improving logging.
 
-Within the `nmc/coa_dev` source code tree, command-line entry points are currently in the `aws_transport` package. The special `_setpath.py` script allows modules within `aws_transport` to be run from that directory. There are a number of system-specific configurations that are globally accessible from within the `aws_transport.support.config` package. This contains further mechanisms for accessing the `aws_transport.support.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a package.
+Within the "atd-data-lake" source code tree, command-line entry points are currently in the `src` directory. There are a number of system-specific configurations that are globally accessible from within the `config` directory (which use implementations of those resource found in `drivers`). This contains further mechanisms for accessing the `config.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a package.
 
 ## Data Source Specifics
 
@@ -116,6 +118,7 @@ The Data Lake catalog, accessible through a PostgREST interface, provides a quer
  id_ext          | text                     |           | not null |
  pointer         | text                     |           | not null |
  collection_date | timestamp with time zone |           | not null |
+ collection_end  | timestamp with time zone |           |          |
  processing_date | timestamp with time zone |           |          |
  metadata        | jsonb                    |           |          |
 Indexes:
@@ -128,19 +131,21 @@ These are the functions for the individual fields:
 | **Field** | **Description**
 | --- | ---
 | id | Auto-incrementing, unique integer identifier
-| repository | The identifier for the Data Lake layer that corresponds with the entry. This is currently one of "raw," "rawjson," or "ready."
+| repository | The identifier for the Data Lake layer and S3 bucket name that corresponds with the entry. This is currently one of "atd-datalake-raw", "atd-datalake-rawjson", "atd-datalake-ready", or "socrata". These may also be appended with "-test" if code is run in debug mode.
 | data_type | The identifier for the data type that the entry corresponds with. This is currently one of "bt," "wt," or "gs."
-| identifier | A scheme specific to the data type that identifies the file and what it is. This is often the filename.
+| id_base | A scheme specific to the data type that identifies the file and what it is. This is often the base filename.
+| id_ext | A scheme specific to the data type that identifies the file type, which can often be the file's extension.
 | pointer | The path directly into the respective AWS S3 bucket that references the file that corresponds with the catalog entry
-| collection_date | The time that was logged for the data collection, usually truncated to the start of the respective day
+| collection_date | The time that was logged for the data collection, usually set to the start of the respective day
+| collection_end | For records that pertain to collection periods that are less than one day's duration, the collection end time can be put here; otherwise, it is set to `null`.
 | processing_date | The time that the respective file was processed and added to the Data Lake
-| metadata | JSON header data, used to further describe the referred item
+| metadata | JSON header data, used optionally to further describe the referred item
 
 The `data_lake_catalog_pkey` key is created to prevent duplicate entries. It is also necesary for use within PostgREST to facilitate "upserts" (update if record present, otherwise insert).
 
 The `data_lake_catalog_date_idx` index is crucial for quick, time-based searches for records.
 
-A change that is planned to happen for the Data Lake Catalog is for the identifier to be split into two parts-- a "base" and "ext" entry. This can assist with searches that are specific to data types. For example, for GRIDSMART records that correspond with a specific intersection, the "rawjson" layer may have one file per detector and there may be eight or sixteen of them. In this case, the "base" portion can have the intersection name, and the "ext" portion can have the detector identifier (e.g., its GUID). This "base/ext" scheme is intended to circumvent unsightly string processing and query hacks were necessary in the current code rendition.
+The Data Lake Catalog main identifier is aplit into two parts-- a "base" and "ext" entry. This can assist with searches that are specific to data types. For example, for GRIDSMART records that correspond with a specific intersection, the "rawjson" layer may have one file per detector and there may be eight or sixteen of them. In this case, the "base" portion can have the intersection name, and the "ext" portion can have the detector identifier (e.g., its GUID) plus ".json" extension. This "base/ext" scheme is intended to circumvent unsightly string processing and query hacks were necessary an earlier version of code where the identifier was one string.
 
 For further technical details on the Data Lake Catalog, see the [Technical Appendix](appendix_catalog.md).
 
@@ -188,3 +193,5 @@ Another demonstration or quasi-use case for data stored within the Data Lake may
 ![](figures/google_data_studio.png)
 
 Researchers have also explored the abilities of Amazon Athena, in which queries can be issued directly on S3 files, and then visualized in Amazon QuickSight. Opportunities may also exist with the open-source Apache Superset, which can tie into a hosted database.
+
+One "entry-level" approach to trying out visualization capabilities can be to try visualizing contents of the `etl_perfmet_job` and `etl_perfmet_obs` tables using a resource that is different than Knack. (The current data health dashboard scheme is described [in this technical appendix](appendix_perfmet.md).)

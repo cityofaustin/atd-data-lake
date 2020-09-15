@@ -76,7 +76,12 @@ class CatalogPostgREST:
         "repository", "data_source", "id_base", "id_ext", "pointer", "collection_date", "collection_end" (optional),
         "processing_date", and optionally "metadata".
         """
-        self.catalogDB.upsert(upsertDataList)
+        try:
+            self.catalogDB.upsert(upsertDataList)
+        except:
+            print("ERROR: Exception encountered in CatalogPostgREST.upsert(). Input:")
+            print(upsertDataList)
+            raise
     
     @staticmethod
     def getPreferredChunk():

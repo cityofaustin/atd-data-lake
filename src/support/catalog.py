@@ -24,7 +24,7 @@ class Catalog:
         """
         self.dbConn = catalogConn
         self.dataSource = dataSource
-        self.upsertCache = []
+        self.upsertCache = {}
         
     def getQueryList(self, stage, base, ext, earlyDate, lateDate, exactEarlyDate=False, limit=None, reverse=False):
         """
@@ -267,7 +267,8 @@ class Catalog:
         """
         Stages an upsert using a catalog element.
         """
-        self.upsertCache.append(catalogElement)
+        key = (catalogElement["repository"], catalogElement["data_source"], catalogElement["id_base"], catalogElement["id_ext"], catalogElement["collection_date"])
+        self.upsertCache[key] = catalogElement # Overwrite if duplicate to avoid problems with PostgREST.
     
     def stageUpsertParams(self, stage, base, ext, collectionDate, processingDate, path, collectionEnd=None, metadata=None):
         """
@@ -292,6 +293,6 @@ class Catalog:
         Flushes all of the queued upsert items to the catalog.
         """
         if self.upsertCache:
-            self.dbConn.upsert(self.upsertCache)
+            self.dbConn.upsert(list(self.upsertCache.values()))
             self.upsertCache.clear()
         

@@ -29,6 +29,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
                          needsTempDir=True,
                          perfmetStage="Ingest")
         self.unitData = None
+        self.siteFiles = set()
         self.gsProvider = None
 
     def _addCustomArgs(self, parser):
@@ -82,7 +83,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
         print("%s -> %s" % (item.label, self.storageTgt.repository))
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, item.identifier.ext,
                                                               item.identifier.date, self.processingDate)
-        self.storageTgt.writeFile(countsFilePath, catalogElement)
+        self.storageTgt.writeFile(countsFilePath, catalogElement, cacheCatalogFlag=True)
         
         # Clean up:
         os.remove(countsFilePath)
@@ -102,12 +103,14 @@ class GSInsertLakeApp(etl_app.ETLApp):
         # For the time being, unit data and site files will be stored for the day that the 
         # collection happens, whereas the collected data is for the previous day.
         ourDay = self.processingDate.replace(hour=0, minute=0, second=0, microsecond=0) # Same day
-        siteFilename = "{}_site_{}".format(item.identifier.base, ourDay.strftime("%Y-%m-%d"))
+        siteFilename = "{}_site_{}.json".format(item.identifier.base, ourDay.strftime("%Y-%m-%d"))
+        if siteFilename in self.siteFiles:
+            return
         print("%s -> %s" % (siteFilename, self.storageTgt.repository))
         
         # Arrange the JSON:
         header = {"data_type": "gs_site",
-                  "target_filename": siteFilename + ".json",
+                  "target_filename": siteFilename,
                   "collection_date": str(ourDay),
                   "device_net_addr": deviceLogreader.device.netAddr}
         jsonData = {'header': header,
@@ -119,6 +122,7 @@ class GSInsertLakeApp(etl_app.ETLApp):
         catalogElement = self.storageTgt.createCatalogElement(item.identifier.base, "site.json",
                                                               ourDay, self.processingDate)
         self.storageTgt.writeJSON(jsonData, catalogElement, cacheCatalogFlag=True)
+        self.siteFiles.add(siteFilename)
 
 def main(args=None):
     """

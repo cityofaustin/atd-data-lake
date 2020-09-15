@@ -1,10 +1,9 @@
 """
 perfmet_knack.py: Handling of loading Knack data for performance metrics
 
-Kenneth Perrine - Center for Transportation Reserach, The University of Texas at Austin
+Kenneth Perrine - Center for Transportation Research, The University of Texas at Austin
 April 18, 2020
 """
-import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import time
 import datetime
@@ -13,7 +12,8 @@ import pandas as pd
 
 import _setpath
 import knackpy
-from aws_transport.support import perfmet_db, config
+from drivers import perfmet_postgrest
+from config import config_app
 from util import date_util
 
 PROGRAM_DESC = "Transfers performance metrics to Knack, clearing out old data in Knack."
@@ -54,32 +54,32 @@ KNACK_OBS_VIEW = {"scene": "scene_5",
 
 def retrieveJobs():
     "Obtains all job information from Knack as raw data."
-    kJob = regulate(lambda: knackpy.Knack(scene=KNACK_JOB_VIEW["scene"],
-                                          view=KNACK_JOB_VIEW["view"],
-                                          app_id=config.KNACK_PERFMET_ID,
-                                          api_key="knack"))
-    return kJob.data_raw
+    kJob = regulate(lambda: knackpy.api.get(app_id=config_app.KNACK_PERFMET_ID,
+                                            api_key="knack",
+                                            scene=KNACK_JOB_VIEW["scene"],
+                                            view=KNACK_JOB_VIEW["view"]))
+    return kJob
 
 def retrieveObservations():
     "Obtains all observations information from Knack as raw data."
-    kObs = regulate(lambda: knackpy.Knack(scene=KNACK_OBS_VIEW["scene"],
-                                          view=KNACK_OBS_VIEW["view"],
-                                          app_id=config.KNACK_PERFMET_ID,
-                                          api_key="knack"))
-    return kObs.data_raw
+    kObs = regulate(lambda: knackpy.api.get(app_id=config_app.KNACK_PERFMET_ID,
+                                            api_key="knack",
+                                            scene=KNACK_OBS_VIEW["scene"],
+                                            view=KNACK_OBS_VIEW["view"]))
+    return kObs
     
 def delete(jobData, obsData):
     "Uses the IDs in the jobs and observations raw returns to clear out records in Knack."
     for record in obsData:
         regulate(lambda: record_view(record,
-                                     app_id=config.KNACK_PERFMET_ID,
+                                     app_id=config_app.KNACK_PERFMET_ID,
                                      api_key="knack",
                                      method="delete",
                                      scene=KNACK_OBS_VIEW["scene"],
                                      view=KNACK_OBS_VIEW["view"]))
     for record in jobData:
         regulate(lambda: record_view(record,
-                                     app_id=config.KNACK_PERFMET_ID,
+                                     app_id=config_app.KNACK_PERFMET_ID,
                                      api_key="knack",
                                      method="delete",
                                      scene=KNACK_JOB_VIEW["scene"],
@@ -106,7 +106,7 @@ def uploadJobs(jobs):
             record[fields["collection_times"]] = {"times": [{"from": localTimeStruct(job["collection_start"]),
                                                              "to": localTimeStruct(job["collection_end"])}]}
         regulate(lambda: record_view(record,
-                                     app_id=config.KNACK_PERFMET_ID,
+                                     app_id=config_app.KNACK_PERFMET_ID,
                                      api_key="knack",
                                      method="create",
                                      scene=KNACK_JOB_VIEW["scene"],
@@ -175,7 +175,7 @@ def _uploadObs(targetDate, observations):
             record[fields["timestamp_range_min"]] = max((date_util.localize(date_util.parseDate(obs["timestamp_min"])) - day).total_seconds() / 3600, 0)
             record[fields["timestamp_range_max"]] = min((date_util.localize(date_util.parseDate(obs["timestamp_max"])) - day).total_seconds() / 3600, 24)
         regulate(lambda: record_view(record,
-                                     app_id=config.KNACK_PERFMET_ID,
+                                     app_id=config_app.KNACK_PERFMET_ID,
                                      api_key="knack",
                                      method="create",
                                      scene=KNACK_OBS_VIEW["scene"],
@@ -203,9 +203,10 @@ def regulate(function):
         try:
             return function()
         except Exception as exc:
-            if not (tries < MAX_TRIES and str(exc).endswith("connection termination")):
+            if tries == MAX_TRIES:
                 raise exc
             print("WARNING: Got transmission exception in regulate() on Try #%d. Trying again." % (tries + 1))
+            print("  INFO: " + str(exc))
 
 """
 ** Knack API Utility Function **
@@ -223,7 +224,6 @@ def record_view(
     scene=None,
     view=None,
     timeout=10,
-    max_attempts=5,
 ):
 
     """
@@ -247,15 +247,15 @@ def record_view(
     else:
         raise Exception("Invalid method: {}".format(method))
 
-    headers = {
-        "x-knack-application-id": app_id,
-        "x-knack-rest-api-key": api_key,
-        "Content-type": "application/json",
-    }
+    headers = {"x-knack-application-id": app_id,
+               "x-knack-rest-api-key": api_key,
+               "Content-type": "application/json"}
 
-    return knackpy._record_request(
-        data, endpoint, headers, method, timeout=timeout, max_attempts=max_attempts
-    )
+    return knackpy.api._request(data=data,
+                                url=endpoint,
+                                headers=headers,
+                                method=method,
+                                timeout=timeout)
 
 def main():
     # Parse command-line parameter:
@@ -263,7 +263,7 @@ def main():
     parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset (default: yesterday)")
     args = parser.parse_args()
 
-    date_util.setLocalTimezone(config.TIMEZONE)
+    date_util.setLocalTimezone(config_app.TIMEZONE)
     if args.last_run_date:
         lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=True)
         print("perfmet_knack: Last run date: %s" % str(lastRunDate))
@@ -272,7 +272,7 @@ def main():
 
     # Find the most recent day for performance metrics:
     print("Finding most recent processing date...")
-    perfMetDB = perfmet_db.PerfMetDB(needsObs=True)
+    perfMetDB = config_app.createPerfmetConn()
     recent = perfMetDB.getRecentJobsDate()
     if not recent:
         print("ERROR: No recent processing date is found in the performance metrics DB.")
@@ -307,6 +307,7 @@ def main():
     
     # Deal with observations here:
     processObs(perfMetDB, jobs, "Bluetooth", "b. Standardize", "Unmatched Entries", calcExpected=True)
+    processObs(perfMetDB, jobs, "Wavetronix", "b. Standardize", "Vehicle Counts", calcExpected=True)
     processObs(perfMetDB, jobs, "GRIDSMART", "b. Standardize", "Vehicle Counts", calcExpected=True)
     
     print("Done.")

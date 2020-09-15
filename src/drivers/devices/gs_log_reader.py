@@ -46,8 +46,9 @@ class LogReader:
     
     def constructBase(self):
         "Returns base part of filename, which is streets."
-        
-        return self.device.street1 + "_" + self.device.street2
+        base = self.device.street1 + "_" + self.device.street2
+        base = base.replace("/", "&")
+        return base
     
     def constructFilename(self, ourDate):
         """

@@ -179,7 +179,7 @@ class LastUpdProv:
         Optionally returns a payload contents associated with the lastUpdItem. This can be where an
         expensive query takes place.
         
-        @param lastUpdItem: A _LastUpdateItem that contains a ".payload" attribute
+        @param lastUpdItem: A _LastUpdateItem that contains a ".provItem.payload" attribute
         """
         return lastUpdItem.provItem.payload
         

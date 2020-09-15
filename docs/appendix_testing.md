@@ -2,10 +2,25 @@
 
 *[(Back to Docs Catalog)](index.md)*
 
-This document captures notes on testing the first rendition of codes that write to and read from the Data Catalog. One of the items that will be considered for the FY20 efforts will be to automate testing. Through automation, many of the tests documented here won't need to be run manually.
+This document captures notes on testing the first rendition of codes that write to and read from the Data Catalog.
+
+## On Automated Testing
+One of the items that still needs to be completed are efforts to automate testing. Through automation, many of the tests documented here won't need to be run manually.
+
+Already, progress has been made toward assisting in testing. These are largely supported by features that can be enabled with command-line parameters. These are the parameters of interest:
+* **-o** or **--output_filepath:** In addition to writing output files to the cloud or publishing service that the ETL code is designed to write to, this option will cause one or more files to also be written to the given directory, named in the same way that the file would be named on the cloud service. If the ETL process writes to a publishing service, then the output file may be a CSV file.
+* **-0** or **--simulate:** This performs all of the ETL process, but doesn't write to the cloud or publishing service, nor is the Catalog updated. If `-o` is specified, then one or more local files are still written out. This can allow code to be run without committing anything to cloud services or the Catalog.
+* **--debug:** Using configuration code set up in the `config.config_app` package, this causes target repositories to be changed to debug names. Currently, this is the repository name with "-test" appended to the end. Code could also be set up to write to debug publishers, or to use an alternate PostgREST endpoint for the Catalog and performance metrics.
+
+### Manual ETL Running
+Refer to the "Manually Testing an ETL Process" section of the [Platform Setup](platform_setup.md) document for information on manually starting an interactive Docker container for testing ETL processes.
 
 ## Testing the Data Lake Codes
 This section describes brief tests for the various codes that comprise the Data Lake transformations.
+
+Note that many of these tests appear repetetive. Because of the streamlining efforts, the same code is largely executed regardless of which ETL script is started.
+
+> **TODO:** We could limit the extensive missing-entry testing to one data source because the same code is being run regardless of data source.
 
 ### Bluetooth Ingest (raw)
 I'm using my Windows-based laptop to test this.
@@ -30,11 +45,10 @@ C:\Dev\coa_dev>dir \dev\test
 07/10/2018  11:59 PM        42,700,606 Austin_bt_07-10-2018.txt
 ```
 
-Get to the correct directory and set the environment:
+Get to the correct directory:
 
 ```dos
-cd c:\dev\coa_dev\aws_transport
-set PYTHONPATH=.;c:\dev\coa_dev
+cd c:\dev\atd-data-lake\src
 ```
 
 Stage file distinction test:
@@ -42,14 +56,16 @@ Stage file distinction test:
 ```dos
 move c:\dev\test\Austin_bt_07-07-2018.txt c:\dev
 ```
+> **TODO:** Note that this can be updated to use a test file that travels along with the repository.
 
 This is probably a good time to clear out the catalog.
 
 Attempt to update from the temporary directory; updates should occur.
 
 ```dos
-python bt_insert_lake.py -d c:\dev\test -r 2018-07-01 -m 2018-07-01
+python bt_insert_lake.py -d c:\dev\test -s 2018-07-01 -e 2018-07-12
 ```
+> **TODO:** Consider using --debug and setting up the test PostgREST endpoint.
 
 Check the catalog. On a psql console into the catalog:
 
@@ -60,30 +76,24 @@ SELECT * FROM api.data_lake_catalog WHERE data_source = 'bt' AND collection_date
 Run again to verify that no updates occur:
 
 ```dos
-python bt_insert_lake.py -d c:\dev\test -r 2018-07-01 -m 2018-07-01
-python bt_insert_lake.py -d c:\dev\test -m 2018-07-01
-python bt_insert_lake.py -d c:\dev\test -m 2018-07-01 -M
+python bt_insert_lake.py -d c:\dev\test -s 2018-07-01 -e 2018-07-12
+python bt_insert_lake.py -d c:\dev\test -r 2018-07-01 -e 2018-07-12
 ```
 
 Check if force works; updates should occur:
 
 ```dos
-python bt_insert_lake.py -d c:\dev\test -r 2018-07-01 -m 2018-07-01 -F
+python bt_insert_lake.py -d c:\dev\test -s 2018-07-01 -e 2018-07-12 -F
 ```
 
 Go to Section ① of "Bluetooth Canonicalization (raw → rawjson)" below to test the canonicalization transformation.
 
-To test a present missing file; first, don't check for missing. No update should occur.
+To test a present missing file, move the missing file back into the directory and run again. (The first command shouldn't pick up the file because it is out of the date range).
 
 ```dos
 move c:\dev\Austin_bt_07-07-2018.txt c:\dev\test
-python bt_insert_lake.py -d c:\dev\test -r 2019-01-01 -m 2018-07-01
-```
-
-Now check for the missing file; update should occur.
-
-```dos
-python bt_insert_lake.py -d c:\dev\test -r 2019-01-01 -m 2018-07-01 -M
+python bt_insert_lake.py -d c:\dev\test -r 2019-01-01
+python bt_insert_lake.py -d c:\dev\test -s 2018-07-01 -e 2018-07-12
 ```
 
 Verify that the catalog updated with this new file. On the database console:
@@ -92,33 +102,33 @@ Verify that the catalog updated with this new file. On the database console:
 SELECT * FROM api.data_lake_catalog WHERE data_source = 'bt' AND collection_date BETWEEN '2018-07-07' AND '2018-07-08';
 ```
 
-Make sure months-old logic runs. (Because of dates of files in that test directory, nothing should update):
+Make sure days-old logic runs. (Because of dates of files in that test directory, nothing should update):
 
 ```dos
-python bt_insert_lake.py -d c:\dev\test -r 2019-01-01 -m 1
+python bt_insert_lake.py -d c:\dev\test -s 1
 ```
 
 Go to Section ② of "Bluetooth Canonicalization (raw → rawjson)" below to check for missing entries.
 
-To check for the presenting of new data, run this in the test environment overnight and verify proper operation. (*TODO: Expand this, and document command-lines for running the Launcher*)
+To check for the presenting of new data, run this in the test environment:
+```dos
+python bt_insert_lake.py -d path_to_awam* -s 2
+```
+
+On the next day, run again to see if the new file is picked up.
 
 ### Wavetronix Socrata Ingest (raw)
-
-This section will need to be revised when Wavetronix data is drawn from the KITS database.
-
-Verify latest data is available:
-https://data.austintexas.gov/Transportation-and-Mobility/Radar-Traffic-Counts/i626-g7ub
 
 Update from a couple days ago. Updates should occur from last run date. Example:
 
 ```dos
-python wt_insert_lake.py -r 2019-03-18 -m 2019-03-15
+python wt_insert_lake.py -s 2
 ```
 
 Verify the catalog populated:
 
 ```sql
-SELECT * FROM api.data_lake_catalog WHERE data_source = 'wt' AND collection_date >= '2019-03-15';
+SELECT * FROM api.data_lake_catalog WHERE data_source = 'wt' AND collection_date >= now() - INTERVAL '5 days';
 ```
 
 Go to Section ① of "Wavetronix Canonicalization (raw → rawjson)" below to test the canonicalization transformation.
@@ -126,38 +136,27 @@ Go to Section ① of "Wavetronix Canonicalization (raw → rawjson)" below to te
 Updates should not occur again, unless forced:
 
 ```dos
-python wt_insert_lake.py -r 2019-03-18 -m 2019-03-15
-python wt_insert_lake.py -r 2019-03-18 -m 2019-03-15 -F
+python wt_insert_lake.py -s 2
+python wt_insert_lake.py -s 2 -F
 ```
-
-Detect missing entries; missing entries should update:
-
-```dos
-\software\Python37\python wt_insert_lake.py -r 2019-03-18 -m 2019-03-15 -M
-```
-
-Go to Section ② of "Wavetronix Canonicalization (raw → rawjson)" below to check for missing entries.
-
-To check for the presenting of new data, run this in the test environment overnight and verify proper operation. (*TODO: Expand this, and document command-lines for running the Launcher*)
 
 ### GRIDSMART Ingest (raw)
 This will need to be run from the Linux-based script server that's on the ATD network since it attempts to access GRIDSMART devices. Set up the environment:
 
 ```bash
-cd ~/git/coa_dev/aws_transport
-export PYTHONPATH=$PYTHONPATH:~/git/coa_dev
+sudo docker run -it -v ~/git:/app --rm --network=host -w /app/atd-data-lake ctrdocker/tdp /bin/bash
 ```
 
 Update from a day ago. Updates should occur from last run date. Example:
 
 ```bash
-python gs_insert_lake.py -r 2019-03-19 -m 2019-03-18
+python gs_insert_lake.py -s 5
 ```
 
-Verify the catalog populated:
+Verify the catalog populated. In `psql` or comparable utility:
 
 ```sql
-SELECT * FROM api.data_lake_catalog WHERE data_source = 'gs' AND collection_date >= '2019-03-19';
+SELECT * FROM api.data_lake_catalog WHERE data_source = 'gs' AND collection_date >= now() - INTERVAL '5 days';
 ```
 
 Go to Section ① of "GRIDSMART Canonicalization (raw → rawjson)" below to test the canonicalization transformation.
@@ -165,14 +164,8 @@ Go to Section ① of "GRIDSMART Canonicalization (raw → rawjson)" below to tes
 Updates should not occur again, unless forced:
 
 ```dos
-python gs_insert_lake.py -r 2019-03-19 -m 2019-03-18
-python gs_insert_lake.py -r 2019-03-19 -m 2019-03-18 -F
-```
-
-Detect missing entries; missing entries should update:
-
-```dos
-python gs_insert_lake.py -r 2019-03-19 -m 2019-03-18 -M
+python gs_insert_lake.py -s 5
+python gs_insert_lake.py -s 5 -F
 ```
 
 Go to Section ② of "GRIDSMART Canonicalization (raw → rawjson)" below to check for missing entries.
@@ -184,14 +177,13 @@ To check for the presenting of new data, run this in the test environment overni
 Try running this from a Linux terminal. Set up the environment (substitute paths for yours):
 
 ```bash
-cd ~/git/coa_dev/aws_transport
-export PYTHONPATH=$PYTHONPATH:~/git/coa_dev
+cd ~/git/atd-data-lake/src
 ```
 
 ① Check that update occurs for the test files:
 
 ```bash
-python bt_json_standard.py -r 2018-07-01 -m 2018-07-01
+python bt_json_standard.py -s 2018-07-01 -e 2018-07-12
 ```
 
 Check the catalog. On a console into the catalog:
@@ -203,25 +195,19 @@ SELECT * FROM api.data_lake_catalog WHERE data_source = 'bt' AND collection_date
 Verify that the update doesn't repeat:
 
 ```bash
-python bt_json_standard.py -r 2018-07-01 -m 2018-07-01
+python bt_json_standard.py -s 2018-07-01 -e 2018-07-12
 ```
 
 Check if the update can be forced:
 
 ```bash
-python bt_json_standard.py -r 2018-07-01 -m 2018-07-01 -F
+python bt_json_standard.py -s 2018-07-01 -e 2018-07-12 -F
 ```
 
-② Check that missing files are not detected unless specifically directed. No updates should occur:
+② Check that missing files are detected:
 
 ```bash
-python bt_json_standard.py -r 2018-07-01 -m 2018-07-01
-```
-
-Update should occur of the newly-added file:
-
-```bash
-python bt_json_standard.py -r 2018-07-01 -m 2018-07-01 -M
+python bt_json_standard.py -s 2018-07-01 -e 2018-07-12
 ```
 
 Verify that the catalog updated with this new file. On the database console:
@@ -234,63 +220,51 @@ SELECT * FROM api.data_lake_catalog WHERE data_source = 'bt' AND collection_date
 ① Check that update occurs for the test files:
 
 ```bash
-python wt_json_standard.py -r 2019-03-18 -m 1
+python wt_json_standard.py -s 5
 ```
 
 Verify the catalog populated:
 
 ```sql
-SELECT * FROM api.data_lake_catalog WHERE data_source = 'wt' AND collection_date >= '2019-03-15';
+SELECT * FROM api.data_lake_catalog WHERE data_source = 'wt' AND collection_date >= now() - INTERVAL '5 days';
 ```
 
 No update should repeat unless forced:
 
 ```bash
-python wt_json_standard.py -r 2019-03-18 -m 1
-python wt_json_standard.py -r 2019-03-18 -m 1 -F
+python wt_json_standard.py -s 2
+python wt_json_standard.py -s 2 -F
 ```
 
-② Check that missing files are not detected unless specifically directed. No updates should occur:
-
-```bash
-python wt_json_standard.py -r 2019-03-20 -m 1
+② Check that missing files are detected:
 ```
-
-Enable uploading of missing files:
-```
-python wt_json_standard.py -r 2019-03-20 -m 1 -M
+python wt_json_standard.py -s 5
 ```
 
 ### GRIDSMART Canonicalization (raw → rawjson)
 ① Check that update occurs for the test files:
 
 ```bash
-python gs_json_standard.py -r 2019-03-19 -m 1
+python gs_json_standard.py -s 2
 ```
 
 Verify the catalog populated:
 
 ```sql
-SELECT * FROM api.data_lake_catalog WHERE data_source = 'gs' AND collection_date >= '2019-03-19';
+SELECT * FROM api.data_lake_catalog WHERE data_source = 'gs' AND collection_date >= now() - INTERVAL '5 days';
 ```
 
 No update should repeat unless forced:
 
 ```bash
-python gs_json_standard.py -r 2019-03-19 -m 1
-python gs_json_standard.py -r 2019-03-19 -m 1 -F
+python gs_json_standard.py -s 2
+python gs_json_standard.py -s 2 -F
 ```
 
-② Check that missing files are not detected unless specifically directed. No updates should occur:
+② Check that missing files are detected:
 
 ```bash
-python gs_json_standard.py -r 2019-03-20 -m 1
-```
-
-Enable uploading of missing files:
-
-```bash
-python gs_json_standard.py -r 2019-03-20 -m 1 -M
+python gs_json_standard.py -s 2
 ```
 
 ### Enrichment (rawjson → ready)

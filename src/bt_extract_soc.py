@@ -101,7 +101,7 @@ class BTPublishApp(etl_app.ETLApp):
                          "destination_cross_street": line["dest_cross_st"],
                          "destination_direction": line["dest_dir"],
                          "segment_length_miles": line["seg_length"],
-                         "timestamp": publish_socrata.socTime(line["timestamp"]),
+                         "timestamp": publisher.convertTime(arrow.get(line["timestamp"]).datetime),
                          "average_travel_time_seconds": line["avg_travel_time"],
                          "average_speed_mph": line["avg_speed"],
                          "summary_interval_minutes": line["interval"],
@@ -117,14 +117,14 @@ class BTPublishApp(etl_app.ETLApp):
                          "speed_miles_per_hour": line["speed"],
                          "match_validity": line["match_validity"],
                          "filter_identifier": line["filter_id"],
-                         "start_time": publish_socrata.socTime(line["start_time"]),
-                         "end_time": publish_socrata.socTime(line["end_time"]),
+                         "start_time": publisher.convertTime(arrow.get(line["start_time"]).datetime),
+                         "end_time": publisher.convertTime(arrow.get(line["end_time"]).datetime),
                          "day_of_week": arrow.get(line["start_time"]).format("dddd")
                     }
                 hashFields = ["start_time", "end_time", "origin_reader_identifier", "destination_reader_identifier", "device_address"] 
             elif fileType == "unmatched":
-                entry = {"host_read_time": publish_socrata.socTime(line["host_timestamp"]),
-                         "field_device_read_time": publish_socrata.socTime(line["field_timestamp"]),
+                entry = {"host_read_time": publisher.convertTime(arrow.get(line["host_timestamp"]).datetime),
+                         "field_device_read_time": publisher.convertTime(arrow.get(line["field_timestamp"]).datetime),
                          "reader_identifier": devices[line["device_id"]]["device_name"],
                          "device_address": self.addrLookup[line["dev_addr"]] # TODO: Replace with randomized MAC address?
                     }
