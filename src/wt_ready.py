@@ -77,7 +77,7 @@ def _createHash(row):
     """
     Returns a hash that's based upon a row's contents from the data file
     """
-    toHash = row['device_type'] + row['device_name'] + row['device_ip'] + str(row['lat']) + str(row['lon'])
+    toHash = row['device_type'] + str(row['device_name']) + row['device_ip'] + str(row['lat']) + str(row['lon'])
     hasher = hashlib.md5()
     hasher.update(bytes(toHash, "utf-8"))
     return hasher.hexdigest()
