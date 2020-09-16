@@ -42,7 +42,7 @@ class Storage:
         spanChar = "."
         if "." in ext:
             spanChar = "_"
-        return base + "_" + collectionDate.strftime("%Y-%m-%d") + spanChar + ext
+        return base + "_" + self.dataSource + "_" + collectionDate.strftime("%Y-%m-%d") + spanChar + ext
     
     def makePath(self, base, ext, collectionDate, filenamePart=None):
         """

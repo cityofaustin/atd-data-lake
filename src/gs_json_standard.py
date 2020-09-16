@@ -248,7 +248,7 @@ class GSJSONStandard:
                     if self.apiVersion == 8:
                         # TODO: The UTC Offset doesn't seem to reflect DST. Should we ignore it and blindly localize instead?
                         #       We can figure this out by seeing what the latest count is on a live download of the current day.
-                        timestamp = datetime.datetime.strptime(self.collection_date.split()[0] + " " \
+                        timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " " \
                             + ("%06d" % int(float(item['timestamp']))) + "." + str(round((item['timestamp'] % 1) * 10) * 100000),
                             "%Y-%m-%d %H%M%S.%f")
                         timestamp -= datetime.timedelta(minutes=item['utc_offset'])
