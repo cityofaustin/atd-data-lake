@@ -162,7 +162,10 @@ class ETLApp:
             if self.startDate:
                 dateStr += " " + str(self.startDate)
                 if self.endDate:
-                    dateStr += " up to " + str(self.endDate)
+                    if self.endDate == self.startDate:
+                        dateStr += " only"
+                    else:
+                        dateStr += " up to " + str(self.endDate)
                 else:
                     dateStr += " onward"
             print(dateStr + ".")

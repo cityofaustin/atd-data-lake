@@ -107,12 +107,18 @@ class Catalog:
         The return from getSearchableQueryDict() which has a function for returning the element for the next date.
         Also keeps track of whether the return/object is the same.
         """
-        def __init__(self):
+        def __init__(self, catObj, stage, ext):
             """
             Initializes variables
+            
+            @param catObj: To allow for impromptu querying if requested element is outside of the dict
+            @param stage: Also needed for impromptu querying
             """
             self.prevIndices = {}
             self.searchableLists = {}
+            self.catObj = catObj
+            self.stage = stage
+            self.ext = ext
         
         def getForNextDate(self, base, date, exclusive=False, forceValid=False):
             """
@@ -130,8 +136,19 @@ class Catalog:
             @param exlusive: If True, returns the previous catalog element if the date matches
             @param forceValud: When True, if the resulting date is out of range, returns the nearest in range
             """
-            return self._getForDate(base, date, exclusive, nextFlag=False, forceValid=forceValid)
-
+            ret = self._getForDate(base, date, exclusive, nextFlag=False, forceValid=forceValid)
+            if not ret[0] or base in self.searchableLists and self.searchableLists[base].dates[-1] < date:
+                # This happens if the item isn't found from the earlier query. The following will perform a special query.
+                sqList = self.catObj.getSearchableQueryList(self.stage, base, self.ext, earlyDate=date, lateDate=None, singleLatest=True)
+                if sqList:
+                    if base not in self.searchableLists:
+                        self.searchableLists[base] = sqList
+                    elif self.searchableLists[base].dates[-1] < sqList.dates[0]:
+                        self.searchableLists[base].dates.extend(sqList.dates)
+                        self.searchableLists[base].catalogElements.extend(sqList.catalogElements)
+                    ret = self._getForDate(base, date, exclusive, nextFlag=True, forceValid=forceValid)
+            return ret
+        
         def _getForDate(self, base, date, exclusive=False, nextFlag=True, forceValid=False):
             """
             Returns the catalog element for the previous or next date
@@ -182,7 +199,7 @@ class Catalog:
         """
         queryList = self.getQueryList(stage, base, ext, earlyDate, lateDate, exactEarlyDate)
         
-        ret = self._SearchableQueryDict()
+        ret = self._SearchableQueryDict(self, stage, ext)
         if queryList:
             for item in queryList:
                 if item["id_base"] not in ret.searchableLists:
