@@ -73,7 +73,9 @@ class GSReadyApp(etl_app.ETLApp):
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc, extFilter="%%.json"),
                                    last_update.LastUpdStorageCatProv(self.storageTgt),
                                    baseExtKey=False)
+        # Process the last day's worth of records:
         count += self._processDay(self.curDate)
+        
         print("Records processed: %d" % count)
         return count    
 
@@ -90,6 +92,7 @@ class GSReadyApp(etl_app.ETLApp):
         if not self.curDate:
             self.curDate = item.identifier.date
         if item.identifier.date > self.curDate:
+            # Only process if we cross to the next date:
             count = self._processDay(self.curDate)
             self.curDate = item.identifier.date
         
@@ -288,7 +291,8 @@ class GSReadyApp(etl_app.ETLApp):
                 # TODO: Continue to see out how to positively resolve NORTHBOUND, EASTBOUND, etc. to street geometry.
                 catalogElem = self.storageTgt.createCatalogElement(base, "counts.json", date, self.processingDate)
                 print("INFO: Writing: " + catalogElem["pointer"])
-                self.storageTgt.writeJSON(newFileContents, catalogElem, cacheCatalogFlag=True)
+                self.storageTgt.writeJSON(newFileContents, catalogElem, cacheCatalogFlag=False)
+                # We turned off cacheCatalogFlag because we're writing many files, and would have to specially handle the last day.
 
                 # Performance metrics:
                 self.perfmet.recordCollect(date, representsDay=True)
