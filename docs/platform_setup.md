@@ -69,7 +69,7 @@ boto3
 
 Now, build the image: `docker build --tag ctrdocker/tdp:latest .`
 
-> Note that if the image already exists (e.g. this process was performed earlier, and it is being rerun to upgrade dependencies), the old image should be replaced with the new. If you didn't want to replace the old image, it is possible to tag it with an older version: `docker image tag ctrdocker/tdp ctrdocker/tdp:FY19`
+> Note that if the image already exists (e.g. this process was performed earlier, and it is being rerun to upgrade dependencies), the old image should be replaced with the new. If you didn't want to replace the old image (e.g. you want to keep it as a backup), it is possible to tag it with an older version: `docker image tag ctrdocker/tdp ctrdocker/tdp:FY19`
 
 ### Staging the "atd-data-deploy" Project
 

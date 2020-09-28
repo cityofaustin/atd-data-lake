@@ -61,23 +61,31 @@ There are two key considerations in the development of the architecture: the var
 | System Overview <br><img src="figures/new_sysoverview.png" width="600">
 |---
 
-As mentioned in the introduction document, the ATD Data Lake Architecture has the following essential components:
+As mentioned in the introduction document, the ATD Data Lake Architecture accesses the following essential components through abstractions in the code-base:
 
 1. A PostgREST catalog
 2. AWS 'raw' data bucket (Layer 1)
 3. AWS canonical 'rawjson' data bucket (Layer 2)
 4. AWS processed 'ready' data bucket (Layer 3)
 
+Additional items not shown in the diagram include:
+
+1. Knack database for city inventory
+2. Knack database for performance metrics dashboard output
+3. Socrata for data publishing
+
 Together, the above components preserve the integrity of the sensor data, facilitate stop-and-go processing as well as promote ease of data exchange. The figure below outlines the overall architecture of the ATD Data Lake.
 
 | System Architecture <br><img src="figures/pipeline.png" width="900">
 |---
 
+> TODO: Change the figure to have Socrata as the output.
+
 A PostgREST database `data_lake_catalog` acts as an inventory. It contains pointers to the data files with collection and processing dates and other metadata.  A process within the City infrastructure reads files from the source, catalogs them, and uploads to the cloud storage resource (which is currently AWS S3). The bucket has a "year/month/day/data source" file structure.
 
-Within the AWS S3 are three layers: `raw`, `raw-json` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors. Older files here can eventually be archived (e.g. with S3 Glacier).
+Within the AWS S3 are three layers: `raw`, `rawjson` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors. Older files here can eventually be archived (e.g. with S3 Glacier).
 
-In the `raw-json` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format. Older files can either be purged or archived.
+In the `rawjson` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format. Older files can either be purged or archived.
 
 The `ready` layer contains merges city-maintained sensor location information (currently located in Knack) to actual data so that a single file or set of files are self-contained. The theory is that no other sources or files are necessary to make sense of the data within the file.
 
@@ -87,7 +95,9 @@ The code that had been written to perform the data processing activities shown b
 
 Entry points referenced in this document abide by the "cityofaustin/atd-data-deploy" interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy), which provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database. However, there is talk of migrating away from "atd-data-deploy" scheme and using Apache Airflow, which can offer improvements in sequencing activities, responding better to errors, and improving logging.
 
-Within the "atd-data-lake" source code tree, command-line entry points are currently in the `src` directory. There are a number of system-specific configurations that are globally accessible from within the `config` directory (which use implementations of those resource found in `drivers`). This contains further mechanisms for accessing the `config.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a package.
+Within the "atd-data-lake" source code tree, command-line entry points are currently in the `src` directory. There are a number of system-specific configurations that are globally accessible from within the `config` directory (which use implementations of those resource found in `drivers`). This contains further mechanisms for accessing the `config.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a Python package.
+
+Architecture of the "atd-data-lake" project codebase is documented further in the [Code Architecture](code_architecture.md) document.
 
 ## Data Source Specifics
 
