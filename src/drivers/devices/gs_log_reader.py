@@ -7,6 +7,7 @@ import requests
 import datetime
 import sys
 import os
+import traceback
 
 from util import date_util
 
@@ -73,7 +74,8 @@ class LogReader:
             fileChunks = requests.get(ourURL, stream=True)
         except:
             print("Problem retrieving counts from %s." % ourURL)
-            raise
+            traceback.print_exc()
+            return None
         filePath = os.path.join(destDir, outFilename)
         try:
             with open(filePath, "wb") as outFile:

@@ -78,6 +78,8 @@ class GSInsertLakeApp(etl_app.ETLApp):
         
         # Obtain the raw count data archive:
         countsFilePath = self.gsProvider.resolvePayload(item)
+        if not countsFilePath:
+            return 0
         
         # Write raw count data archive to storage:
         print("%s -> %s" % (item.label, self.storageTgt.repository))
