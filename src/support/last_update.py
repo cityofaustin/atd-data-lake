@@ -32,18 +32,21 @@ class LastUpdate:
         self.startDate = None
         self.endDate = None
         self.baseExtKey = False
+        self.baseUnitOpt = True
 
-    def configure(self, startDate=None, endDate=None, baseExtKey=False):
+    def configure(self, startDate=None, endDate=None, baseExtKey=False, baseUnitOpt=True):
         """
         Configures additional properties and parameters for LastUpdate:
         
         @param startDate: Lower bound for finding missing data
         @param endDate: Upper bound for processing, or None for no upper bound
         @param baseExtKey: Set this to true to compare the presence of both base and ext; otherwise, just base is used.
+        @param baseUnitOpt: If baseExtKey is False, then if True, prevent tracking of entries that have unit_data.* or site.* extensions.  
         """
         self.startDate = startDate
         self.endDate = endDate
         self.baseExtKey = baseExtKey
+        self.baseUnitOpt = baseUnitOpt
         return self
 
     class _CompareTarget:
@@ -67,7 +70,7 @@ class LastUpdate:
                     cmpDateEnd = cmpDate + datetime.timedelta(days=1)
                 if not endDate:
                     endDate = self.items[self.curIndex].date + datetime.timedelta(days=1)
-                if not (cmpDateEnd < self.items[self.curIndex].date or cmpDate > cmpDateEnd):
+                if not (cmpDateEnd <= self.items[self.curIndex].date or cmpDate >= endDate):
                     return True
             return False
         
@@ -88,6 +91,10 @@ class LastUpdate:
         if self.target:
             self.target.prepare(earliest, self.endDate)
             for target in self.target.runQuery():
+                if not self.baseExtKey and self.baseUnitOpt:
+                    if target.ext.lower().startswith("unit_data.") or target.ext.lower().startswith("site."):
+                        # TODO: This is a quick fix. Consider more robust fixes for this.
+                        continue
                 key = (target.base, target.ext) if self.baseExtKey else target.base
                 if key not in compareTargets:
                     compareTargets[key] = self._CompareTarget()
