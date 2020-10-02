@@ -79,6 +79,9 @@ class ETLApp:
         if not args:
             args = self.processArgs(appDescription)
         
+        # Welcome message:
+        print("== Starting " + appDescription.appName + " ==")
+        
         # Call the argument ingester:        
         self.args = args
         self._ingestArgs(args)
