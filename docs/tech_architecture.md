@@ -146,8 +146,8 @@ These are the functions for the individual fields:
 | id_base | A scheme specific to the data type that identifies the file and what it is. This is often the base filename.
 | id_ext | A scheme specific to the data type that identifies the file type, which can often be the file's extension.
 | pointer | The path directly into the respective AWS S3 bucket that references the file that corresponds with the catalog entry
-| collection_date | The time that was logged for the data collection, usually set to the start of the respective day
-| collection_end | For records that pertain to collection periods that are less than one day's duration, the collection end time can be put here; otherwise, it is set to `null`.
+| collection_date | The time that was logged for the data collection, usually set to the start of the respective day. In queries, "collection_date" is inclusive in the date range to "collection_end".
+| collection_end | For records that pertain to collection periods that are less than one day's duration, the collection end time can be put here; otherwise, it is set to `NULL`, which assumes "+1 day from collection_date". In queries, "collection_end" is exclusive in the date range.
 | processing_date | The time that the respective file was processed and added to the Data Lake
 | metadata | JSON header data, used optionally to further describe the referred item
 

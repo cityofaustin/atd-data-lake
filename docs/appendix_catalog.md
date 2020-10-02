@@ -198,3 +198,30 @@ recsDate = catalog.select({"select": "repository,data_source,id_base,id_ext,poin
   "data_source": "eq.%s" % data_source,
   "collection_date": "eq.%s" % recs[0]["collection_date"]})
 ```
+
+### Future Querying with Date Ranges
+
+> **TODO:** Near-future improvement
+
+As the Data Lake is moved more toward near-real time updating, it will be more important for better queries to be possible with date ranges, especially being that we need to react to the "collection_end" column. For that, the `OVERLAPS` operator may come in handy. With that, we'll need to decide whether "collection_end" can be `NULL` (to default represent a day-long duration), or if it always needs to be defined. Further, we need to determine if it is inclusive or exclusive.
+
+This is an example query that uses `OVERLAPS`:
+
+```sql
+SELECT repository, data_source, id_base, id_ext, collection_date
+FROM api.data_lake_cat_new
+WHERE data_source = 'bt'
+  AND (collection_date, COALESCE(collection_end, collection_date + INTERVAL '1 day'))
+    OVERLAPS (timestamp '2020-09-28 00:00:00-05', timestamp '2020-09-30 00:00:00-05')
+ORDER BY collection_date, repository, id_ext;
+```
+
+Note that `OVERLAPS` is inclusive of the start but exclusive of the end.
+
+PostgREST does support `OVERLAPS` (or `&&`), but it is questionable on whether the left side can define an interval, and doubtful that `COALESCE` can be used to react properly to `NULL`. For that, we may need to use a stored procedure or better yet, a view that uses the following:
+
+```sql
+SELECT repository, data_source, id_base, id_ext,
+  TSTZRANGE(collection_date, COALESCE(collection_end, collection_date + INTERVAL '1 day')) date_range
+FROM api.data_lake_cat_new...
+```

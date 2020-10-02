@@ -138,28 +138,36 @@ This is what each part does, listed in the order of first encounter when running
 
 Of special interest is `support.last_update._LastUpdateItem`, which is the type of the parameter that is passsed into `innerLoopActivity()`:
 
-* **identifier:** 
-* **priorLastUpdate:** 
-* **provItem:** 
-* **label:** 
+* **identifier:** This tuple, `base`, `ext`, and `date` identifies an item stored within a repositry for a data source.
+* **priorLastUpdate:** This is set to `True` if the item comes from a date that precedes the LastRunDate (as passed in on the command line). It's a way of knowing if something is being updated that happens before the expected update time.
+* **provItem:** This comes from the source data provider-- a `last_update.LastUpdProv._LastUpdProvItem`, which contains a `payload` attribute that is specific to the data source.
+* **label:** This is a string representation of the data item, usually the item's filename.
+
+### Other ETLApp Characteristics
+
+#### Constructor
+
+When `ETLApp` is constructed, these parameters are to be passed in:
+
+* **dataSource:** The two-letter abbreviation for the data type or source being processed. Required.
+* **appDescription:** An `etl_app.AppDescription` object that provides "about" information that shows up in the command line help. Required.
+* **args:** If this is `None` (default), then the command line will be processed; otherwise, a dictionary needs to be passed in that contains all of the contents that would otherwise occur on the command line, keyed as the long command line argument names.
+* **purposeSrc**, **purposeTgt:** If this is provided, then a storage object is attempted to be created using the `config.createStorage()` factory method.
+* **needsTempDir:** If `False`, prevents a temporary directory from being created.
+* **parseDateOnly:** This should be `True` if the data source is assumed to be provided and processed on a daily or nightly basis; otherwise, it is assumed that the ETL process is run multiple times throughout the day.
+* **perfmetStage:** This string identifies the performance metrics stage that is to be associated with this ETL process; if `None` is provided, then no PerfMet object is created.
+
+#### Attributes
 
 `ETLApp` maintains a number of attributes that are to be used by the implementation:
 
-* **dataSource:** 
-* **purposeSrc:** 
-* **purposeTgt:** 
-* **catalog:** 
-* **storageSrc:** 
-* **storageTgt:** 
-* **perfmet:** 
-* **startDate:** 
-* **endDate:** 
-* **lastRunDate:** 
-* **forceOverwrite:** 
-* **tempDir:** 
-* **productionMode:** 
-* **simulationMode:** 
-* **writeFilePath:** 
+* **dataSource**, **purposeSrc**, and **purposeTgt:** These come from initialization, which is the two-letter data source code and purpose strings that are used in "config" factory methods that help point to the desired repository.
+* **catalog:** A `catalog.Catalog` object that represents a connection to a data source's catalog.
+* **storageSrc**, **storageTgt:** A `storage.Storage` object that is set to connect to the source and target storage; `None` if not set up.
+* **perfmet:** A `perfmet.PerfMet` object that receives and maintains data health performance metrics.
+* **startDate**, **endDate**, and **lastRunDate:** These come from command line arguments and configure the main compare loop.
+* **forceOverwrite**, **productionMode**, **simulationMode**, and **writeFilePath:** These come from the command line and set various options for the compare loop and storage classes.
+* **tempDir:** This is set up when `ETLApp` is in its initialization, and is deleted when the ETL application exits. It is meant to be used as a temporary holding-place.
 
 At the time `etlActivity()` is called, these `ETLApp` attributes are set to the following:
 
@@ -172,8 +180,39 @@ At the time `innerLoopActivity()` is called, these `ETLApp` attributes are avail
 * **itemCount:** This is incremented with the return from my `innerLoopActivity()`, which should represent the number of ETL items processed so far.
 * **prevDate:** This is the previous date that was processed during the last time `innerLoopActivity()` was called. It is then possible inside `innerLoopActivity()` to see if we arrived at a new day by comparing `item.identifier.date` with `prevDate`.
 
+### Storage
 
-### Abstractions
+The Storage class manages the reading and writing of data items to and from an implemented resource (implemented by interface `StorageImpl`). The one that exists right now is `drivers.storage_s3.StorageS3`. One normally doesn't need to interact with `StorageImpl` directly; instead, access storage using these methods provided by `Storage`, which is usually created with the config factory method `createStorage()` (see the code for more documentation):
+
+* **The constructor:** This is called from the config factory method `createStorage()`, but gives you options for writing files locally while writing to the repository, and also simulating writing by suppressing writes to the repository. Supplying a local path and enabling simulation mode will write files locally but not to the repository.
+* **retrieveFilePath():** Retrieves a resource at the given storage platform-specific path. While you can use `makePath()` to create one fron scratch, you could be getting the resource path from the catalog. (Minimally, `catalogLookup()` can be used to retrieve a catalog entry from the catalog, and the `pointer` member has the path). This returns a full path to the written file after the file has been retrieved.
+* **retrieveJSON():** This does a similar thing, but returns a JSON dictionary that had been efficiently created via a temporary file.
+* **retrieveBuffer():** Same for a buffer.
+* **writeFile()**, **writeJSON()**, and **writeBuffer():** These are like the "retrieve" counterparts; however, a catalog element (which is a dictionary keyed according to a catalog entry) is passed in; use `createCatalogElement()` to make one, unless you already have one on hand from a previous query to the catalog. Also, if `cacheCatalogFlag` is `True`, the update of the catalog can be cached until `flushCatalog()` is called, which can slightly speed up operations or ensure that a set of files are committed before recording the entries.
+* **copyFile():** This is a convenience function for copying a file from one repository to another.
+
+### Catalog
+
+The Catalog class manages access to a catalog that is implemented through an abstracted way-- a "driver". The current support is for PostgREST, but this could be replaced with direct database access for any platform. See the `support.catalog` module for documentation on calls that are made to query and write to the catalog.
+
+There are a variety of calls for querying the catalog, and also efficiently searching through catalog entries that have already been retrieved through the driver. The "vehicle" for catalog information mirrors the database structure in the current PostgreSQL/PostgREST implementation (as seen in `buildCatalogElement()`). (The database structure and column definitions are available in the [Technical Architecture](tech_architecture.md))
+
+Of special notes are "upserts" of the catalog. If an upsert call is made, then if an entry already exists in the catalog that shares the same data source, repository, id_base, id_ext, and collection_date, then the remaining contents are updated; otherwise a new entry is created.
+
+### Last Update
+
+The "last_update" code is responsible for iterating through the contents of some kind of data source and identifying which items exist. This is then used in the main compare loop to determine which days' worth of data must be retreived from the source data so that the target data can be updated. If data already exists in the target (usually as evidenced by the catalog), then the respective available source data is skipped unless the "force" option is used.
+
+The core that runs "last_update" is in the `support.last_update` module, using "drivers" that implement the `support.last_update.LastUpdProv` interface. A commonly used one is `LastUpdCatProv`, which allows the main compare loop to use the catalog to determine which days of data need to be updated. There is also the `LastUpdDB` class that is a generalized adaptor for data stored within a database. An example of a database class implementation is `drivers.devices.wt_mssql_db.WT_MSSQL_DB`, which queries the MS SQL database that hosts Wavetronix data. That's instanciated directly from "wt_insert_lake.py".
+
+### Unit Data
+
+A concept that occurs quite frequently in the ETL processing is "Unit Data"-- that is, a file that contains records that serve as descriptors or metadata for devices that provide data. In the "Ready" stage of ETL processing, individual records from the Unit Data are placed within the data JSON files such that each JSON file is self-describing and doesn't rely upon metadata contained in another file. In City of Austin, the Unit Data comes from the Knack inventory of city assets. The UnitData class handles the retrieval of these data.
+
+### Perfmet
+
+See the doc
+
+### Publishing
 
 
-## Theory of Operation
