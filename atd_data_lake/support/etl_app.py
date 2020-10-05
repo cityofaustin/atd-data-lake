@@ -95,7 +95,7 @@ class ETLApp:
                                 description=cmdLineConfig.appDescr,
                                 formatter_class=RawDescriptionHelpFormatter)
         # Tier-1 parameters:
-        parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset")
+        parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset, or UNIX time")
         parser.add_argument("-s", "--start_date", help="start date; process no more than this number of days old, or provide YYYY-MM-DD for absolute date")
         parser.add_argument("-e", "--end_date", help="end date; process no later than this date, in YYYY-MM-DD format")
         
