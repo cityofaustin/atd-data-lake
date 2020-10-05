@@ -131,13 +131,7 @@ class ETLApp:
         
         # Last run date:
         if hasattr(args, "last_run_date") and args.last_run_date:
-            try:
-                lastRunDate = int(args.last_run_date)
-                self.lastRunDate = date_util.localize(arrow.now()
-                    .replace(hour=0, minute=0, second=0, microsecond=0)
-                    .shift(days=-lastRunDate).datetime)
-            except ValueError:
-                self.lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=self.parseDateOnly)
+            self.lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=self.parseDateOnly)
             print("Last run date: %s" % str(self.lastRunDate))
         else:
             self.lastRunDate = None
