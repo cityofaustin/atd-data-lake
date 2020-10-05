@@ -36,8 +36,12 @@ def parseDate(dateString, dateOnly=False):
         if isinstance(dateString, str):
             dateString = dateString.strip()
         if dateString != "0":
-            # Use best-guess to parse the date:
-            aRunDate = arrow.get(dateString)
+            try:
+                # Use best-guess to parse the date:
+                aRunDate = arrow.get(dateString)
+            except arrow.parser.ParserError:
+                # Try UNIX format:
+                aRunDate = arrow.Arrow.fromtimestamp(dateString)
             
             # Check to see if the provided time was explicitly expressed as UTC:
             explicitUTC = False
