@@ -121,3 +121,13 @@ sudo docker run -it --rm -v ~/git:/app --network=host -w /app/atd-data-lake/src 
 ```
 
 Inside, you can run the ETL scripts directly. Don't forget to consider using the command-line arguments that can assist in testing ETL scripts, as noted in [Testing Appendix](appendix_testing.md). Use the `exit` command to leave and shut down the container.
+
+### Backing Up the Catalog
+
+The Data Lake Catalog should be backed up to guard against corruption, accidential deletes, or programmer error. Recreating the catalog is conceivably possible by setting up an automated process to look at files in Amazon S3, but it would be combersome. Trying to reconstruct updates to Socrata would be more difficult.
+
+This command-line will create a dump of the catalog:
+
+```bash
+docker run --rm -it --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPASSWORD=*** pg_dump -Fc -c -h *** -p 5432 -U atduser -d atd01 -t api.data_lake_cat_new" > catalog.sqlbin
+```

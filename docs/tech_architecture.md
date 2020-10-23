@@ -17,6 +17,7 @@ This is the architecture document that serves as a technical overview of work pe
 - [Other Coding Challenges](#other-coding-challenges)
   - [System Time](#system-time)
   - [Street Naming](#street-naming)
+    - [SharedStreets](#sharedstreets)
   - [Cloud Service Visualizations](#cloud-service-visualizations)
 
 ## Use Cases
@@ -68,7 +69,7 @@ As mentioned in the introduction document, the ATD Data Lake Architecture access
 3. AWS canonical 'rawjson' data bucket (Layer 2)
 4. AWS processed 'ready' data bucket (Layer 3)
 
-Additional items not shown in the diagram include:
+Additional items include:
 
 1. Knack database for city inventory
 2. Knack database for performance metrics dashboard output
@@ -85,17 +86,17 @@ A PostgREST database `data_lake_catalog` acts as an inventory. It contains point
 
 Within the AWS S3 are three layers: `raw`, `rawjson` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors. Older files here can eventually be archived (e.g. with S3 Glacier).
 
-In the `rawjson` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format. Older files can either be purged or archived.
+In the `rawjson` layer, the data are accessible for further processing through unzipping files and canonizing to JSON. The idea is that if a mistake is made in later data processing stages, steps such as unzipping files do not have to be repeated. To place data into the bucket, an algorithm gathers the data files needing to be processed from the inventory, fetches them from the first layer, and subsequently canonicalizes them to a standardized JSON format. Older files can either be purged or archived, although it is here that "site files" and "unit data" files that describe data sources and architecture are also stored here that are not archived elsewhere.
 
 The `ready` layer contains merges city-maintained sensor location information (currently located in Knack) to actual data so that a single file or set of files are self-contained. The theory is that no other sources or files are necessary to make sense of the data within the file.
 
 ## Source Code
 
-The code that had been written to perform the data processing activities shown below is currently stored in the ["cityofaustin/atd-data-lake" repository](https://github.com/cityofaustin/atd-data-lake) that's located on GitHub. The code is for Python 3.
+The code that had been written to perform the data processing activities shown below is currently stored in the ["cityofaustin/atd-data-lake" repository](https://github.com/cityofaustin/atd-data-lake) that's located on GitHub. The code is for Python 3. All code is inside the "atd_data_lake" package.
 
-Entry points referenced in this document abide by the "cityofaustin/atd-data-deploy" interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy), which provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database. However, there is talk of migrating away from "atd-data-deploy" scheme and using Apache Airflow, which can offer improvements in sequencing activities, responding better to errors, and improving logging.
+Entry points referenced in this document abide by the "cityofaustin/atd-data-deploy" interface, as found in [GitHub](https://github.com/cityofaustin/atd-data-deploy), which provides a "cron"-driven method for launching Dockerized ETL activities that also log progress to a database. However, there is talk of migrating away from "atd-data-deploy" scheme and using Apache Airflow, which can offer improvements in sequencing activities, responding better to errors, and improving logging. All ETL processes can be started at the command line, or launched by calling the modules' `main()` method.
 
-Within the "atd-data-lake" source code tree, command-line entry points are currently in the `src` directory. There are a number of system-specific configurations that are globally accessible from within the `config` directory (which use implementations of those resource found in `drivers`). This contains further mechanisms for accessing the `config.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a Python package.
+Within the "atd-data-lake" source code tree, most command-line entry points are currently in the `atd_data_lake` directory. There are a number of system-specific configurations that are globally accessible from within the `config` directory (which use implementations of those resource found in `drivers`). This contains further mechanisms for accessing the `config.config_secret` package, which contains API keys and passwords that are not to be publicly shared. These help with reaching PostgREST, Knack, Socrata, and AWS. Future efforts may involve looking at an online escrow agent that can manage these items, rather than a Python package.
 
 Architecture of the "atd-data-lake" project codebase is documented further in the [Code Architecture](code_architecture.md) document.
 
@@ -165,7 +166,7 @@ For further technical details on the Data Lake Catalog, see the [Technical Appen
 
 The EC2 server had been running with UTC time. The crontab (schedule that causes automated `cityofaustin/atd-data-deploy` jobs to periodically run) had to be adjusted accordingly so they could run at the desired local time. Default database dumps also hadn't time time zone defined. These cause confusion.
 
-Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in Coordinated Universal Time (UTC). But, CoA ATD preferred to use Central Time.
+Online opinions about setting server time zones vary greatly. For those running a global enterprise, there are strong opinions about running systems in Coordinated Universal Time (UTC). But, CoA ATD preferred to use Central Time for good reasons as well.
 
 For the benefit of "cron" and possibly database extract, the most elegant solution is to set the local time zone. Changing the system time zone requires a reboot, which occurred on Sept. 27, 2019.
 
@@ -179,12 +180,16 @@ It was especially apparent in GRIDSMART street naming that there are inconsisten
 * "Loop 1" $\iff$ "Mopac" or "MOPAC EXPY SVRD"
 * "Hancock Mall" $\iff$ "N IH 35 SVRD SB AT 41ST TRN"
 
-Additionally, GPS coordinates stored in GRIDSMART devices (the site files) are not accurate. For the time being, a string lookup exists that draws from the `support.config.STREET_SYNONYMS` dictionary. There's also `support.config.KNACK_LOOKUPS` for Knack lookups. A more sustainable mechanism would include one or more of the following:
+Additionally, GPS coordinates stored in GRIDSMART devices (the site files) are not accurate. For the time being, a string lookup exists that draws from the `support.config_app.STREET_SYNONYMS` dictionary. There's also `support.config_app.KNACK_LOOKUPS` for Knack lookups. A more sustainable mechanism would include one or more of the following:
 
 * A practice of using names that are uniformly formatted to those in Knack, Austin Corporate GIS, or SharedStreets; or,
 * Tying an identifier within the GRIDSMART device (the hardware ID) with the Knack table. This second choice was explored in June 2019 but must be revisited.
 
 Further challenges also lie in programmatically resolving terms like "NORTHBOUND" or "L" movements with actual street geometry. This is also something that may be helped by using SharedStreets.
+
+#### SharedStreets
+
+The prospect of using SharedStreets was looked at and a proof of concept was created that utilizes SharedStreets data found online. More about this is found in the (SharedStreets)[sharedstreets.md] document.
 
 ### Cloud Service Visualizations
 

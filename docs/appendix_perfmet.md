@@ -1,8 +1,7 @@
 # Appendix: Performance Metrics
 
-
-
 Performance metrics in the ETL processes looks like:
+
 * Logging the numbers of records manipulated for each day in each ETL process
 * During the JSON Canonicalization stage, logging a representative metric for each unit handled within the data source
 

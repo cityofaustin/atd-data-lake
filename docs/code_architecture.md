@@ -185,10 +185,10 @@ At the time `innerLoopActivity()` is called, these `ETLApp` attributes are avail
 The Storage class manages the reading and writing of data items to and from an implemented resource (implemented by interface `StorageImpl`). The one that exists right now is `drivers.storage_s3.StorageS3`. One normally doesn't need to interact with `StorageImpl` directly; instead, access storage using these methods provided by `Storage`, which is usually created with the config factory method `createStorage()` (see the code for more documentation):
 
 * **The constructor:** This is called from the config factory method `createStorage()`, but gives you options for writing files locally while writing to the repository, and also simulating writing by suppressing writes to the repository. Supplying a local path and enabling simulation mode will write files locally but not to the repository.
-* **retrieveFilePath():** Retrieves a resource at the given storage platform-specific path. While you can use `makePath()` to create one fron scratch, you could be getting the resource path from the catalog. (Minimally, `catalogLookup()` can be used to retrieve a catalog entry from the catalog, and the `pointer` member has the path). This returns a full path to the written file after the file has been retrieved.
+* **retrieveFilePath():** Retrieves a resource at the given storage platform-specific path. While you can use `makePath()` to create one fron scratch, you could be getting the resource path from the catalog for an existing item. (Minimally, `catalogLookup()` can be used to retrieve a catalog entry from the catalog, and the `pointer` member has the path). This returns a full path to the written file after the file has been retrieved.
 * **retrieveJSON():** This does a similar thing, but returns a JSON dictionary that had been efficiently created via a temporary file.
 * **retrieveBuffer():** Same for a buffer.
-* **writeFile()**, **writeJSON()**, and **writeBuffer():** These are like the "retrieve" counterparts; however, a catalog element (which is a dictionary keyed according to a catalog entry) is passed in; use `createCatalogElement()` to make one, unless you already have one on hand from a previous query to the catalog. Also, if `cacheCatalogFlag` is `True`, the update of the catalog can be cached until `flushCatalog()` is called, which can slightly speed up operations or ensure that a set of files are committed before recording the entries.
+* **writeFile()**, **writeJSON()**, and **writeBuffer():** These are like the "retrieve" counterparts; however, a catalog element (which is a dictionary keyed according to a catalog entry) is passed in; use `createCatalogElement()` to make one, unless you already have one on hand from a previous query to the catalog. Also, if `cacheCatalogFlag` is `True`, the update of the catalog can be cached until `flushCatalog()` is called, which can slightly speed up operations or ensure that a set of files are uploaded before recording the entries.
 * **copyFile():** This is a convenience function for copying a file from one repository to another.
 
 ### Catalog
@@ -211,8 +211,16 @@ A concept that occurs quite frequently in the ETL processing is "Unit Data"-- th
 
 ### Perfmet
 
-See the doc
+Basic statistics are gathered in the JSON Standardization stage on the number of nodes or locations are up and running, as well as a basic statistic that is generated from each of those locations. These are then fed to Knack and then visualized. The motivation for collecting these data is to allow the general health of sensors for a data source to be quickly monitored, answering the following:
+
+* Which sensors are responsive?
+* Do the sensors appear to be generating data?
+* Are the data obviously faulty? (e.g. all zeros or all high in comparison with a moving average over the last few days)
+
+More about performance metrics is found in the [Performance Metrics Appendix](appendix_perfmet.md).
 
 ### Publishing
 
+Publishing is handled in `publish.Publisher`, which uses a connector to a subclass of `PublishConnBase`. The implementation mostly used by ATD Data Lake is a driver for Socrata, found at `drivers.publish_socrata.PublishSocrataConn`. There is also `publish.CSVConn` that can be used as a fallback (or output during simulation), which produces CSV files of the data that are being sent to the Publisher.
 
+While the ETL script is publishing, the Publisher object buffers rows of data until `flush()` is called. At that time, data are transfered to the connector class. As implemented, data are sent to Socrata in 10,000-row chunks.
