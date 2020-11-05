@@ -12,7 +12,7 @@ As mentioned, each record in Socrata contains a unique key column which in the c
 
 Removing data in Socrata is not easy, as the Socrata web UI provides no means of doing it interactively. To delete rows, the unique identifiers-- the hashes-- need to be presented to Socrata through its API. The [DataSync](https://socrata.github.io/datasync/) utility is helpful for dealing with the API calls. However, DataSync needs the hashes.
 
-To obtain the hashes, use the filtering functionality in Socrata to limit the records to the days that need purging, and download the contents as a CSV file. Then, in DataSync, load in the file and use only the column that contains the hashes. Refer to credentials in `config/config_app.py` and `config/config_secret.py`, as well as the URL and the dataset ID (e.g. "sh59-i6y9")
+To obtain the hashes, use the filtering functionality in Socrata to limit the records to the days that need purging, and download the contents as a CSV file. Then, in DataSync, load in the file and use only the column that contains the hashes. (It's easier to use Excel to prepare the CSV with only the hash column than it is to use the DataSync UI to ignore all of the non-hash columns.) Refer to credentials in `config/config_app.py` and `config/config_secret.py`, as well as the URL and the dataset ID (e.g. "sh59-i6y9")
 
 ### Updating the Catalog
 

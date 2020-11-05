@@ -2,7 +2,7 @@
 
 *[(Back to Docs Catalog)](index.md)*
 
-Deployment of the ETL scripts is coordinated through the [atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy) project. The script runs from within a Docker container built with the [atd-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) project (with added dependencies as noted below), and in these examples retrieves transformation code from directories mounted on the host system. This document describes the configurations that are currently running on the two servers that run ETL tasks.
+Deployment of the ETL scripts is coordinated through the [atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy) project. The script runs from within a Docker container built with the [atd-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) project (with added dependencies as noted below). See [Platform Setup](platform_setup.md) for information on how this was done. These examples retrieve transformation code from directories mounted on the host system. This document describes the configurations that are currently running on the two servers that run ETL tasks.
 
 > Note that Apache Airflow has been evaluated as a replacement for the "atd-data-deploy" scheme. While there's still a good case for using Docker containers, the "atd-data-deploy" configurations would be replaced with a script that coordinates Airflow, with improved handling of error conditions, sequences of events, and logging.
 
@@ -39,6 +39,8 @@ ctr-awam:
 ```
 
 Then, the individual scripts that run on the Script Server are configured in `config/scripts.yml`:
+
+> **TODO:** This needs updating.
 
 ```yml
 bt_insert_lake:
@@ -123,13 +125,13 @@ bt_json_standard:
   filename: bt_json_standard.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 bt_ready:
   cron: 0 5 * * *
   destination: ready
@@ -138,28 +140,28 @@ bt_ready:
   filename: bt_ready.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 wt_json_standard:
-  cron: 30 6 * * *
+  cron: 30 3 * * *
   destination: rawjson
   docker_cmd: ctr
   enabled: true
   filename: wt_json_standard.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 wt_ready:
   cron: 30 6 * * *
   destination: ready
@@ -168,13 +170,13 @@ wt_ready:
   filename: wt_ready.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 wt_soc:
   cron: 30 7 * * *
   destination: ready
@@ -183,13 +185,13 @@ wt_soc:
   filename: wt_extract_soc.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 gs_json_standard:
   cron: 0 4 * * *
   destination: rawjson
@@ -198,13 +200,13 @@ gs_json_standard:
   filename: gs_json_standard.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 gs_ready:
   cron: 30 5 * * *
   destination: ready
@@ -213,13 +215,13 @@ gs_ready:
   filename: gs_ready.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 gs_ready_agg:
   cron: 0 6 * * *
   destination: ready
@@ -228,13 +230,13 @@ gs_ready_agg:
   filename: gs_ready_agg.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 bt_soc:
   cron: 0 7 * * *
   destination: ready
@@ -243,13 +245,13 @@ bt_soc:
   filename: bt_extract_soc.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 gs_ready_agg_soc:
   cron: 30 8 * * *
   destination: ready
@@ -258,13 +260,26 @@ gs_ready_agg_soc:
   filename: gs_agg_extract_soc.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
+perfmet_knack:
+  cron: 30 9 * * *
+  destination: perfmet
+  docker_cmd: ctr
+  enabled: true
+  filename: perfmet_knack.py
+  init_func: main
+  job: true
+  path: ../atd-data-lake/atd_data_lake/util
+  source: atd-data-lake
+  args:
+  - --last_run_date
+  - "0"
 ```
 
 ### Preparing the Jobs

@@ -39,6 +39,8 @@ exit
 
 The process in [Time Zone Appendix](appendix_timezone.md) describes how to set the time zone.
 
+### Reboot and Check Status
+
 At this point, the VM can be rebooted: `sudo shutdown -r now`. When the VM starts back up, check to see that the time zone is correct, and swap space is active. Look to see that the correct time zone appears, and that swap space available is nonzero.
 
 ```bash
@@ -92,7 +94,7 @@ git clone https://github.com/cityofaustin/atd-data-lake
 
 In general, "production-ready" code is located in the "master" branch, whereas preliminary code and development efforts are located in other branches.
 
-Before this can be run, the configuration passwords need to be set in the "src/config/config_secret.py" file, which can be started off of "src/config/config_secret.py.template". Also, the dependent resources (cloud services, catalog database, etc.) need to be available.
+Before this can be run, the configuration passwords need to be set in the "src/config/config_secret.py" file, which can be started off of "src/config/config_secret.py.template". Also, the dependent resources (cloud services, catalog database, etc.) need to be available, ready to access.
 
 ## Recurring Procedures
 
@@ -100,7 +102,7 @@ This section has procedures that may be run once or multiple times.
 
 ### Configuring the ETL Process Run Times
 
-> **TODO:** See the note at the beginning of the [Deployment Configuration](appendix_deployconf.md) document about replacing "atd-data-deploy" with Apache Airflow.
+> **TODO:** See the note at the beginning of the [Deployment Configuration](appendix_deployconf.md) document about replacing or supplementing "atd-data-deploy" with Apache Airflow.
 
 Now "atd-data-deploy" is ready to be configured per the [Deployment Configuration](appendix_deployconf.md) scripts. When a script is configured, the following may be run:
 
@@ -117,10 +119,10 @@ If "atd-data-deploy" had been run in the past, then before running the "deploy.s
 This section desribes manually starting the "ctrdocker/tdp" Docker container for launching ETL processes, whether it be for testing or for one-off running. This is necessary because the image contains all of the library dependencies needed by the ETL processes. The most straightforward way to do this is to start the container and have it run a Bash shell:
 
 ```bash
-sudo docker run -it --rm -v ~/git:/app --network=host -w /app/atd-data-lake/src ctrdocker/tdp /bin/bash
+sudo docker run -it --rm -v ~/git:/app --network=host -w /app/atd-data-lake/atd_data_lake ctrdocker/tdp /bin/bash
 ```
 
-Inside, you can run the ETL scripts directly. Don't forget to consider using the command-line arguments that can assist in testing ETL scripts, as noted in [Testing Appendix](appendix_testing.md). Use the `exit` command to leave and shut down the container.
+Inside, you can run the ETL scripts directly with the `python` command. Don't forget to consider using the command-line arguments that can assist in testing ETL scripts, as noted in [Testing Appendix](appendix_testing.md). Use the `exit` command to leave and shut down the container.
 
 ### Backing Up the Catalog
 
@@ -131,3 +133,7 @@ This command-line will create a dump of the catalog:
 ```bash
 docker run --rm -it --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPASSWORD=*** pg_dump -Fc -c -h *** -p 5432 -U atduser -d atd01 -t api.data_lake_cat_new" > catalog.sqlbin
 ```
+
+> **TIP:** Name the output "sqlbin" file according to the date that it was created.
+
+> **TODO:** Write and test out a process for restoring a backed-up catalog. It would involve using the `pg_restore` and `psql` commands.

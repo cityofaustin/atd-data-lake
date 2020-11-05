@@ -62,3 +62,11 @@ GRANT USAGE, SELECT ON SEQUENCE api.etl_perfmet_obs_id_seq TO super_user;
 
 > Describe the columns.
 
+
+## Creating the Dashboard in Knack
+
+
+
+## Updating Knack
+
+How the "perfmet_knack.py" code works.
