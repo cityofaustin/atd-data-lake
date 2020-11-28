@@ -1,5 +1,7 @@
 # Reprocessing Published Data
 
+*[(Back to Docs Catalog)](index.md)*
+
 This describes procedures for reprocessing data that has already been published. An example of this need is when, during deployment of newer ETL code, older and newer processes were writing GRIDSMART aggregations to Socrata at the same time. While Socrata does have the ability to upsert on a key column (which holds hashes of the contents of the other columns), the older code hashed on a different naming of intersection files than the newer code! As a result, duplicate rows were written.
 
 ## Bad Days in Socrata

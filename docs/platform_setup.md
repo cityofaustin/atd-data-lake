@@ -1,5 +1,7 @@
 # Platform Setup
 
+*[(Back to Docs Catalog)](index.md)*
+
 This document describes system setup that is needed once an EC2 instance is spun up for successfully running ETL activities under [atd-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) and [atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy).
 
 ## One-Time Setup Procedures

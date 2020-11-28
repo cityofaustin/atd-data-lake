@@ -1,5 +1,7 @@
 # Appendix: Performance Metrics
 
+*[(Back to Docs Catalog)](index.md)*
+
 Performance metrics in the ETL processes looks like:
 
 * Logging the numbers of records manipulated for each day in each ETL process

@@ -1,5 +1,7 @@
 # Code Architecture
 
+*[(Back to Docs Catalog)](index.md)*
+
 This document describes the code architecture of the "atd-data-lake" project. Specifically, this has to do with the structure of the code and processes that should be considered in efforts for expansion, and support new data types in the Data Lake. (The strucutre is also appropriate for data transformation activities that don't necessarily read and write files to and from the Data Lake.)
 
 Recent efforts to streamline code have worked extensively to do the following:
