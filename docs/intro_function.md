@@ -67,7 +67,7 @@ The restrictions are largely imposed to protect personal identifiable informatio
 * What is the relationship between micro-mobility and transit? Do people choose to use scooters instead of transit? Or do scooters facilitate getting to/going from transit stops?
 * What does a "tourist" trip trajectory look like vs. a "commuter" trip?
 
-Efforts for establishing a data sharing agreement with a dockless mobility provider are currently being pursued and evaluated.
+Efforts for establishing a data sharing agreement with a dockless mobility provider have been pursued and evaluated. Project team members at City of Austin and The University of Texas at Austin express gratitude to Spin for their efforts in establishing a Data Sharing Agreement and sharing non personally identifiable information data with UT researchers.
 
 ## Citations
 [1] https://www.ietf.org/rfc/rfc4627.txt

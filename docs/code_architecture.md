@@ -20,7 +20,7 @@ For information on the data flow architecture and specifics around the individua
 The atd-data-lake repository "src" tree contains the following packages:
 
 * **Root directory ".":** This contains entry-point ETL scripts that can be started from the command line. Each of these also has a `main()` function that can be called from another Python script with a set of arguments equivalent to those supported from the command line. (**TODO:** We can still move these into another location such as "entries" if that makes it easier to import scripts from other Python code.)
-* **config:** Factory methods that instanciate platform-specific classes given data type are placed in the package script. Other configuration files contain public access credentials. The "config_secret.py" script contains passwords and other information that should not be stored in the repository. (**TODO:** We should stil keep in mind the idea of transitioning to an online password broker solution.)
+* **config:** Factory methods that instanciate platform-specific classes given data type are placed in the package script. Other configuration files contain public access credentials. The "config_secret.py" script contains passwords and other information that should not be stored in the repository. (**TODO:** We should still keep in mind the idea of transitioning to an online password broker solution.)
 * **drivers** and **drivers.devices:** This is where platform or device-specific code goes. Most of these are coded to an interface. Conceivably, if one were to code support for another platform to the same interface, and use the new interface in the "config" factory methods, the new platform would be fully supported.
 * **support:** The core classes and interfaces that comprise the ETL functionalities exist in this package, including the "etl_app.py" script, which contains the central command line parsing and main loop processing class, `ETLApp`.
 * **util:** Support modules that help with file and date/time processing
@@ -132,7 +132,7 @@ This is what each part does, listed in the order of first encounter when running
 
 * **The module:** Calls the `main()` function with no arguments, which allows `ETLApp` to read all arguments from the command line.
 * **main():** Instanciates the `ETLApp` subclass `MyApp`.
-* **__init__():** The subclass allows me to nicely pass in standardized parameters for `ETLApp` that are specific to my ETL process, and also allows me to have custom application-wide class attributes `customField1` and `customField2`.
+* **\_\_init\_\_():** The subclass allows me to nicely pass in standardized parameters for `ETLApp` that are specific to my ETL process, and also allows me to have custom application-wide class attributes `customField1` and `customField2`.
 * **_addCustomArgs()** and **_ingestArgs():** Put processing and initialization of any special command-line or `main()` arguments here. These are called from `ETLApp`. If there are no custom parameters, then these methods can be omitted.
 * **ETLApp.doMainLoop():** This hands over control to my instance of ETLApp subclass, which then calls my `etlActivity()`. (**TODO:** It is in here that further initialization code, benchmarking, and exception handling with retry code can be added).
 * **etlActivity():** Sets up and hands control over to the main processing loop (via `ETLApp.doCompareLoop()`), which needs "source" and a "target" data providers. Here, these are both storage repositories that are paired with catalog entries, but could be devices, publishers, etc. The number of items processed should be returned here.
@@ -184,9 +184,9 @@ At the time `innerLoopActivity()` is called, these `ETLApp` attributes are avail
 
 ### Storage
 
-The Storage class manages the reading and writing of data items to and from an implemented resource (implemented by interface `StorageImpl`). The one that exists right now is `drivers.storage_s3.StorageS3`. One normally doesn't need to interact with `StorageImpl` directly; instead, access storage using these methods provided by `Storage`, which is usually created with the config factory method `createStorage()` (see the code for more documentation):
+The Storage class manages the reading and writing of data items to and from an implemented resource (implemented by interface `StorageImpl`). The one that exists right now is `drivers.storage_s3.StorageS3`. One normally doesn't need to interact with `StorageImpl` directly; instead, access storage using these methods provided by `Storage`, which is usually created with the config factory method `config.createStorage()` (see the code for more documentation):
 
-* **The constructor:** This is called from the config factory method `createStorage()`, but gives you options for writing files locally while writing to the repository, and also simulating writing by suppressing writes to the repository. Supplying a local path and enabling simulation mode will write files locally but not to the repository.
+* **The constructor:** This is called from the config factory method `config.createStorage()`, but gives you options for writing files locally while writing to the repository, and also simulating writing by suppressing writes to the repository. Supplying a local path and enabling simulation mode will write files locally but not to the repository.
 * **retrieveFilePath():** Retrieves a resource at the given storage platform-specific path. While you can use `makePath()` to create one fron scratch, you could be getting the resource path from the catalog for an existing item. (Minimally, `catalogLookup()` can be used to retrieve a catalog entry from the catalog, and the `pointer` member has the path). This returns a full path to the written file after the file has been retrieved.
 * **retrieveJSON():** This does a similar thing, but returns a JSON dictionary that had been efficiently created via a temporary file.
 * **retrieveBuffer():** Same for a buffer.

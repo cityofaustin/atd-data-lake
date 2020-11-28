@@ -1,4 +1,4 @@
-# ATD Data Lake Architecture: Technical  <!-- omit in toc -->
+# ATD Data Lake Architecture: Technical <!-- omit in toc -->
 
 *[(Back to Docs Catalog)](index.md)*
 

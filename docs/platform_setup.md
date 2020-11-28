@@ -1,8 +1,24 @@
-# Platform Setup
+# Platform Setup <!-- omit in toc -->
 
 *[(Back to Docs Catalog)](index.md)*
 
 This document describes system setup that is needed once an EC2 instance is spun up for successfully running ETL activities under [atd-data-publishing](https://github.com/cityofaustin/atd-data-publishing]) and [atd-data-deploy](https://github.com/cityofaustin/atd-data-deploy).
+
+## Table of Contents <!-- omit in toc -->
+
+- [One-Time Setup Procedures](#one-time-setup-procedures)
+  - [Increasing Swap Space](#increasing-swap-space)
+    - [Allocating the Swap Space and Activating It](#allocating-the-swap-space-and-activating-it)
+    - [Making Swap Space Persistent Upon Reboot](#making-swap-space-persistent-upon-reboot)
+  - [Setting the Time Zone](#setting-the-time-zone)
+  - [Reboot and Check Status](#reboot-and-check-status)
+  - [Building the "ctrdocker/tdp" Image](#building-the-ctrdockertdp-image)
+  - [Staging the "atd-data-deploy" Project](#staging-the-atd-data-deploy-project)
+  - [Staging the "atd-data-lake" Project](#staging-the-atd-data-lake-project)
+- [Recurring Procedures](#recurring-procedures)
+  - [Configuring the ETL Process Run Times](#configuring-the-etl-process-run-times)
+  - [Manually Running or Testing an ETL Process](#manually-running-or-testing-an-etl-process)
+  - [Backing Up the Catalog](#backing-up-the-catalog)
 
 ## One-Time Setup Procedures
 
@@ -10,7 +26,7 @@ First, follow AWS processes to spin up a container running CentOS 7. The contain
 
 ### Increasing Swap Space
 
-At earlier times, it had been found that Docker containers unexpectedly failed at random time for no explainable reason when certain ETL processes were run. The solution was to increase the amount of RAM available. The theory is that there had been a need for short periods of "peak memory" to be allocated that exceeded the RAM available on the EC2 instance. Swap space solves that problem at the expense of disk space.
+At earlier times, it had been found that Docker containers unexpectedly failed at random times for no explainable reason when certain ETL processes were run. The solution was to increase the amount of RAM available. The theory is that there had been a need for short periods of "peak memory" to be allocated that exceeded the RAM available on the EC2 instance. Swap space solves that problem at the expense of disk space and performance.
 
 The webpage at [https://www.netweaver.uk/create-swap-file-centos-7/](https://www.netweaver.uk/create-swap-file-centos-7/) is adapted here.
 
