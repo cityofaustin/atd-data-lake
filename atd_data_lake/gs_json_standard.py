@@ -226,7 +226,7 @@ class GSJSONStandard:
                 timestamp = None
                 if self.apiVersion == 8 and jsonData['data']:
                     timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " 000000", "%Y-%m-%d %H%M%S")
-                    timestamp -= datetime.timedelta(minutes=jsonData['data'][0]['utc_offset'])
+                    timestamp = date_util.localize(timestamp.replace(tzinfo=None) - datetime.timedelta(minutes=jsonData['data'][0]['utc_offset']))
                     timestamp = pytz.utc.localize(timestamp)
                     timestamp = date_util.localize(timestamp + timeDelta)
                 elif self.apiVersion == 7:
@@ -252,7 +252,7 @@ class GSJSONStandard:
                         timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " " \
                             + ("%06d" % int(float(item['timestamp']))) + "." + str(round((item['timestamp'] % 1) * 10) * 100000),
                             "%Y-%m-%d %H%M%S.%f")
-                        timestamp -= datetime.timedelta(minutes=item['utc_offset'])
+                        timestamp = date_util.localize(timestamp.replace(tzinfo=None) - datetime.timedelta(minutes=item['utc_offset']))
                         timestamp = pytz.utc.localize(timestamp)
                         item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
                     elif self.apiVersion == 7:

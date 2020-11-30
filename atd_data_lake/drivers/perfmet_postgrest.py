@@ -47,7 +47,7 @@ class PerfMetDB:
         day = date_util.roundDay(date_util.localize(timestampIn))
         command = {"select": "data_source,stage,seconds,records,processing_date,collection_start,collection_end",
                    "processing_date": ["gte.%s" % str(day),
-                                       "lt.%s" % str(day + datetime.timedelta(days=1))],
+                                       "lt.%s" % str(date_util.localize(day.replace(tzinfo=None) + datetime.timedelta(days=1)))],
                    "order": "data_source,stage"}
         return self.jobDB.select(params=command)
     
@@ -97,9 +97,9 @@ class PerfMetDB:
         """
         if not earlyDate:
             timestampIn = date_util.roundDay(date_util.localize(timestampIn))
-            earlyDate = timestampIn - datetime.timedelta(days=1)
+            earlyDate = date_util.localize(timestampIn.replace(tzinfo=None) - datetime.timedelta(days=1))
             collDateClause = ["gte.%s" % str(timestampIn),
-                              "lt.%s" % str(timestampIn + datetime.timedelta(days=1))]
+                              "lt.%s" % str(date_util.localize(timestampIn.replace(tzinfo=None) + datetime.timedelta(days=1)))]
         else:
             collDateClause = ["gt.%s" % str(earlyDate),
                               "lte.%s" % str(timestampIn)]

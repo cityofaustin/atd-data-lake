@@ -125,7 +125,7 @@ def processObs(perfMetDB, jobs, dataSource, stage, obsType, sampleDays=SAMPLE_DA
     
     # Retrieve observations for the given date range:
     lateDate = date_util.localize(date_util.parseDate(rec["collection_end"]))
-    earlyDate = lateDate - datetime.timedelta(days=sampleDays)
+    earlyDate = date_util.localize(lateDate.replace(tzinfo=None) - datetime.timedelta(days=sampleDays))
     observations = perfMetDB.readAllObs(lateDate, earlyDate=earlyDate, dataSource=dataSource, obsType=obsType)
     if not observations:
         print("WARNING: No observations are found for '%s', type '%s'." % (dataSource, obsType))
@@ -135,7 +135,7 @@ def processObs(perfMetDB, jobs, dataSource, stage, obsType, sampleDays=SAMPLE_DA
     observations.sort_values("collection_date", ascending=False, inplace=True)
 
     # Pick out the one that covers the latest date:
-    yesterday = lateDate - datetime.timedelta(days=1)
+    yesterday = date_util.localize(lateDate.replace(tzinfo=None) - datetime.timedelta(days=1))
     # TODO: If we end up processing hourly, then we'll need to change this beginning time mechanism.
     obsSubset = observations[(observations["collection_date"] <= lateDate) & (observations["collection_date"] >= yesterday)]
     obsSubset = obsSubset.loc[obsSubset.groupby("sensor_name")["collection_date"].idxmax()]
@@ -267,7 +267,7 @@ def main():
         lastRunDate = date_util.parseDate(args.last_run_date, dateOnly=True)
         print("perfmet_knack: Last run date: %s" % str(lastRunDate))
     else:
-        lastRunDate = date_util.roundDay(date_util.localize(datetime.datetime.now())) - datetime.timedelta(days=1)
+        lastRunDate = date_util.roundDay(date_util.localize(datetime.datetime.now() - datetime.timedelta(days=1)))
 
     # Find the most recent day for performance metrics:
     print("Finding most recent processing date...")

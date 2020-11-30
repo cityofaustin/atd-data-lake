@@ -11,7 +11,7 @@ import _setpath
 from atd_data_lake.support import etl_app, last_update
 from atd_data_lake import config
 from atd_data_lake.config import config_app
-from atd_data_lake.util import gps_h
+from atd_data_lake.util import gps_h, date_util
 
 # This sets up application information:
 APP_DESCRIPTION = etl_app.AppDescription(
@@ -237,9 +237,9 @@ class GSReadyApp(etl_app.ETLApp):
                         auxDate = None
                         if "day_covered" in curDayCounts["header"]:
                             if curDayCounts["header"]["day_covered"] == 1:
-                                auxDate = date - datetime.timedelta(days=1) # We have to get some of yesterday.
+                                auxDate = date_util.localize(date.replace(tzinfo=None) - datetime.timedelta(days=1)) # We have to get some of yesterday.
                             elif curDayCounts["header"]["day_covered"] == -1:
-                                auxDate = date + datetime.timedelta(days=1) # We have to get some of tomorrow.
+                                auxDate = date_util.localize(date.replace(tzinfo=None) + datetime.timedelta(days=1)) # We have to get some of tomorrow.
                         else:
                             print("WARNING: 'day_covered' is missing from header; data from adjacent day may be missing.")
                         
@@ -318,7 +318,7 @@ def getCountsFile(date, base, guid, storage):
 def fillDayRecords(ourDate, countsFileData, ident, receiver):
     "Caution: this mutates countsFileData."
     
-    ourDateMax = ourDate + datetime.timedelta(days=1)
+    ourDateMax = date_util.localize(ourDate.replace(tzinfo=None) + datetime.timedelta(days=1))
     for item in countsFileData["data"]:
         timestamp = arrow.get(item["timestamp_adj"]).datetime
         if timestamp >= ourDate and timestamp < ourDateMax:

@@ -92,7 +92,7 @@ class Catalog:
         
         # Try to get the next one, for good measure:
         if lateDate:
-            addedQueryItem = self.queryEarliest(stage, base, ext, lateDate + datetime.timedelta(seconds=1))
+            addedQueryItem = self.queryEarliest(stage, base, ext, date_util.localize(lateDate.replace(tzinfo=None) + datetime.timedelta(seconds=1)))
             if addedQueryItem:
                 if not queryList:
                     queryList = [addedQueryItem]
