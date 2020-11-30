@@ -97,7 +97,7 @@ class Catalog:
                 if not queryList:
                     queryList = [addedQueryItem]
                 elif addedQueryItem["collection_date"] != queryList[-1]["collection_date"]:
-                    queryList.appen(addedQueryItem)
+                    queryList.append(addedQueryItem)
         if queryList:
             return self._SearchableQueryList([x["collection_date"] for x in queryList], queryList)
         return None
