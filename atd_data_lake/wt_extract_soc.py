@@ -57,7 +57,6 @@ class GSAggPublishApp(etl_app.ETLApp):
         data = self.storageSrc.retrieveJSON(item.label)
 
         # Assemble JSON for the publisher:
-        hasher = hashlib.md5()
         for line in data["data"]:            
             timestamp = arrow.get(line["curDateTime"])
             direction = line["detName"].split("_")
@@ -82,6 +81,7 @@ class GSAggPublishApp(etl_app.ETLApp):
             hashFields = ["intname", "curdatetime", "detid"]
 
             hashStr = "".join([str(entry[q]) for q in hashFields])
+            hasher = hashlib.md5()
             hasher.update(hashStr.encode("utf-8"))
             entry["row_id"] = hasher.hexdigest()
 

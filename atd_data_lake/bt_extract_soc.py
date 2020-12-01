@@ -79,7 +79,6 @@ class BTPublishApp(etl_app.ETLApp):
         devices = {d["device_id"]: d for d in data["devices"]}
         
         # Assemble JSON for Socrata
-        hasher = hashlib.md5()
         publisher = self.publishers[fileType]
         for line in data["data"]:
             entry = None
@@ -131,6 +130,7 @@ class BTPublishApp(etl_app.ETLApp):
                 hashFields = ["host_read_time", "reader_identifier", "device_address"]
 
             hashStr = "".join([str(entry[q]) for q in hashFields])
+            hasher = hashlib.md5()
             hasher.update(hashStr.encode("utf-8"))
             entry["record_id"] = hasher.hexdigest()
             

@@ -99,6 +99,7 @@ class LastUpdate:
                 if key not in compareTargets:
                     compareTargets[key] = self._CompareTarget()
                 compareTargets[key].items.append(target)
+        forceRec = set()
         for sourceItem in self.source.runQuery():
             skipFlag = False
             key = (sourceItem.base, sourceItem.ext) if self.baseExtKey else sourceItem.base
@@ -108,7 +109,10 @@ class LastUpdate:
                 if compareTarget.isWithin(sourceItem.date, sourceItem.dateEnd):
                     skipFlag = True
             if self.force and skipFlag:
-                print("INFO: Forcing processing of %s for date %s." % (str(key), sourceItem.date))
+                forceStr = "INFO: Forcing processing of %s for date %s." % (str(key), sourceItem.date)
+                if forceStr not in forceRec:
+                    print(forceStr)
+                    forceRec.add(forceStr)
                 skipFlag = False
             if not skipFlag:
                 yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),

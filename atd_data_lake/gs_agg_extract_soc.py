@@ -73,9 +73,8 @@ class GSAggPublishApp(etl_app.ETLApp):
             return 0 # Comment this out if we're to record the site information after all.
 
         # Assemble JSON for the publisher:
-        hasher = hashlib.md5()
         errDup = {}
-        for line in data["data"]:            
+        for line in data["data"]:
             approach = line["zone_approach"]
             if approach == "Southbound":
                 approach = "SOUTHBOUND"
@@ -127,6 +126,7 @@ class GSAggPublishApp(etl_app.ETLApp):
             hashFields = ["intersection_name", "read_date", "heavy_vehicle", "direction", "movement"]
 
             hashStr = "".join([str(entry[q]) for q in hashFields])
+            hasher = hashlib.md5()
             hasher.update(hashStr.encode("utf-8"))
             entry["record_id"] = hasher.hexdigest()
 
