@@ -69,7 +69,7 @@ class LastUpdate:
                 if not cmpDateEnd:
                     cmpDateEnd = date_util.localize(cmpDate.replace(tzinfo=None) + datetime.timedelta(days=1))
                 if not endDate:
-                    endDate = date_util(self.items[self.curIndex].date.replace(tzinfo=None) + datetime.timedelta(days=1))
+                    endDate = date_util.localize(self.items[self.curIndex].date.replace(tzinfo=None) + datetime.timedelta(days=1))
                 if not (cmpDateEnd <= self.items[self.curIndex].date or cmpDate >= endDate):
                     return True
             return False

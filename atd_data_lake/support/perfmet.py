@@ -41,7 +41,7 @@ class PerfMet:
         """
         Tracks the maximum and minimum timestamps. Note that this performs comparisons without localization.
         """
-        timestampEnd = timestampIn + datetime.timedelta(days=1) if representsDay else timestampIn
+        timestampEnd = date_util.localize(timestampIn.replace(tzinfo=None) + datetime.timedelta(days=1)) if representsDay else timestampIn
         if not self.collectTimeStart:
             self.collectTimeStart = timestampIn
         if not self.collectTimeEnd:

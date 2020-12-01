@@ -67,6 +67,8 @@ def parseDate(dateString, dateOnly=False):
 def localize(dateTime):
     """
     Translates the given dateTime to local time. If no time zone information is given, then local time zone will be applied.
+    
+    TODO: Replace this material with Arrow... it will be a lot cleaner
     """
     # Try to convert the time to naive because pytz can't localize a datetime that has another time zone.
     if not dateTime:

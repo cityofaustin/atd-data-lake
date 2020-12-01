@@ -82,7 +82,7 @@ def makeHeader(areaBase, device, sameDay=False):
     currentTime = date_util.localize(arrow.now().datetime)
     ourDay = currentTime.replace(hour=0, minute=0, second=0, microsecond=0)
     if not sameDay:
-        ourDay -= datetime.timedelta(days=1) 
+        ourDay = date_util.localize(ourDay.replace(tzinfo=None) - datetime.timedelta(days=1)) 
 
     targetFilename = "{}_{}_{}_unit_data".format(areaBase, device, ourDay.strftime("%Y-%m-%d"))
     header = {"data_type": "{}_unit_data".format(device),
