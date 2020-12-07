@@ -249,11 +249,14 @@ class GSReadyApp(etl_app.ETLApp):
                             del curDayCounts # Memory management
                             auxDayCounts = getCountsFile(auxDate, base, guid, self.storageSrc)
                             if auxDayCounts:
+                                fillDayRecords(date, auxDayCounts, ident, countsReceiver)
+                                """
                                 try:
                                     fillDayRecords(date, auxDayCounts, ident, countsReceiver)
                                 except KeyError:
                                     traceback.print_exc()
                                     continue
+                                """
                             else:
                                 print("WARNING: GUID %s is not found for the auxiliary (%s) day file." % (str(auxDate), guid))
                                 dayDirErr = header["day_covered"]
