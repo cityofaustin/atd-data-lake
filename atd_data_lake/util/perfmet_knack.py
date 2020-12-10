@@ -300,7 +300,7 @@ def main():
     jobs["stage"].replace("Standardize", "b. Standardize", inplace=True)
     jobs["stage"].replace("Ready", "c. Ready", inplace=True)
     jobs["stage"].replace("Aggregate", "d. Aggregate", inplace=True)
-    jobs["stage"].replace("Socrata", "e. Socrata", inplace=True)
+    jobs["stage"].replace("Publish", "e. Publish", inplace=True)
 
     uploadJobs(jobs)
     
