@@ -215,6 +215,8 @@ class GSJSONStandard:
             jsonData['data'] = data.apply(lambda x: x.to_dict(), axis=1).tolist()
 
             # Fix the time representation. First, find the time delta:
+            errs = {}
+            newData = []
             try:
                 hostTimeUTC = self._getTime(self.siteFile["datetime"]["HostTimeUTC"])
                 deviceTime = self._getTime(self.siteFile["datetime"]["DateTime"], self.siteFile["datetime"]["TimeZoneId"].split()[0])
@@ -246,33 +248,43 @@ class GSJSONStandard:
                 
                 # Add in "timestamp_adj" for each data item:
                 for item in jsonData['data']:
-                    if self.apiVersion == 8:
-                        # TODO: The UTC Offset doesn't seem to reflect DST. Should we ignore it and blindly localize instead?
-                        #       We can figure this out by seeing what the latest count is on a live download of the current day.
-                        timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " " \
-                            + ("%06d" % int(float(item['timestamp']))) + "." + str(round((item['timestamp'] % 1) * 10) * 100000),
-                            "%Y-%m-%d %H%M%S.%f")
-                        timestamp -= datetime.timedelta(minutes=item['utc_offset'])
-                        timestamp = pytz.utc.localize(timestamp)
-                        item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
-                    elif self.apiVersion == 7:
-                        print("WARNING: 'timestamp_adj' processing not provided for API v7!")
-                        # TODO: Figure out the date parsing needed for this.
-                    elif self.apiVersion == 4:
-                        timestamp = datetime.datetime.strptime(item['timestamp'], "%Y%m%dT%H%M%S" + (".%f" if "." in item['timestamp'] else ""))
-                        timestamp = pytz.utc.localize(timestamp)
-                        item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
-                        
-                        item['count_version'] = int(item['count_version'])
-                    if timestamp:
-                        # Performance metrics:
-                        if not self.perfWork[1]:
-                            self.perfWork = [0, timestamp, timestamp]
-                        self.perfWork[0] += 1
-                        if timestamp < self.perfWork[1]:
-                            self.perfWork[1] = timestamp
-                        if timestamp > self.perfWork[2]:
-                            self.perfWork[2] = timestamp
+                    try:
+                        if self.apiVersion == 8:
+                            # TODO: The UTC Offset doesn't seem to reflect DST. Should we ignore it and blindly localize instead?
+                            #       We can figure this out by seeing what the latest count is on a live download of the current day.
+                            timestamp = datetime.datetime.strptime(collDateStr.split()[0] + " " \
+                                + ("%06d" % int(float(item['timestamp']))) + "." + str(round((item['timestamp'] % 1) * 10) * 100000),
+                                "%Y-%m-%d %H%M%S.%f")
+                            timestamp -= datetime.timedelta(minutes=item['utc_offset'])
+                            timestamp = pytz.utc.localize(timestamp)
+                            item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
+                        elif self.apiVersion == 7:
+                            print("WARNING: 'timestamp_adj' processing not provided for API v7!")
+                            # TODO: Figure out the date parsing needed for this.
+                        elif self.apiVersion == 4:
+                            timestamp = datetime.datetime.strptime(item['timestamp'], "%Y%m%dT%H%M%S" + (".%f" if "." in item['timestamp'] else ""))
+                            timestamp = pytz.utc.localize(timestamp)
+                            item['timestamp_adj'] = str(date_util.localize(timestamp + timeDelta))
+                            
+                            item['count_version'] = int(item['count_version'])
+                        if timestamp:
+                            # Performance metrics:
+                            if not self.perfWork[1]:
+                                self.perfWork = [0, timestamp, timestamp]
+                            self.perfWork[0] += 1
+                            if timestamp < self.perfWork[1]:
+                                self.perfWork[1] = timestamp
+                            if timestamp > self.perfWork[2]:
+                                self.perfWork[2] = timestamp
+                        newData.append(item)
+                    except ValueError as exc:
+                        err = "WARNING: Value parsing error: " + str(exc)
+                        if err not in errs:
+                            errs[err] = 0
+                        errs[err] += 1
+                jsonData['data'] = newData
+                for err in errs:
+                    print(err + " (" + str(errs[err]) + ")")
             except KeyError:
                 print("WARNING: Time representation processing has malfunctioned. Correct time key may not be present in site file.")
             except ValueError as exc:
