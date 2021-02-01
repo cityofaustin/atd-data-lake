@@ -76,7 +76,7 @@ def retrieveDevices(gsUnitData, devFilter=".*"):
                 continue
             ips.add(key)
             
-            streetName = row["primary_st"] + "_" + row["cross_st"]
+            streetName = (row["primary_st"] if row["primary_st"] else "") + "_" + (row["cross_st"] if row["cross_st"] else "")
             streetName = streetName.replace("/", "&") # Needed to sanitize for filenames.
             if not regexp.search(streetName):
                 continue
