@@ -157,6 +157,10 @@ class GSReadyApp(etl_app.ETLApp):
                 for deviceItem in unitData["devices"]:
                     if str(deviceItem["primary_st"]) == "nan" or str(deviceItem["cross_st"]) == "nan":
                         continue
+                    if not deviceItem["primary_st"]:
+                        deviceItem["primary_st"] = ""
+                    if not deviceItem["cross_st"]:
+                        deviceItem["cross_st"] = ""
                     compareList.append(_CompareEntry((deviceItem["primary_st"].strip() + " " + deviceItem["cross_st"].strip()).lower(), False, deviceItem))
                     compareList.append(_CompareEntry((deviceItem["cross_st"].strip() + " " + deviceItem["primary_st"].strip()).lower(), True, deviceItem))
                 winningEntry, maxRatio = _findFuzzyWinner(compareList, testStr)
