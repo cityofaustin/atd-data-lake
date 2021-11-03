@@ -189,13 +189,17 @@ class GSReadyApp(etl_app.ETLApp):
                                 minDistance = None
                                 minDistDevice = None
                                 for deviceItem in unitData["devices"]:
-                                    dist = gps_h.gps2feet(float(siteFile["site"]["Location"]["Latitude"]), float(siteFile["site"]["Location"]["Longitude"]),
-                                                      float(deviceItem["lat"]), float(deviceItem["lon"]))
-                                    if minDistance is None or minDistance > dist:
-                                        minDistance = dist
-                                        minDistDevice = deviceItem
+                                    try:
+                                        dist = gps_h.gps2feet(float(siteFile["site"]["Location"]["Latitude"]), float(siteFile["site"]["Location"]["Longitude"]),
+                                                          float(deviceItem["lat"]), float(deviceItem["lon"]))
+                                        if minDistance is None or minDistance > dist:
+                                            minDistance = dist
+                                            minDistDevice = deviceItem
+                                    except TypeError as exc:
+                                        print("WARNING: Type error in looking at site file: ", exc)
+                                        continue
                                         
-                                if minDistance < MAX_DIST:
+                                if minDistance is not None and minDistance < MAX_DIST:
                                     print("Matched at %d feet to nearest GPS coords: '%s/%s'" % (minDistance, deviceItem["primary_st"], deviceItem["cross_st"]))
                                     matchedDevice = minDistDevice
                                 else:
@@ -253,14 +257,11 @@ class GSReadyApp(etl_app.ETLApp):
                             del curDayCounts # Memory management
                             auxDayCounts = getCountsFile(auxDate, base, guid, self.storageSrc)
                             if auxDayCounts:
-                                fillDayRecords(date, auxDayCounts, ident, countsReceiver)
-                                """
                                 try:
                                     fillDayRecords(date, auxDayCounts, ident, countsReceiver)
                                 except KeyError:
                                     traceback.print_exc()
                                     continue
-                                """
                             else:
                                 print("WARNING: GUID %s is not found for the auxiliary (%s) day file." % (str(auxDate), guid))
                                 dayDirErr = header["day_covered"]
@@ -285,11 +286,15 @@ class GSReadyApp(etl_app.ETLApp):
                 # Step 4: Write out compiled counts:
                 countsReceiver.sort(key=lambda c: c["timestamp_adj"])
                 
-                header = {"data_type": "gridsmart",
-                          "zip_name": repHeader["zip_name"],
-                          "collection_date": repHeader["collection_date"],
-                          "processing_date": str(self.processingDate),
-                          "version": repHeader["version"]}
+                try:
+                    header = {"data_type": "gridsmart",
+                              "zip_name": repHeader["zip_name"],
+                              "collection_date": repHeader["collection_date"],
+                              "processing_date": str(self.processingDate),
+                              "version": repHeader["version"]}
+                except (KeyError, TypeError):
+                    traceback.print_exc()
+                    continue
                 
                 newFileContents = {"header": header,
                                    "counts": countsReceiver,
