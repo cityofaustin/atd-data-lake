@@ -32,11 +32,11 @@ DATASOURCE_MAP = {"bt": config_support.DataSourceConfig(code="bt", name="Bluetoo
                   "gs": config_support.DataSourceConfig(code="gs", name="GRIDSMART")}
 
 # ** These items are specific to devices and dependencies: **
-CATALOG_URL = "http://transportation-data-test.austintexas.io/data_lake_cat_new"
+CATALOG_URL = "https://atd-data-lake.austinmobility.io/data_lake_cat"
 CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", "")
 
-PERFMET_JOB_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_job"
-PERFMET_OBS_URL = "http://transportation-data-test.austintexas.io/etl_perfmet_obs"
+PERFMET_JOB_URL = "https://atd-data-lake.austinmobility.io/etl_perfmet_job"
+PERFMET_OBS_URL = "https://atd-data-lake.austinmobility.io/etl_perfmet_obs"
 
 KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", "")
 KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", "")
