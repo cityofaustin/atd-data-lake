@@ -57,6 +57,7 @@ class GSUnitDataKnack(UnitDataCommonKnack):
                                  on='SIGNAL_ID', how='left')
                         .drop(labels='SIGNAL_ID', axis='columns')
                         .rename(columns=GS_RENAME))
+        """
         devices_data = devices_data[['device_type', 'atd_device_id',
                                      'device_ip', 'device_status',
                                      'ip_comm_status', 'atd_location_id',
@@ -64,5 +65,14 @@ class GSUnitDataKnack(UnitDataCommonKnack):
                                      'lat', 'lon', 'primary_st',
                                      'primary_st_segment_id',
                                      'cross_st', 'cross_st_segment_id']]
+        """
+        devices_data = devices_data[['device_type', 'atd_device_id',
+                                     'device_ip', 'device_status',
+                                     'atd_location_id',
+                                     'coa_intersection_id',
+                                     'lat', 'lon', 'primary_st',
+                                     'primary_st_segment_id',
+                                     'cross_st', 'cross_st_segment_id']]
+        devices_data['ip_comm_status'] = "UNKNOWN" # Deal with missing column in Knack view.
 
         return devices_data
