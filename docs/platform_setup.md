@@ -19,6 +19,8 @@ This document describes system setup that is needed once an EC2 instance is spun
   - [Configuring the ETL Process Run Times](#configuring-the-etl-process-run-times)
   - [Manually Running or Testing an ETL Process](#manually-running-or-testing-an-etl-process)
   - [Backing Up the Catalog](#backing-up-the-catalog)
+  - [Catalog Migration](#catalog-migration)
+- [Transitioning Over to New System](#transitioning-over-to-new-system)
 
 ## One-Time Setup Procedures
 
@@ -155,3 +157,29 @@ docker run --rm -it --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPA
 > **TIP:** Name the output "sqlbin" file according to the date that it was created.
 
 > **TODO:** Write and test out a process for restoring a backed-up catalog. It would involve using the `pg_restore` and `psql` commands.
+
+### Catalog Migration
+
+Moving the Catalog from the format used prior to 2021 to the new format. We will not need to have the ID sequences along with catalog entries, nor schema information, as these are already created on the new database.
+
+This will need to be run from a system that has sufficient disk space to save CSV output. Commands for grabbing existing catalog data:
+
+```bash
+ssh -i "PEM_FILE" ec2-user@MACHINE <<"EOF" > atd-data-lake-20211119.csv
+sudo docker run --rm -t --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPASSWORD=**** psql -h **** -p 5432 -U atduser -d atd01 -c "\""\copy api.data_lake_cat_new (repository, data_source, id_base, id_ext, pointer, collection_date, collection_end, processing_date, metadata) TO STDOUT CSV HEADER DELIMITER E'\t'"\"""
+EOF
+ssh -i "PEM_FILE" ec2-user@MACHINE <<"EOF" > atd-etl-perfmet-job-20211119.csv
+sudo docker run --rm -t --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPASSWORD=**** psql -h **** -p 5432 -U atduser -d atd01 -c "\""\copy api.etl_perfmet_job (data_source, stage, seconds, records, processing_date, collection_start, collection_end) TO STDOUT CSV HEADER DELIMITER E'\t'"\"""
+EOF
+ssh -i "PEM_FILE" ec2-user@MACHINE <<"EOF" > atd-etl-perfmet-obs-20211119.csv
+sudo docker run --rm -t --name psql -p 5432:5432 -v /tmp:/tmp postgres bash -c "PGPASSWORD=**** psql -h *** -p 5432 -U atduser -d atd01 -c "\""\copy api.etl_perfmet_obs (data_source, sensor_name, data_type, data, expected, collection_date, timestamp_min, timestamp_max) TO STDOUT CSV HEADER DELIMITER E'\t'"\"""
+EOF
+```
+
+These commands will then load data into the new database:
+
+> **TODO:** Complete this.
+
+## Transitioning Over to New System
+
+The host machine that runs the initial ETL processes is being retired, and the initial processes need to be transitioned over to an updated system. This attempts to recreate the first stages of ETL processes.
