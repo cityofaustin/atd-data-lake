@@ -6,7 +6,9 @@ gs_support.py: Support routines for GRIDSMART
 import collections
 import re
 
-from atd_data_lake.drivers.devices import gs_device, gs_log_reader
+from drivers.devices import gs_device
+from drivers.devices import gs_log_reader
+from support import unitdata
 
 "Return type for the getDevicesLogreaders() function:"
 _GSDeviceLogreader = collections.namedtuple("_GSDeviceLogreader", "device logReader site timeFile hwInfo streetNames")
@@ -76,7 +78,7 @@ def retrieveDevices(gsUnitData, devFilter=".*"):
                 continue
             ips.add(key)
             
-            streetName = (row["primary_st"] if row["primary_st"] else "") + "_" + (row["cross_st"] if row["cross_st"] else "")
+            streetName = row["primary_st"] + "_" + (row["cross_st"] if row["cross_st"] is not None else "")
             streetName = streetName.replace("/", "&") # Needed to sanitize for filenames.
             if not regexp.search(streetName):
                 continue
