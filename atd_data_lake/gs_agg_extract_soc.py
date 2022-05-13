@@ -104,7 +104,11 @@ class GSAggPublishApp(etl_app.ETLApp):
                 _addErrDup(errDup, "WARNING: Movement is %s" % movement)
             
             timestamp = arrow.get(line["timestamp"])
-                
+            
+            if not device["primary_st"]:
+                device["primary_st"] = ""
+            if not device["cross_st"]:
+                device["cross_st"] = "" 
             entry = {"atd_device_id": device["atd_device_id"],
                      "read_date": self.publisher.convertTime(timestamp.datetime),
                      "intersection_name": device["primary_st"].strip() + " / " + device["cross_st"].strip(),
