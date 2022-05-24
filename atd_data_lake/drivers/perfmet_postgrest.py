@@ -48,7 +48,7 @@ class PerfMetDB:
                    "processing_date": ["gte.%s" % str(day),
                                        "lt.%s" % str(date_util.localize(day.replace(tzinfo=None) + datetime.timedelta(days=1)))],
                    "order": "data_source,stage"}
-        return self.perfMetDB.select(self.resourceJob, params=command)
+        return self.perfMetDB.select(resource=self.resourceJob, params=command)
     
     def getRecentJobsDate(self):
         """
@@ -57,7 +57,7 @@ class PerfMetDB:
         command = {"select": "processing_date",
                    "order": "processing_date.desc",
                    "limit": 1}
-        ret = self.perfMetDB.select(self.resourceJob, params=command)
+        ret = self.perfMetDB.select(resource=self.resourceJob, params=command)
         if ret and ret[0] and "processing_date" in ret[0]:
             ret = ret[0]["processing_date"]
         else:
@@ -110,5 +110,5 @@ class PerfMetDB:
             command["data_source"] = "eq.%s" % dataSource
         if obsType:
             command["data_type"] = "eq.%s" % obsType
-        return self.perfMetDB.select(self.resourceObs, params=command)
+        return self.perfMetDB.select(resource=self.resourceObs, params=command)
         

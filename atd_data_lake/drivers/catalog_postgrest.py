@@ -69,7 +69,7 @@ class CatalogPostgREST:
                 command["collection_date"] = collDateRange
                 
         # Run the query:
-        return self.catalogDB.select(self.resource, params=command)
+        return self.catalogDB.select(resource=self.resource, params=command)
     
     def upsert(self, upsertDataList):
         """
