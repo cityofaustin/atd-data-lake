@@ -22,7 +22,7 @@ class PerfMetDB:
         @param resourceObs: the PostgREST "etl_perfmet_obs" table name
         @param apiKey: the PostgREST API key needed to write to the endpoints
         """
-        self.perfMetDB = Postgrest(accessPoint, auth=apiKey)
+        self.perfMetDB = Postgrest(accessPoint, token=apiKey)
         self.resourceJob = resourceJob
         self.resourceObj = resourceObj
             

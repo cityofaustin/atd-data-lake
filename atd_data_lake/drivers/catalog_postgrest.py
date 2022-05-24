@@ -17,7 +17,7 @@ class CatalogPostgREST:
         """
         Initializes the PostgREST access with a given access point URL and the API key.
         """
-        self.catalogDB = Postgrest(accessPoint, auth=apiKey)
+        self.catalogDB = Postgrest(accessPoint, token=apiKey)
         self.resource = resource
         
     def query(self, dataSource, stage, base, ext, earlyDate=None, lateDate=None, exactEarlyDate=False, limit=None, start=None, reverse=False):
