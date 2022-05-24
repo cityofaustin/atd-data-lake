@@ -8,7 +8,6 @@ import re
 
 from drivers.devices import gs_device
 from drivers.devices import gs_log_reader
-from support import unitdata
 
 "Return type for the getDevicesLogreaders() function:"
 _GSDeviceLogreader = collections.namedtuple("_GSDeviceLogreader", "device logReader site timeFile hwInfo streetNames")

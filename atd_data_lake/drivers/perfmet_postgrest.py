@@ -13,19 +13,18 @@ class PerfMetDB:
     """
     Represents a connection to the PostgREST instance of the performance metrics tables.
     """
-    def __init__(self, accessPointJob, accessPointObs, apiKey, needsObs=False):
+    def __init__(self, accessPoint, resourceJob, resourceObj, apiKey):
         """
         Initializes the connection to the PostgREST instance.
         
-        @param accessPointJob: the PostgREST "etl_perfmet_job" table endpoint
-        @param accessPointObs: the PostgREST "etl_perfmet_obs" table endpoint
+        @param accessPoint: the PostgREST URL endpoint
+        @param resourceJob: the PostgREST "etl_perfmet_job" table name
+        @param resourceObs: the PostgREST "etl_perfmet_obs" table name
         @param apiKey: the PostgREST API key needed to write to the endpoints
-        @param needsObs: set this to True to enable the writing of observations.
         """
-        self.jobDB = Postgrest(accessPointJob, auth=apiKey)
-        self.obsDB = None
-        if needsObs:
-            self.obsDB = Postgrest(accessPointObs, auth=apiKey)
+        self.perfMetDB = Postgrest(accessPoint, auth=apiKey)
+        self.resourceJob = resourceJob
+        self.resourceObj = resourceObj
             
     def writeJob(self, perfMet):
         """
@@ -38,7 +37,7 @@ class PerfMetDB:
                     "processing_date": str(perfMet.processingTime),
                     "collection_start": str(date_util.localize(perfMet.collectTimeStart)) if perfMet.collectTimeStart else None,
                     "collection_end": str(date_util.localize(perfMet.collectTimeEnd)) if perfMet.collectTimeEnd else None}
-        self.jobDB.upsert(metadata)
+        self.perfMetDB.upsert(self.resourceJob, data=metadata)
 
     def readAllJobs(self, timestampIn):
         """
@@ -49,7 +48,7 @@ class PerfMetDB:
                    "processing_date": ["gte.%s" % str(day),
                                        "lt.%s" % str(date_util.localize(day.replace(tzinfo=None) + datetime.timedelta(days=1)))],
                    "order": "data_source,stage"}
-        return self.jobDB.select(params=command)
+        return self.perfMetDB.select(self.resourceJob, params=command)
     
     def getRecentJobsDate(self):
         """
@@ -58,7 +57,7 @@ class PerfMetDB:
         command = {"select": "processing_date",
                    "order": "processing_date.desc",
                    "limit": 1}
-        ret = self.jobDB.select(params=command)
+        ret = self.perfMetDB.select(self.resourceJob, params=command)
         if ret and ret[0] and "processing_date" in ret[0]:
             ret = ret[0]["processing_date"]
         else:
@@ -89,7 +88,7 @@ class PerfMetDB:
                              "collection_date": str(obs.collectionDate),
                              "timestamp_min": minTimestamp,
                              "timestamp_max": maxTimestamp})
-        self.obsDB.upsert(metadata)
+        self.perfMetDB.upsert(self.resourceObs, data=metadata)
     
     def readAllObs(self, timestampIn, earlyDate=None, dataSource=None, obsType=None):
         """
@@ -111,5 +110,5 @@ class PerfMetDB:
             command["data_source"] = "eq.%s" % dataSource
         if obsType:
             command["data_type"] = "eq.%s" % obsType
-        return self.obsDB.select(params=command)
+        return self.perfMetDB.select(self.resourceObs, params=command)
         

@@ -51,13 +51,13 @@ bt_insert_lake:
   filename: bt_insert_lake.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
   - --sourcedir
   - "/app/awam"
 wt_insert_lake:
@@ -68,13 +68,13 @@ wt_insert_lake:
   filename: wt_insert_lake.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 gs_insert_lake:
   cron: 30 1 * * *
   destination: raw
@@ -83,13 +83,13 @@ gs_insert_lake:
   filename: gs_insert_lake.py
   init_func: main
   job: true
-  path: ../atd-data-lake/src
+  path: ../atd-data-lake/atd_data_lake
   source: atd-data-lake
   args:
   - --last_run_date
   - "0"
   - --start_date
-  - "60"
+  - "30"
 ```
 
 ## EC2 Instance: Outside the ATD Network

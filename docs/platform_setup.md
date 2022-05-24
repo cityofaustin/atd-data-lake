@@ -182,4 +182,15 @@ These commands will then load data into the new database:
 
 ## Transitioning Over to New System
 
-The host machine that runs the initial ETL processes is being retired, and the initial processes need to be transitioned over to an updated system. This attempts to recreate the first stages of ETL processes.
+As of the start of 2022, the host machine that runs the initial ETL processes is being retired, and the initial processes need to be transitioned over to the updated "Data1" system. This attempts to recreate the first stages of ETL processes.
+
+Steps above run or not run:
+
+* No need to activate swap space; already activated.
+* Thankfully the time zone is set on the system.
+* Built the "ctrdocker/tdp" image
+* Staged the "atd-data-deploy" project
+* Staged the "atd-data-lake" project
+  * Copied "secret" config file contents from old system
+* Configured the ETL processes with the deployer
+* Testing running
