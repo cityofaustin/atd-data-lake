@@ -184,7 +184,7 @@ These commands will then load data into the new database:
 
 As of the start of 2022, the host machine that runs the initial ETL processes is being retired, and the initial processes need to be transitioned over to the updated "Data1" system. This attempts to recreate the first stages of ETL processes.
 
-Steps above run or not run:
+Steps above run:
 
 * No need to activate swap space; already activated.
 * Thankfully the time zone is set on the system.
@@ -194,3 +194,20 @@ Steps above run or not run:
   * Copied "secret" config file contents from old system
 * Configured the ETL processes with the deployer
 * Testing running
+
+Testing of running is accomplished using the following:
+
+```bash
+cd ~/git/atd-data-lake/
+sudo docker run -it -v ~/git:/app --rm --network=host -w /app/atd-data-lake/atd_data_lake ctrdocker/tdp /bin/bash
+python gs_insert_lake.py -s 1 -0 -f "COVERED"
+exit
+```
+
+Then:
+
+```bash
+sudo docker run -t -v ~/git:/app --rm --network=host -w /app/atd-data-lake/atd_data_lake ctrdocker/tdp python -u gs_insert_lake.py -s 2 | tee ~/log.txt
+```
+
+At this point, I am running a backlog of 30 days manually to avoid the nightly process from taking too long. Then, I disabled crontab entries on the old system, and enabled on the new system.
