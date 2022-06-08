@@ -66,7 +66,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         # First, get the unit data for GRIDSMART:
         self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
         if self.forceUnitDate:
-            self.unitDataProv.prepare(self.forceUnitDate, self.forceUnitDate)
+            self.unitDataProv.prepare(self.forceUnitDate)
         else:
             self.unitDataProv.prepare(self.startDate, self.endDate)
         
