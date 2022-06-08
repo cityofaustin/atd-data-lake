@@ -49,12 +49,13 @@ class GSJSONStandardApp(etl_app.ETLApp):
         """
         Custom processing of force unit date
         """
+        super()._ingestArgs(args)
+        
         # Force unit date:
         if hasattr(args, "unit_date") and args.unit_date:
             self.forceUnitDate = date_util.parseDate(args.unit_date, dateOnly=True)
         else:
             self.forceUnitDate = None
-        super()._ingestArgs(args)
     
     def etlActivity(self):
         """
