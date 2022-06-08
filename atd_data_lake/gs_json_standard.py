@@ -64,7 +64,11 @@ class GSJSONStandardApp(etl_app.ETLApp):
         @return count: A general number of records processed
         """
         # First, get the unit data for GRIDSMART:
-        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc).prepare(self.startDate, self.endDate)
+        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
+        if self.forceUnitDate:
+            self.unitDataProv.prepare(self.forceUnitDate, self.forceUnitDate)
+        else:
+            self.unitDataProv.prepare(self.startDate, self.endDate)
         
         # Prepare to get site files:
         self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository,
