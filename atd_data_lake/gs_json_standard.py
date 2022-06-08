@@ -37,6 +37,24 @@ class GSJSONStandardApp(etl_app.ETLApp):
         self.prevUnitData = None
         self.siteFileCatElems = None
         self.siteFileCache = {}
+        self.forceUnitDate = None
+        
+    def _addCustonArgs(self, parser):
+        """
+        Adds custom unit date to accommodate addition of new GRIDSMART network
+        """
+        parser.add_argument("-U", "--unit_date", help="Force unit file date: YYYY-MM-DD format")
+
+    def _ingestArgs(self, args):
+        """
+        Custom processing of force unit date
+        """
+        # Force unit date:
+        if hasattr(args, "unit_date") and args.unit_date:
+            self.forceUnitDate = date_util.parseDate(args.unit_date, dateOnly=True)
+        else:
+            self.forceUnitDate = None
+        super()._ingestArgs(args)
     
     def etlActivity(self):
         """
@@ -84,7 +102,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
             self.siteFileCache[item.identifier.base] = siteFile
         
         # Obtain unit data, and write it to the target repository if it's new:
-        unitData = self.unitDataProv.retrieve(item.identifier.date)
+        unitData = self.unitDataProv.retrieve(self.forceUnitDate if self.forceUnitDate else item.identifier.date)
         if unitData != self.prevUnitData:
             config.createUnitDataAccessor(self.storageTgt).store(unitData)
             
