@@ -39,7 +39,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         self.siteFileCache = {}
         self.forceUnitDate = None
         
-    def _addCustonArgs(self, parser):
+    def _addCustomArgs(self, parser):
         """
         Adds custom unit date to accommodate addition of new GRIDSMART network
         """
