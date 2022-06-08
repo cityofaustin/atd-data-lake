@@ -27,6 +27,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         """
         Initializes application-specific variables
         """
+        self.forceUnitDate = None
         super().__init__("gs", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="raw",
@@ -37,7 +38,6 @@ class GSJSONStandardApp(etl_app.ETLApp):
         self.prevUnitData = None
         self.siteFileCatElems = None
         self.siteFileCache = {}
-        self.forceUnitDate = None
         
     def _addCustomArgs(self, parser):
         """
