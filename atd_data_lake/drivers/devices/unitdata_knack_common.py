@@ -57,8 +57,12 @@ class UnitDataCommonKnack:
         locs = []
         for loc in locsAccessor:
             rec = loc.format(values=False)
-            rec['LOCATION_latitude'] = rec['LOCATION']['latitude']
-            rec['LOCATION_longitude'] = rec['LOCATION']['longitude']
+            if 'LOCATIONS' in rec:
+                rec['LOCATION_latitude'] = rec['LOCATION']['latitude']
+                rec['LOCATION_longitude'] = rec['LOCATION']['longitude']
+            else:
+                rec['LOCATION_latitude'] = None
+                rec['LOCATION_longitude'] = None
             locs.append(rec)
         del knackApp, locsAccessor
     
