@@ -8,7 +8,11 @@ from typing import NamedTuple, Any, Generator
 import datetime
 
 from atd_data_lake.util import date_util
-from atd_data_lake.support import last_update
+
+class Identifier(NamedTuple):
+    base: str
+    ext: str
+    date: datetime.datetime
 
 class LastUpdProv:
     """
@@ -56,7 +60,8 @@ class LastUpdProv:
         """
         yield from []
 
-    def resolvePayload(self, lastUpdItem: LastUpdate.LastUpdateItem) -> Any:
+    # TODO: Figure out how to add hinting for lastUpdItem so that we don't have circular import problem.
+    def resolvePayload(self, lastUpdItem) -> Any:
         """
         Optionally returns a payload contents associated with the lastUpdItem. This can be where an
         expensive query takes place.
@@ -137,11 +142,35 @@ class LastUpdate:
                 if not (cmpDateEnd <= self.items[self.curIndex].date or cmpDate >= endDate):
                     return True
             return False
-        
-    class Identifier(NamedTuple):
-        base: str
-        ext: str
-        date: datetime.datetime
+
+    class LastUpdateItem:
+        """
+        Returned from LastUpdate.compare(). Identifies items that need updating.
+        """
+        def __init__(self, identifier: Identifier, priorLastUpdate: bool=False, provItem: LastUpdProv.LastUpdProvItem=None,
+                     label: str=None):
+            """
+            Initializes contents.
+            
+            @param identifer: A tuple of (base, ext, date)
+            @param priorLastUpdate: Set to True if this had been identified outside of the lastUpdate lower bound
+            @param provItem: The source data provider item that contains the ".payload" attribute
+            @param label: A descriptive label for this item
+            """
+            self.identifier = identifier
+            self.priorLastUpdate = priorLastUpdate
+            self.provItem = provItem
+            self.label = label
+            
+        def __str__(self):
+            """
+            Offers a descriptive identifier for this match.
+            """
+            if self.label:
+                return self.label
+            return "Base: %s; Ext: %s; Date: %s" % (str(self.identifier[0]), str(self.identifier[1]), str(self.identifier[2]))
+    
+    # TODO: Would we ever need this for items that do exist in the target?
         
     def compare(self, lastRunDate: datetime.datetime=None) -> LastUpdateItem:
         """
@@ -182,39 +211,10 @@ class LastUpdate:
                     forceRec.add(forceStr)
                 skipFlag = False
             if not skipFlag:
-                yield self.LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
+                yield self.LastUpdateItem(Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
                                       priorLastUpdate=not lastRunDate or sourceItem.date < lastRunDate,
                                       provItem=sourceItem,
                                       label=sourceItem.label)
-    
-    class LastUpdateItem:
-        """
-        Returned from LastUpdate.compare(). Identifies items that need updating.
-        """
-        def __init__(self, identifier: Identifier, priorLastUpdate: bool=False, provItem: LastUpdProv.LastUpdProvItem=None,
-                     label: str=None):
-            """
-            Initializes contents.
-            
-            @param identifer: A tuple of (base, ext, date)
-            @param priorLastUpdate: Set to True if this had been identified outside of the lastUpdate lower bound
-            @param provItem: The source data provider item that contains the ".payload" attribute
-            @param label: A descriptive label for this item
-            """
-            self.identifier = identifier
-            self.priorLastUpdate = priorLastUpdate
-            self.provItem = provItem
-            self.label = label
-            
-        def __str__(self):
-            """
-            Offers a descriptive identifier for this match.
-            """
-            if self.label:
-                return self.label
-            return "Base: %s; Ext: %s; Date: %s" % (str(self.identifier[0]), str(self.identifier[1]), str(self.identifier[2]))
-    
-    # TODO: Would we ever need this for items that do exist in the target?
 
 class LastUpdCatProv(LastUpdProv):
     """

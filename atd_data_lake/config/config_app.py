@@ -32,13 +32,11 @@ DATASOURCE_MAP = {"bt": config_support.DataSourceConfig(code="bt", name="Bluetoo
                   "gs": config_support.DataSourceConfig(code="gs", name="GRIDSMART")}
 
 # ** These items are specific to devices and dependencies: **
-CATALOG_URL = "https://atd-data-lake.austinmobility.io"
-CATALOG_RESOURCE = "data_lake_cat"
+CATALOG_URL = "https://atd-postgrest.austinmobility.io/ctr-data-lake/data_lake_cat"
 CATALOG_KEY = getattr(config_secret, "CATALOG_KEY", "")
 
-PERFMET_URL = "https://atd-data-lake.austinmobility.io"
-PERFMET_JOB_RESOURCE = "etl_perfmet_job"
-PERFMET_OBS_RESOURCE = "etl_perfmet_obs"
+PERFMET_JOB_URL = "https://atd-postgrest.austinmobility.io/ctr-data-lake/etl_perfmet_job"
+PERFMET_OBS_URL = "https://atd-postgrest.austinmobility.io/ctr-data-lake/etl_perfmet_obs"
 
 KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", "")
 KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", "")
@@ -84,13 +82,13 @@ def createCatalogConn():
     """
     Returns a new catalog connector object
     """
-    return catalog_postgrest.CatalogPostgREST(CATALOG_URL, CATALOG_RESOURCE, CATALOG_KEY)
+    return catalog_postgrest.CatalogPostgREST(CATALOG_URL, CATALOG_KEY)
     
 def createPerfmetConn():
     """
     Returns a new perfmet connector object
     """
-    return perfmet_postgrest.PerfMetDB(PERFMET_URL, PERFMET_JOB_RESOURCE, PERFMET_OBS_RESOURCE, CATALOG_KEY)
+    return perfmet_postgrest.PerfMetDB(PERFMET_JOB_URL, PERFMET_OBS_URL, CATALOG_KEY, needsObs=True)
 
 def createUnitDataConn(dataSource, areaBase):
     """
