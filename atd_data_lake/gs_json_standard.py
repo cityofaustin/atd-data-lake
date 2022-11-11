@@ -27,6 +27,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
         """
         Initializes application-specific variables
         """
+        self.forceUnitDate = None
         super().__init__("gs", APP_DESCRIPTION,
                          args=args,
                          purposeSrc="raw",
@@ -37,6 +38,24 @@ class GSJSONStandardApp(etl_app.ETLApp):
         self.prevUnitData = None
         self.siteFileCatElems = None
         self.siteFileCache = {}
+        
+    def _addCustomArgs(self, parser):
+        """
+        Adds custom unit date to accommodate addition of new GRIDSMART network
+        """
+        parser.add_argument("-U", "--unit_date", help="Force unit file date: YYYY-MM-DD format")
+
+    def _ingestArgs(self, args):
+        """
+        Custom processing of force unit date
+        """
+        super()._ingestArgs(args)
+        
+        # Force unit date:
+        if hasattr(args, "unit_date") and args.unit_date:
+            self.forceUnitDate = date_util.parseDate(args.unit_date, dateOnly=True)
+        else:
+            self.forceUnitDate = None
     
     def etlActivity(self):
         """
@@ -45,7 +64,11 @@ class GSJSONStandardApp(etl_app.ETLApp):
         @return count: A general number of records processed
         """
         # First, get the unit data for GRIDSMART:
-        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc).prepare(self.startDate, self.endDate)
+        self.unitDataProv = config.createUnitDataAccessor(self.storageSrc)
+        if self.forceUnitDate:
+            self.unitDataProv.prepare(self.forceUnitDate)
+        else:
+            self.unitDataProv.prepare(self.startDate, self.endDate)
         
         # Prepare to get site files:
         self.siteFileCatElems = self.storageSrc.catalog.getSearchableQueryDict(self.storageSrc.repository,
@@ -84,7 +107,7 @@ class GSJSONStandardApp(etl_app.ETLApp):
             self.siteFileCache[item.identifier.base] = siteFile
         
         # Obtain unit data, and write it to the target repository if it's new:
-        unitData = self.unitDataProv.retrieve(item.identifier.date)
+        unitData = self.unitDataProv.retrieve(self.forceUnitDate if self.forceUnitDate else item.identifier.date)
         if unitData != self.prevUnitData:
             config.createUnitDataAccessor(self.storageTgt).store(unitData)
             
