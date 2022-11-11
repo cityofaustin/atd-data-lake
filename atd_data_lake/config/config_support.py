@@ -3,6 +3,8 @@ Suport definitions for config package.
 
 @author Kenneth Perrine
 """
-from collections import namedtuple
+from typing import NamedTuple
 
-DataSourceConfig = namedtuple("DataSourceConfig", "code name")
+class DataSourceConfig(NamedTuple):
+    code: str # A shorthand code name for the data source for directory naming
+    name: str # A longer name that will appear in logs

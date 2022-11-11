@@ -50,7 +50,7 @@ class LastUpdGSProv(LastUpdProv):
         
     def runQuery(self):
         """
-        Runs a query against the data source and provides results as a generator of _LastUpdProvItem.
+        Runs a query against the data source and provides results as a generator of LastUpdProvItem.
         """
         # Identify all GRIDSMART records that match the dates within the time range:
         for ourDate in self.dateList:
@@ -59,7 +59,7 @@ class LastUpdGSProv(LastUpdProv):
                     base, ext, date = self._getIdentifier(device.logReader, ourDate)
                     if self._isSameDayCancel(date):
                         continue
-                    yield LastUpdProv._LastUpdProvItem(base=base,
+                    yield LastUpdProv.LastUpdProvItem(base=base,
                                                        ext=ext,
                                                        date=date,
                                                        dateEnd=None,

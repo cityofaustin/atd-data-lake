@@ -4,10 +4,74 @@ and target listing objects.
 
 @author Kenneth Perrine
 """
-from collections import namedtuple
+from typing import NamedTuple, Any, Generator
 import datetime
 
 from atd_data_lake.util import date_util
+from atd_data_lake.support import last_update
+
+class LastUpdProv:
+    """
+    Base class for provision of last-update information
+    """
+    def __init__(self, sameDay=False):
+        """
+        Base constructor.
+        
+        @param sameDay: If True, allows a last update that happens "today" to be processed, if there is no end date specified.
+        """
+        self.startDate = None
+        self.endDate = None
+        self.sameDayDate = date_util.localize(datetime.datetime.now()).replace(hour=0, minute=0, second=0, microsecond=0) \
+                        if not sameDay else None
+    
+    def prepare(self, startDate, endDate):
+        """
+        Initializes the query between the start date and the end date. If startDate and endDate are
+        the same, then only results for that exact time are queried.
+        """
+        self.startDate = startDate
+        self.endDate = endDate
+        
+    def _getIdentifier(self, base, ext, date):
+        """
+        Creates identifier for the comparison purposes from the given file information
+        
+        @return Tuple of base, ext, date
+        """
+        return base, ext, date
+
+    "LastUpdProvItem represents a result from a LastUpdProvider object."
+    class LastUpdProvItem(NamedTuple):
+        base: str # The "base" portion of a unique identifier as appears in the catalog
+        ext: str # The "ext" portion of a unique identifier as appears in the catalog
+        date: datetime.datetime # Start date for the catalog item
+        dateEnd: datetime.datetime # End date for the catalog item (may be Null)
+        payload: Any # Data source-specific object referenced for the current catalog item
+        label: str # Screen-friendly string that represents the catalog item
+    
+    def runQuery(self) -> Generator[LastUpdProvItem, None, None]:
+        """
+        Runs a query against the data source and yields results as a generator of LastUpdProvItem.
+        """
+        yield from []
+
+    def resolvePayload(self, lastUpdItem: LastUpdate.LastUpdateItem) -> Any:
+        """
+        Optionally returns a payload contents associated with the lastUpdItem. This can be where an
+        expensive query takes place.
+        
+        @param lastUpdItem: A LastUpdateItem that contains a ".provItem.payload" attribute
+        """
+        return lastUpdItem.provItem.payload
+        
+    def _isSameDayCancel(self, date):
+        """
+        Returns True if the date is "today", and sameDay processing is disabled. This indicates that
+        the proposed match should be withheld because sameDay is False and we're trying to process a 
+        record from today.
+        """
+        return self.sameDayDate and not self.endDate and date >= self.sameDayDate
 
 class LastUpdate:
     """
@@ -16,7 +80,7 @@ class LastUpdate:
     # Caveat: While this will allow for targets that have bigger time intervals than sources, the source
     # time intervals must be evenly divisible. It would be possible to allow for partial updates in cases
     # where intervals aren't evenly divisible.
-    def __init__(self, source, target=None, force=None):
+    def __init__(self, source: LastUpdProv, target: LastUpdProv=None, force: bool=None):
         """
         Initializes the object
         
@@ -74,12 +138,15 @@ class LastUpdate:
                     return True
             return False
         
-    Identifier = namedtuple("Identifier", "base ext date")
+    class Identifier(NamedTuple):
+        base: str
+        ext: str
+        date: datetime.datetime
         
-    def compare(self, lastRunDate=None):
+    def compare(self, lastRunDate: datetime.datetime=None) -> LastUpdateItem:
         """
         Iterates through the source and target, and generates identifiers for those that need updating
-        in _LastUpdateItem objects.
+        in LastUpdateItem objects.
         
         @param lastRunDate: Identifies the last run time; but startDate supersedes it as a lower bound if earliest is specified.
         """
@@ -115,16 +182,17 @@ class LastUpdate:
                     forceRec.add(forceStr)
                 skipFlag = False
             if not skipFlag:
-                yield self._LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
+                yield self.LastUpdateItem(self.Identifier(sourceItem.base, sourceItem.ext, sourceItem.date),
                                       priorLastUpdate=not lastRunDate or sourceItem.date < lastRunDate,
                                       provItem=sourceItem,
                                       label=sourceItem.label)
     
-    class _LastUpdateItem:
+    class LastUpdateItem:
         """
         Returned from LastUpdate.compare(). Identifies items that need updating.
         """
-        def __init__(self, identifier, priorLastUpdate=False, provItem=None, label=None):
+        def __init__(self, identifier: Identifier, priorLastUpdate: bool=False, provItem: LastUpdProv.LastUpdProvItem=None,
+                     label: str=None):
             """
             Initializes contents.
             
@@ -148,63 +216,6 @@ class LastUpdate:
     
     # TODO: Would we ever need this for items that do exist in the target?
 
-class LastUpdProv:
-    """
-    Base class for provision of last-update information
-    """
-    def __init__(self, sameDay=False):
-        """
-        Base constructor.
-        
-        @param sameDay: If True, allows a last update that happens "today" to be processed, if there is no end date specified.
-        """
-        self.startDate = None
-        self.endDate = None
-        self.sameDayDate = date_util.localize(datetime.datetime.now()).replace(hour=0, minute=0, second=0, microsecond=0) \
-                        if not sameDay else None
-    
-    def prepare(self, startDate, endDate):
-        """
-        Initializes the query between the start date and the end date. If startDate and endDate are
-        the same, then only results for that exact time are queried.
-        """
-        self.startDate = startDate
-        self.endDate = endDate
-        
-    def _getIdentifier(self, base, ext, date):
-        """
-        Creates identifier for the comparison purposes from the given file information
-        
-        @return Tuple of base, ext, date
-        """
-        return base, ext, date
-
-    def runQuery(self):
-        """
-        Runs a query against the data source and yields results as a generator of _LastUpdProvItem.
-        """
-        yield from []
-
-    def resolvePayload(self, lastUpdItem):
-        """
-        Optionally returns a payload contents associated with the lastUpdItem. This can be where an
-        expensive query takes place.
-        
-        @param lastUpdItem: A _LastUpdateItem that contains a ".provItem.payload" attribute
-        """
-        return lastUpdItem.provItem.payload
-        
-    "_LastUpdProvItem represents a result from a LastUpdProvider object."
-    _LastUpdProvItem = namedtuple("_LastUpdProvItem", "base ext date dateEnd payload label")
-    
-    def _isSameDayCancel(self, date):
-        """
-        Returns True if the date is "today", and sameDay processing is disabled. This indicates that
-        the proposed match should be withheld because sameDay is False and we're trying to process a 
-        record from today.
-        """
-        return self.sameDayDate and not self.endDate and date >= self.sameDayDate
-
 class LastUpdCatProv(LastUpdProv):
     """
     Represents a Catalog, as a LastUpdate source or target.
@@ -225,7 +236,7 @@ class LastUpdCatProv(LastUpdProv):
         
     def runQuery(self):
         """
-        Runs a query against the data source and provides results as a generator of _LastUpdProvItem.
+        Runs a query against the data source and provides results as a generator of LastUpdProvItem.
         """
         lateDate = self.endDate
         if self.startDate == self.endDate:
@@ -235,7 +246,7 @@ class LastUpdCatProv(LastUpdProv):
             base, ext, date = self._getIdentifier(result["id_base"], result["id_ext"], result["collection_date"])
             if self._isSameDayCancel(date):
                 continue
-            yield LastUpdProv._LastUpdProvItem(base=base,
+            yield LastUpdProv.LastUpdProvItem(base=base,
                                                ext=ext,
                                                date=date,
                                                dateEnd=result["collection_end"],

@@ -5,7 +5,7 @@ Kenneth Perrine
 Center for Transportation Research, The University of Texas at Austin
 """
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from collections import namedtuple
+from typing import NamedTuple
 import tempfile
 import shutil
 
@@ -24,14 +24,17 @@ AppDescription:
 appName: The name of the application (short string)
 appDescr: Description of the application (longer string)
 """
-AppDescription = namedtuple("CmdLineConfig", "appName appDescr")
+class AppDescription(NamedTuple):
+    appName: str
+    appDescr: str
 
 class ETLApp:
     """
     ETLApp is a holding place for application-wide parameters that contain driver connection
     objects and application-wide parameters.    
     """
-    def __init__(self, dataSource, appDescription, args=None, purposeSrc=None, purposeTgt=None, needsTempDir=True, parseDateOnly=True, perfmetStage=None):
+    def __init__(self, dataSource: str, appDescription: AppDescription, args=None, purposeSrc: str=None,
+                 purposeTgt: str=None, needsTempDir: bool=True, parseDateOnly: bool=True, perfmetStage: str=None):
         """
         Constructor initializes variables.
         
@@ -87,12 +90,12 @@ class ETLApp:
         self._ingestArgs(args)
         self._connect()
 
-    def processArgs(self, cmdLineConfig):
+    def processArgs(self, appDescription: AppDescription):
         """
         Builds up the command line processor with standard parameters and also custom parameters that are passed in.
         """
-        parser = ArgumentParser(prog=cmdLineConfig.appName,
-                                description=cmdLineConfig.appDescr,
+        parser = ArgumentParser(prog=appDescription.appName,
+                                description=appDescription.appDescr,
                                 formatter_class=RawDescriptionHelpFormatter)
         # Tier-1 parameters:
         parser.add_argument("-r", "--last_run_date", help="last run date, in YYYY-MM-DD format with optional time zone offset, or UNIX time")
@@ -115,16 +118,18 @@ class ETLApp:
         args = parser.parse_args()
         return args
     
-    def _addCustomArgs(self, parser):
+    def _addCustomArgs(self, parser: ArgumentParser) -> None:
         """
         Override this and call parser.add_argument() to add custom command-line arguments.
         """
         pass
 
-    def _ingestArgs(self, args):
+    def _ingestArgs(self, args) -> None:
         """
         This is where arguments are ingested and set to Initializer class-level attributes. Override
         this and call the parent if custom arguments need to be processed.
+        
+        TODO: Alter this to allow args to be a dictionary
         """
         # Local time zone:
         date_util.setLocalTimezone(config.getLocalTimezone())
@@ -196,7 +201,7 @@ class ETLApp:
             self.tempDir = tempfile.mkdtemp()
             print("INFO: Created holding place: %s" % self.tempDir)
             
-    def _connect(self):
+    def _connect(self) -> None:
         """
         Establishes connections typical for an ETL process
         """
@@ -219,7 +224,7 @@ class ETLApp:
         if self.perfmetStage:
             self.perfmet = config.createPerfmet(self.perfmetStage, self.dataSource)
 
-    def doMainLoop(self):
+    def doMainLoop(self) -> int:
         """
         Coordinates the main loop activity
         """
@@ -246,7 +251,7 @@ class ETLApp:
         
         return recsProcessed
 
-    def etlActivity(self):
+    def etlActivity(self) -> int:
         """
         This performs the main ETL processing, to be implemented by the specific application.
         
@@ -254,7 +259,8 @@ class ETLApp:
         """
         return 0
     
-    def doCompareLoop(self, provSrc, provTgt, baseExtKey=True):
+    def doCompareLoop(self, provSrc: last_update.LastUpdProv, provTgt: last_update.LastUpdProv,
+                      baseExtKey: bool=True) -> int:
         """
         Sets up and iterates through the compare loop, calling innerLoopActivity.
         
@@ -284,7 +290,7 @@ class ETLApp:
                 self.storageTgt.flushCatalog()
         return self.itemCount
         
-    def innerLoopActivity(self, item):
+    def innerLoopActivity(self, item: last_update.LastUpdProv.LastUpdProvItem) -> int:
         """
         This is where the actual ETL activity is called for the given compare item.
         
@@ -293,7 +299,7 @@ class ETLApp:
             self.itemCount: Starting with 0, this is the number of items that have been processed (increments with return value)
             self.prevDate: This can be used to compare against item.date to see if processing has shifted to a new date
         
-        @param item: Type last_update.LastUpdProv._LastUpdProvItem that describes the item to be updated
+        @param item: Type last_update.LastUpdProv.LastUpdProvItem that describes the item to be updated
         @return Number of items that were updated
         """
         return 0

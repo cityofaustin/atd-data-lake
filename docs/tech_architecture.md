@@ -80,8 +80,6 @@ Together, the above components preserve the integrity of the sensor data, facili
 | System Architecture <br><img src="figures/pipeline.png" width="900">
 |---
 
-> TODO: Change the figure to have Socrata as the output.
-
 A PostgREST database `data_lake_catalog` acts as an inventory. It contains pointers to the data files with collection and processing dates and other metadata.  A process within the City infrastructure reads files from the source, catalogs them, and uploads to the cloud storage resource (which is currently AWS S3). The bucket has a "year/month/day/data source" file structure.
 
 Within the AWS S3 are three layers: `raw`, `rawjson` and `ready`. The purpose of the `raw` layer is to fetch data from various sources and place untouched files into the Data Lake. It preserves the integrity of the original data and leverages low-cost cloud storage. Because the Data Lake is in its early stages of development, maintaining raw data integrity allows for later flexibility in processing. For example, if a different way of standardizing the data for a more complex data integration effort is established, the raw data can still be accessed. This also removes the burden of long-term storage from the peripheral sensors. Older files here can eventually be archived (e.g. with S3 Glacier).

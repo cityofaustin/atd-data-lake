@@ -64,7 +64,7 @@ class LastUpdFileProv(LastUpdProv):
     
     def runQuery(self):
         """
-        Runs a query against the data source and provides results as a generator of _LastUpdProvItem.
+        Runs a query against the data source and provides results as a generator of LastUpdProvItem.
         """
         # Identify all files that match the dates within the time range:
         for ourDate in self.dateList:
@@ -74,7 +74,7 @@ class LastUpdFileProv(LastUpdProv):
                     base, ext, date = self._getIdentifier(myFile, index, ourDate)
                     if self._isSameDayCancel(date):
                         continue
-                    yield LastUpdProv._LastUpdProvItem(base=base,
+                    yield LastUpdProv.LastUpdProvItem(base=base,
                                            ext=ext,
                                            date=date,
                                            dateEnd=(date + self.impliedDuration) if self.impliedDuration else None,

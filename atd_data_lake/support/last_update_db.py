@@ -29,7 +29,7 @@ class LastUpdDB(last_update.LastUpdProv):
         
     def runQuery(self):
         """
-        Runs a query against the data source and provides results as a generator of _LastUpdProvItem.
+        Runs a query against the data source and provides results as a generator of LastUpdProvItem.
         """
         lateDate = self.endDate
         if self.startDate == self.endDate:
@@ -41,18 +41,18 @@ class LastUpdDB(last_update.LastUpdProv):
             if self._isSameDayCancel(date):
                 continue
             filename = self.baseName + "_" + date.strftime("%Y-%m-%d") + "." + self.extName
-            yield last_update.LastUpdProv._LastUpdProvItem(base=base,
+            yield last_update.LastUpdProv.LastUpdProvItem(base=base,
                                                            ext=ext,
                                                            date=date,
                                                            dateEnd=None,
                                                            payload=result,
                                                            label=filename)
 
-    def resolvePayload(self, lastUpdItem):
+    def resolvePayload(self, lastUpdItem: last_update.LastUpdProv.LastUpdateItem):
         """
         Gets the records for the corresponding lastUpdItem from the database.
         
-        @param lastUpdItem: A _LastUpdateItem that contains a date
+        @param lastUpdItem: A LastUpdateItem that contains a date
         """
         ret = self.dbObject.retrieve(earlyDate=lastUpdItem.identifier.date, lateDate=lastUpdItem.identifier.date)
         if isinstance(ret, collections.Mapping):

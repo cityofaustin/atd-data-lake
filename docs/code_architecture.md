@@ -136,13 +136,13 @@ This is what each part does, listed in the order of first encounter when running
 * **_addCustomArgs()** and **_ingestArgs():** Put processing and initialization of any special command-line or `main()` arguments here. These are called from `ETLApp`. If there are no custom parameters, then these methods can be omitted.
 * **ETLApp.doMainLoop():** This hands over control to my instance of ETLApp subclass, which then calls my `etlActivity()`. (**TODO:** It is in here that further initialization code, benchmarking, and exception handling with retry code can be added).
 * **etlActivity():** Sets up and hands control over to the main processing loop (via `ETLApp.doCompareLoop()`), which needs "source" and a "target" data providers. Here, these are both storage repositories that are paired with catalog entries, but could be devices, publishers, etc. The number of items processed should be returned here.
-* **innerLoopActivity():** For each item that the compare loop finds that needs to be processed, this method is called. The `item` parameter, a `support.last_update._LastUpdateItem`, will always be identical or incrementing in date each time `innerLoopActivity()` is called. This is where retrieval of resources, transformation, and writing of resources is to happen. The number of items processed in this call should be returned here.
+* **innerLoopActivity():** For each item that the compare loop finds that needs to be processed, this method is called. The `item` parameter, a `support.last_update.LastUpdateItem`, will always be identical or incrementing in date each time `innerLoopActivity()` is called. This is where retrieval of resources, transformation, and writing of resources is to happen. The number of items processed in this call should be returned here.
 
-Of special interest is `support.last_update._LastUpdateItem`, which is the type of the parameter that is passsed into `innerLoopActivity()`:
+Of special interest is `support.last_update.LastUpdateItem`, which is the type of the parameter that is passsed into `innerLoopActivity()`:
 
 * **identifier:** This tuple, `base`, `ext`, and `date` identifies an item stored within a repositry for a data source.
 * **priorLastUpdate:** This is set to `True` if the item comes from a date that precedes the LastRunDate (as passed in on the command line). It's a way of knowing if something is being updated that happens before the expected update time.
-* **provItem:** This comes from the source data provider-- a `last_update.LastUpdProv._LastUpdProvItem`, which contains a `payload` attribute that is specific to the data source.
+* **provItem:** This comes from the source data provider-- a `last_update.LastUpdProv.LastUpdProvItem`, which contains a `payload` attribute that is specific to the data source. (Consider `LastUpdateItem` as containing information about the item that follows the general ETL interface, and `LastUpdProv` that contains "driver" material that is specific to the data source.)
 * **label:** This is a string representation of the data item, usually the item's filename.
 
 ### Other ETLApp Characteristics
@@ -206,6 +206,22 @@ Of special notes are "upserts" of the catalog. If an upsert call is made, then i
 The "last_update" code is responsible for iterating through the contents of some kind of data source and identifying which items exist. This is then used in the main compare loop to determine which days' worth of data must be retreived from the source data so that the target data can be updated. If data already exists in the target (usually as evidenced by the catalog), then the respective available source data is skipped unless the "force" option is used.
 
 The core that runs "last_update" is in the `support.last_update` module, using "drivers" that implement the `support.last_update.LastUpdProv` interface. A commonly used one is `LastUpdCatProv`, which allows the main compare loop to use the catalog to determine which days of data need to be updated. There is also the `LastUpdDB` class that is a generalized adaptor for data stored within a database. An example of a database class implementation is `drivers.devices.wt_mssql_db.WT_MSSQL_DB`, which queries the MS SQL database that hosts Wavetronix data. That's instanciated directly from "wt_insert_lake.py".
+
+More on the object structures. First, `support.last_update.LastUpdateItem`, called as a parameter into `etl_app.ETLApp.innerLoopActivity()`:
+
+* **identifer:** A tuple of (base, ext, date)
+* **priorLastUpdate:** Set to True if this had been identified outside of the lastUpdate lower bound
+* **provItem:** The `LastUpdProvItem` source data provider item that contains the ".payload" attribute (below)
+* **label:** A descriptive label for this item
+
+Next, the "driver"-level last update object, `support.last_update.LastUpdProv.LastUpdProvItem`
+
+* **base:** The "base" portion of a unique identifier as appears in the catalog
+* **ext:** The "ext" portion of a unique identifier as appears in the catalog
+* **date:** Start date for the catalog item (a datetime object)
+* **dateEnd:** datetime.datetime # End date for the catalog item (may be Null)
+* **payload:** Data source-specific object referenced for the current catalog item
+* **label:** str # Screen-friendly string that represents the catalog item
 
 ### Unit Data
 
