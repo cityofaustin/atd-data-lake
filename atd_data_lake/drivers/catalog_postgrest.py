@@ -13,12 +13,11 @@ class CatalogPostgREST:
     """
     Implements catalog access functions using PostgREST.
     """
-    def __init__(self, accessPoint, resource, apiKey):
+    def __init__(self, accessPoint, apiKey):
         """
         Initializes the PostgREST access with a given access point URL and the API key.
         """
         self.catalogDB = Postgrest(accessPoint, token=apiKey)
-        self.resource = resource
         
     def query(self, dataSource, stage, base, ext, earlyDate=None, lateDate=None, exactEarlyDate=False, limit=None, start=None, reverse=False):
         """
@@ -69,7 +68,7 @@ class CatalogPostgREST:
                 command["collection_date"] = collDateRange
                 
         # Run the query:
-        return self.catalogDB.select(resource=self.resource, params=command)
+        return self.catalogDB.select(params=command)
     
     def upsert(self, upsertDataList):
         """
@@ -78,7 +77,7 @@ class CatalogPostgREST:
         "processing_date", and optionally "metadata".
         """
         try:
-            self.catalogDB.upsert(self.resource, data=upsertDataList)
+            self.catalogDB.upsert(upsertDataList)
         except:
             print("ERROR: Exception encountered in CatalogPostgREST.upsert(). Input:")
             print(upsertDataList)
