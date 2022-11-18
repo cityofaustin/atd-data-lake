@@ -18,6 +18,8 @@ class Publisher:
         @param simulationMode: If True, the cloud resource will not be written to
         @param writeFilePath: If a filename is specified here, then publishing will go to the given file in addition to a cloud resource
         """
+        # TODO: Right now we don't seem to need catalog or dataSource. But in the future we could automatically update the catalog
+        # inside the publisher rather than doing it in the ETL scripts.
         self.connector = connector
         self.catalog = catalog
         self.dataSource = dataSource
