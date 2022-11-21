@@ -3,8 +3,6 @@ Publish GRIDSMART Aggregated "Ready" Data Lake data
 
 @author Kenneth Perrine, Nadia Florez
 """
-import hashlib
-
 import arrow
 
 import _setpath
@@ -47,6 +45,7 @@ class GSAggPublishApp(etl_app.ETLApp):
         self.publisher = config.createPublisher("gs", None, self.storageSrc.catalog,
                                                 simulationMode=self.simulationMode,
                                                 writeFilePath=self.writeFilePath)
+        self.publisher.configureID(["intersection_name", "read_date", "heavy_vehicle", "direction", "movement"], "record_id")
         
         # Configure the source and target repositories and start the compare loop:
         count = self.doCompareLoop(last_update.LastUpdStorageCatProv(self.storageSrc, extFilter="agg%d.json" % self.args.agg),
@@ -127,13 +126,6 @@ class GSAggPublishApp(etl_app.ETLApp):
                      "minute": timestamp.minute,
                      "day_of_week": (timestamp.weekday() + 1) % 7,
                      "bin_duration": self.args.agg * 60}
-            hashFields = ["intersection_name", "read_date", "heavy_vehicle", "direction", "movement"]
-
-            hashStr = "".join([str(entry[q]) for q in hashFields])
-            hasher = hashlib.md5()
-            hasher.update(hashStr.encode("utf-8"))
-            entry["record_id"] = hasher.hexdigest()
-
             self.publisher.addRow(entry)
         
         # Write contents to publisher:

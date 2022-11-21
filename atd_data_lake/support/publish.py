@@ -3,7 +3,7 @@ publish.py coordinates the publishing of data, and noting the publishing in the 
 
 @author Kenneth Perrine
 """
-import csv, os
+import csv, os, hashlib
 
 class Publisher:
     """
@@ -25,6 +25,8 @@ class Publisher:
         self.dataSource = dataSource
         self.chunkSize = connector.getPreferredChunk()
         self.simulationMode = simulationMode
+        self.hashFields = []
+        self.idKey = ""
         
         # For internal operation:
         self.buffer = []
@@ -35,11 +37,28 @@ class Publisher:
             print("INFO: Writing to: %s" % filePath)
             self.fileWriter = PublishCSVConn(filePath)
         
-    def addRow(self, jsonRecord):
+    def configureID(self, hashFields: [str], idKey="id") -> None:
+        """
+        Allows for the automatic creation of a unique ID that consists of an MD5 hash of the given fields. Set hashFields to None or []
+        to disable.
+        """
+        self.hashFields = hashFields
+        self.idKey = idKey
+        
+    def addRow(self, jsonRecord: {}) -> None:
         """
         Adds a row to the buffer, and flushes if we get up to the chunk size.
         """
+        # Auto-create ID: Warning: This mutates jsonRecord.
+        if self.hashFields:
+            hashStr = "".join([str(jsonRecord[q]) for q in self.hashFields])
+            hasher = hashlib.md5()
+            hasher.update(hashStr.encode("utf-8"))
+            jsonRecord[self.idKey] = hasher.hexdigest()
+
         self.buffer.append(jsonRecord)
+                
+        # Determine if we need to publish:
         if self.chunkSize and len(self.buffer) >= self.chunkSize:
             self.flush()
             
