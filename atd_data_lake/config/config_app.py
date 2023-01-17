@@ -48,7 +48,7 @@ KNACK_PERFMET_ID = getattr(config_secret, "KNACK_PERFMET_ID", "")
 AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", "")
 AWS_SECRET_KEY = getattr(config_secret, "AWS_SECRET_KEY", "")
 
-SOC_HOST = "data.austintexas.gov"
+SOC_HOST = "datahub.austintexas.gov"
 SOC_IDENTIFIER = "datalake"
 SOC_APP_TOKEN = getattr(config_secret, "SOC_APP_TOKEN", "")
 SOC_WRITE_AUTH = getattr(config_secret, "SOC_WRITE_AUTH", ())
