@@ -41,6 +41,7 @@ PERFMET_OBS_URL = "https://atd-postgrest.austinmobility.io/ctr-data-lake/etl_per
 KNACK_API_KEY = getattr(config_secret, "KNACK_API_KEY", "")
 KNACK_APP_ID = getattr(config_secret, "KNACK_APP_ID", "")
 
+KNACK_PERFMET_API = getattr(config_secret, "KNACK_PERFMET_API", "Knack")
 KNACK_PERFMET_ID = getattr(config_secret, "KNACK_PERFMET_ID", "")
 
 AWS_KEY_ID = getattr(config_secret, "AWS_KEY_ID", "")

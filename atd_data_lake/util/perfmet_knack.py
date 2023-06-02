@@ -72,14 +72,14 @@ def delete(jobData, obsData):
     for record in obsData:
         regulate(lambda: record_view(record,
                                      app_id=config_app.KNACK_PERFMET_ID,
-                                     api_key="knack",
+                                     api_key=config_app.KNACK_PERFMET_API,
                                      method="delete",
                                      scene=KNACK_OBS_VIEW["scene"],
                                      view=KNACK_OBS_VIEW["view"]))
     for record in jobData:
         regulate(lambda: record_view(record,
                                      app_id=config_app.KNACK_PERFMET_ID,
-                                     api_key="knack",
+                                     api_key=config_app.KNACK_PERFMET_API,
                                      method="delete",
                                      scene=KNACK_JOB_VIEW["scene"],
                                      view=KNACK_JOB_VIEW["view"]))
@@ -106,7 +106,7 @@ def uploadJobs(jobs):
                                                              "to": localTimeStruct(job["collection_end"])}]}
         regulate(lambda: record_view(record,
                                      app_id=config_app.KNACK_PERFMET_ID,
-                                     api_key="knack",
+                                     api_key=config_app.KNACK_PERFMET_API,
                                      method="create",
                                      scene=KNACK_JOB_VIEW["scene"],
                                      view=KNACK_JOB_VIEW["view"]))
@@ -175,7 +175,7 @@ def _uploadObs(targetDate, observations):
             record[fields["timestamp_range_max"]] = min((date_util.localize(date_util.parseDate(obs["timestamp_max"])) - day).total_seconds() / 3600, 24)
         regulate(lambda: record_view(record,
                                      app_id=config_app.KNACK_PERFMET_ID,
-                                     api_key="knack",
+                                     api_key=config_app.KNACK_PERFMET_API,
                                      method="create",
                                      scene=KNACK_OBS_VIEW["scene"],
                                      view=KNACK_OBS_VIEW["view"]))
