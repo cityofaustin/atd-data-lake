@@ -14,7 +14,6 @@ TS_RENAME = {'ATD_LOCATION_ID': 'atd_location_id',
              'ATD_SENSOR_ID': 'atd_device_id',
              'READER_ID': 'device_name',
              'SENSOR_IP': 'device_ip',
-             'IP_COMM_STATUS': 'ip_comm_status',
              'SENSOR_TYPE': 'device_type',
              'SENSOR_STATUS': 'device_status',
              'COA_INTERSECTION_ID': 'coa_intersection_id',
@@ -57,9 +56,12 @@ class UnitDataCommonKnack:
         locs = []
         for loc in locsAccessor:
             rec = loc.format(values=False)
-            rec['LOCATION_latitude'] = rec['LOCATION']['latitude']
-            rec['LOCATION_longitude'] = rec['LOCATION']['longitude']
-            locs.append(rec)
+            if 'LOCATION' not in rec or not rec['LOCATION']:
+                print("WARNING: Knack ID " + rec['id'] + " 'LOCATION' field is invalid. Skipping.")
+            else:
+                rec['LOCATION_latitude'] = rec['LOCATION']['latitude']
+                rec['LOCATION_longitude'] = rec['LOCATION']['longitude']
+                locs.append(rec)
         del knackApp, locsAccessor
     
         atdLocColumns = ['ATD_LOCATION_ID', 'COA_INTERSECTION_ID', 'CROSS_ST',
@@ -91,7 +93,7 @@ class UnitDataCommonKnack:
         # Reorder the columns:
         devicesData = devicesData[['device_type', 'atd_device_id',
                                    'device_name', 'device_status', 'device_ip',
-                                   'ip_comm_status', 'atd_location_id',
+                                   'atd_location_id',
                                    'coa_intersection_id',
                                    'lat', 'lon', 'primary_st',
                                    'primary_st_segment_id',
