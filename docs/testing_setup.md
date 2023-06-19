@@ -8,6 +8,7 @@ We need to figure out:
 
 Thing to do:
 
-- [ ] Consider a flag that enables default debug/test. Factories create/access things that work in a test data directory structure and support SQLite for the Catalog. 
+- [ ] Consider a flag that enables default debug/test. Factories create/access things that work in a test data directory structure and support SQLite (via SQLAlchemy) for the Catalog. 
 - [ ] Implement classes that allow for direct file access, Catalog access, etc.
-- [ ] What about something that queries for the presence of something (given Purpose, debug flag, etc.)?
+- [ ] What about something that queries for the presence of a catalog entry (given Purpose, debug flag, etc.)?
+- [ ] Anything else that can help with items that update more frequently than once per day?
